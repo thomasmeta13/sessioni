@@ -1,0 +1,96 @@
+{
+  "title": "Market Report — March 30, 2026",
+  "date": "2026-03-30",
+  "sections": [
+    {
+      "title": "Major US Index Movements",
+      "content": "US markets were mixed on Monday as geopolitical tensions and surging oil prices created a divergence between traditional sectors and technology. The Dow Jones Industrial Average edged up 49.50 points (+0.11%) to close at 45,216.14, buoyed by strength in financials and industrials. The S&P 500 slipped 0.39% to 6,343.72, weighed down by heavy tech losses. The Nasdaq Composite dropped 0.73% to 20,794.64, with semiconductors leading the decline. The Russell 2000 was hit hardest, falling 1.78% as small-cap growth stocks bore the brunt of risk-off sentiment. The CBOE Volatility Index (VIX) topped 30 during the session, reflecting elevated investor anxiety. This marks the S&P 500's fifth consecutive weekly decline — its longest losing streak since early 2022.",
+      "highlights": [
+        "Dow Jones: 45,216.14 (+0.11%)",
+        "S&P 500: 6,343.72 (-0.39%)",
+        "Nasdaq Composite: 20,794.64 (-0.73%)",
+        "Russell 2000: -1.78%",
+        "VIX topped 30 intraday",
+        "S&P 500 posts fifth straight weekly decline"
+      ]
+    },
+    {
+      "title": "Key Sector Performance",
+      "content": "Energy was the day's clear winner as WTI crude settled up 3.25% at $102.88/barrel, with Brent crude hovering near $110. Energy stocks rallied broadly. Financials posted solid gains, with Travelers Companies rising 2.18%. Utilities also outperformed as investors rotated into defensive, yield-sensitive plays amid falling Treasury yields. Technology was the worst-performing sector, dropping over 1%, led by severe weakness in semiconductors — Micron fell 9.7% on continued post-earnings selling, while Lam Research declined 5.4%. Materials saw a notable divergence: aluminum stocks surged (Alcoa +9%) after Iranian missile strikes reportedly hit critical Middle East infrastructure for the metal industry. Industrials were mixed, with Caterpillar dropping 4.02% while Salesforce gained 3.19%.",
+      "highlights": [
+        "Energy: Top performer as WTI crude settled at $102.88/bbl (+3.25%)",
+        "Financials and Utilities: Solid gains on defensive rotation",
+        "Technology: Worst sector, down over 1%",
+        "Semiconductors: Sharp declines — Micron -9.7%, Lam Research -5.4%",
+        "Materials: Aluminum stocks surged on supply disruption fears (Alcoa +9%)"
+      ]
+    },
+    {
+      "title": "Notable Stock Movers",
+      "content": "Among the biggest gainers, Alcoa surged 9% on soaring aluminum prices driven by Middle East supply disruption fears. Palo Alto Networks (PANW) rose 5.11% after unveiling Prisma AIRS 3.0, an agentic security platform for autonomous AI systems. Salesforce (CRM) gained 3.19% and Walt Disney (DIS) added 1.92%. On the downside, Micron (MU) dropped 9.7% as its post-earnings slide continued. Caterpillar (CAT) fell 4.02% and Cisco Systems (CSCO) lost 3.58%. Nvidia (NVDA) declined 1.40%, though Oppenheimer reiterated an outperform rating on the chipmaker. GE Vernova (GEV) fell 3.94%. Morgan Stanley lowered its price target on Meta (META) to $775 from $825 but maintained it as a top pick, citing that sentiment has troughed on GenAI ROIC concerns.",
+      "highlights": [
+        "Alcoa (AA): +9% on aluminum supply disruption",
+        "Palo Alto Networks (PANW): +5.11% on Prisma AIRS 3.0 launch",
+        "Salesforce (CRM): +3.19%",
+        "Micron (MU): -9.7% on continued post-earnings selling",
+        "Caterpillar (CAT): -4.02%",
+        "Morgan Stanley cuts META target to $775 from $825"
+      ]
+    },
+    {
+      "title": "Macro Factors",
+      "content": "The Federal Reserve held interest rates steady at 3.50%–3.75% at its March 18 meeting, with a unanimous FOMC vote. Inflation remains sticky: Core PCE climbed to 3.0%, well above the Fed's 2% target, driven in part by surging energy costs tied to the Middle East conflict. The Fed projects 2.4% GDP growth in 2026 and 2.7% headline and core PCE inflation. Markets that began the year pricing in four rate cuts have aggressively recalibrated — futures now show just one or two modest cuts likely only in late 2026. Notably, the probability of a rate hike by year-end crossed 50% for the first time, reaching 52%. Oil prices remain the dominant macro variable, with Brent crude near $110/barrel as the Iran-Israel conflict escalates, Houthi attacks continue, and ceasefire negotiations remain uncertain.",
+      "highlights": [
+        "Fed Funds Rate: 3.50%–3.75% (held steady March 18)",
+        "Core PCE Inflation: 3.0% — sticky and above target",
+        "GDP Growth Forecast: 2.4% for 2026",
+        "Rate hike probability crossed 50% for the first time",
+        "Brent crude near $110/bbl on Middle East escalation",
+        "Market rate cut expectations down from four to one or two"
+      ]
+    },
+    {
+      "title": "Crypto Summary",
+      "content": "Bitcoin held the critical $67,000 support level, trading at approximately $67,823 with modest 1.37% gains. Ethereum led major-cap tokens with a 2.88% rise to $2,061. Total crypto market capitalization stood at $2.42 trillion with $74.72 billion in 24-hour volume — below recent averages, suggesting reduced conviction. The Fear & Greed Index remained at an extreme fear reading of 8, yet prices showed resilience. Bitcoin briefly surged above $67,600 on news of potential de-escalation in the Strait of Hormuz following Trump's announcement of Iran ceasefire talks. However, institutional headwinds persist: US spot Bitcoin ETFs saw approximately $2.8 billion in outflows over the past week, representing consistent selling pressure.",
+      "highlights": [
+        "Bitcoin (BTC): ~$67,823 (+1.37%)",
+        "Ethereum (ETH): ~$2,061 (+2.88%)",
+        "Total crypto market cap: $2.42T",
+        "Fear & Greed Index: 8 (Extreme Fear)",
+        "Bitcoin ETF outflows: ~$2.8B over past week",
+        "Brief rally on Iran ceasefire talk headlines"
+      ]
+    },
+    {
+      "title": "Week Ahead: March 30 – April 3",
+      "content": "This is a holiday-shortened week with markets closed Friday for Good Friday. The economic calendar is packed: Consumer Confidence on Tuesday, Retail Sales and manufacturing data on Wednesday, Jobless Claims and Trade Balance on Thursday, and the March Nonfarm Payrolls report on Friday (released with markets closed). Corporate earnings in focus include Nike (NKE) and McCormick & Company (MKC), both reporting Tuesday. The overriding variable remains the Iran-Israel conflict trajectory and its impact on oil prices. Analysts note that a ceasefire or substantial de-escalation would likely trigger a significant equity rally, while further escalation could push oil higher and deepen the tech selloff.",
+      "highlights": [
+        "Holiday-shortened week — markets closed Friday (Good Friday)",
+        "Key data: Consumer Confidence (Tue), Retail Sales (Wed), Nonfarm Payrolls (Fri)",
+        "Earnings: Nike and McCormick report Tuesday",
+        "Iran-Israel conflict trajectory remains the dominant market driver",
+        "Oil price direction will dictate sector rotation patterns"
+      ]
+    }
+  ],
+  "outlook": {
+    "summary": "Markets face a pivotal week as the Iran-Israel conflict dominates price action, sticky inflation narrows Fed options, and a packed economic calendar including the jobs report will test investor sentiment. The fifth straight weekly S&P 500 decline and VIX above 30 signal elevated risk, but ceasefire progress could trigger a sharp relief rally. Defensive positioning in energy, financials, and utilities is likely to persist unless geopolitical tensions ease materially.",
+    "bullish": [
+      "Potential Iran ceasefire talks could spark a significant relief rally across equities and crypto",
+      "Fed holding rates steady provides stability; no imminent tightening",
+      "Strong GDP growth projection of 2.4% suggests underlying economic resilience",
+      "Defensive sectors (energy, utilities, financials) showing leadership and rotation opportunity",
+      "Extreme fear in crypto (Fear & Greed at 8) historically precedes rebounds",
+      "Holiday-shortened week may reduce selling pressure"
+    ],
+    "bearish": [
+      "Oil above $100/bbl fueling inflation fears and squeezing consumer spending",
+      "Core PCE at 3.0% — sticky inflation limiting Fed flexibility on cuts",
+      "Rate hike probability crossing 50% for first time — hawkish repricing risk",
+      "S&P 500 in its longest weekly losing streak since early 2022",
+      "VIX above 30 signals persistent uncertainty and elevated hedging costs",
+      "Semiconductor sector under heavy selling pressure; institutional Bitcoin ETF outflows continue",
+      "Middle East escalation risk remains — Houthi attacks ongoing, no ceasefire in place"
+    ]
+  }
+}

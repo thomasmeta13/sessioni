@@ -1,0 +1,385 @@
+{
+  "title": "Red Light Therapy (Photobiomodulation) - Buy vs Build vs Budget Analysis",
+  "date_compiled": "2026-03-30",
+
+  "1_summary": {
+    "what_is_it": "Red light therapy (RLT), also called photobiomodulation (PBM) or low-level laser/light therapy (LLLT), uses specific wavelengths of red and near-infrared (NIR) light to stimulate cellular processes. When these wavelengths penetrate skin and tissue, they are absorbed primarily by cytochrome c oxidase (Complex IV) in the mitochondrial respiratory chain, leading to increased ATP production, modulation of reactive oxygen species (ROS), release of nitric oxide, and activation of various transcription factors.",
+
+    "key_wavelengths": {
+      "red_light": {
+        "range_nm": "630-670",
+        "sweet_spot_nm": "660",
+        "penetration": "Superficial to moderate (skin, subcutaneous tissue). Best for skin health, collagen production, wound healing, acne.",
+        "mechanism": "Absorbed by cytochrome c oxidase. Enhances ATP production in surface-level tissues."
+      },
+      "near_infrared": {
+        "range_nm": "810-850",
+        "sweet_spot_nm": "850",
+        "penetration": "Deep (muscles, joints, bone, organs). Best for muscle recovery, joint pain, deeper tissue repair, inflammation.",
+        "mechanism": "Same primary chromophore (cytochrome c oxidase) but penetrates significantly deeper due to longer wavelength."
+      },
+      "other_wavelengths_sometimes_used": [
+        {"nm": 590, "use": "Yellow/amber - sometimes included for superficial skin benefits"},
+        {"nm": 830, "use": "NIR variant - some panels offer this alongside 850nm"},
+        {"nm": 1060, "use": "Newer addition by PlatinumLED - targets adipose tissue/fat metabolism"}
+      ]
+    },
+
+    "what_science_says": "There is a substantial and growing body of peer-reviewed research supporting PBM for specific applications (skin rejuvenation, wound healing, muscle recovery, pain reduction, and inflammation). The primary mechanism (cytochrome c oxidase absorption leading to enhanced mitochondrial function) is well-established. However, much of the clinical evidence is rated 'low to moderate certainty' due to small sample sizes, varied protocols, and heterogeneous study designs. The FDA cleared the first PBM device for age-related macular degeneration in November 2024. Overall: promising and biologically plausible, but not yet at the level of 'definitive clinical proof' for most claims. More large-scale RCTs are needed."
+  },
+
+  "2_key_research_papers": [
+    {
+      "id": 1,
+      "title": "A Controlled Trial to Determine the Efficacy of Red and Near-Infrared Light Treatment in Patient Satisfaction, Reduction of Fine Lines, Wrinkles, Skin Roughness, and Intradermal Collagen Density Increase",
+      "authors": "Wunsch A, Matuschka K",
+      "year": 2014,
+      "journal": "Photomedicine and Laser Surgery",
+      "key_finding": "136 volunteers treated with 611-650nm and 570-850nm light showed significantly improved skin complexion, reduced roughness, and increased intradermal collagen density measured by ultrasound vs controls over 30 sessions.",
+      "pmid": "PMC3926176",
+      "relevance": "Gold-standard RCT for skin/collagen benefits"
+    },
+    {
+      "id": 2,
+      "title": "Proposed Mechanisms of Photobiomodulation or Low-Level Light Therapy",
+      "authors": "de Freitas LF, Hamblin MR",
+      "year": 2016,
+      "journal": "IEEE Journal of Selected Topics in Quantum Electronics",
+      "key_finding": "Comprehensive review establishing that the primary chromophore is cytochrome c oxidase. Photon absorption dissociates inhibitory nitric oxide from the enzyme, increasing electron transport, mitochondrial membrane potential, and ATP production. Secondary effects include ROS burst, NO increase, and calcium modulation.",
+      "pmid": "28070154",
+      "relevance": "Foundational mechanistic review - explains WHY red light therapy works at the molecular level"
+    },
+    {
+      "id": 3,
+      "title": "Mechanisms and Applications of the Anti-Inflammatory Effects of Photobiomodulation",
+      "authors": "Hamblin MR",
+      "year": 2017,
+      "journal": "AIMS Biophysics",
+      "key_finding": "PBM reduces inflammation by decreasing pro-inflammatory cytokines (TNF-alpha, IL-1beta, IL-6) and increasing anti-inflammatory cytokines (IL-10). Works via NF-kB pathway modulation triggered by mitochondrial signaling.",
+      "pmid": "28748217",
+      "relevance": "Key review on anti-inflammatory mechanisms"
+    },
+    {
+      "id": 4,
+      "title": "Low-Level Laser (Light) Therapy (LLLT) on Muscle Tissue: Performance, Fatigue and Repair Benefited by the Power of Light",
+      "authors": "Ferraresi C, Huang YY, Hamblin MR",
+      "year": 2012,
+      "journal": "Photonics & Lasers in Medicine (PMC3635110)",
+      "key_finding": "Systematic review showing LLLT and LED therapy improve muscle performance, reduce fatigue during exercise, and benefit muscle repair. LLLT applied before exercise increased VO2max, exercise time, and reduced creatine kinase (muscle damage marker) vs placebo.",
+      "pmid": "PMC3635110",
+      "relevance": "Core evidence for athletic/muscle recovery applications"
+    },
+    {
+      "id": 5,
+      "title": "Effect of Phototherapy (Low-Level Laser Therapy and Light-Emitting Diode Therapy) on Exercise Performance and Markers of Exercise Recovery: A Systematic Review with Meta-Analysis",
+      "authors": "Leal-Junior EC, Vanin AA, Miranda EF, et al.",
+      "year": 2015,
+      "journal": "Lasers in Medical Science",
+      "key_finding": "Meta-analysis of 16 RCTs confirmed phototherapy applied before exercise significantly increases number of repetitions, time to exhaustion, and reduces creatine kinase levels. PBM outperformed cryotherapy for muscle recovery.",
+      "relevance": "Meta-analytic confirmation of exercise/recovery benefits"
+    },
+    {
+      "id": 6,
+      "title": "Photobiomodulation Therapy Mechanisms Beyond Cytochrome c Oxidase",
+      "authors": "Hamblin MR, Liebert A",
+      "year": 2022,
+      "journal": "Photobiomodulation, Photomedicine, and Laser Surgery",
+      "key_finding": "Identifies additional chromophores beyond cytochrome c oxidase, including opsins and light-gated ion channels. Suggests PBM effects are more complex than the single-chromophore model and may involve the microbiome and circadian biology.",
+      "pmid": "34818111",
+      "relevance": "Latest mechanistic understanding - expands beyond the simple mitochondria model"
+    },
+    {
+      "id": 7,
+      "title": "Unlocking the Power of Light on the Skin: A Comprehensive Review on Photobiomodulation",
+      "authors": "Various",
+      "year": 2024,
+      "journal": "International Journal of Molecular Sciences (MDPI)",
+      "key_finding": "Comprehensive 2024 review confirming PBM's efficacy for skin rejuvenation, wound healing, and dermatological conditions. Notes the field is moving toward standardized dosimetry protocols.",
+      "url": "https://www.mdpi.com/1422-0067/25/8/4483",
+      "relevance": "Most recent comprehensive dermatology review"
+    },
+    {
+      "id": 8,
+      "title": "Stanford Medicine: Red Light Therapy - What the Science Says",
+      "authors": "Stanford Medicine editorial",
+      "year": 2025,
+      "source": "Stanford Medicine News/Insights",
+      "key_finding": "Balanced institutional summary noting legitimate biological mechanisms and clinical evidence while cautioning that many consumer claims outpace the science. The field is promising but still maturing.",
+      "url": "https://med.stanford.edu/news/insights/2025/02/red-light-therapy-skin-hair-medical-clinics.html",
+      "relevance": "Authoritative institutional perspective from a top medical school"
+    }
+  ],
+
+  "3_buy_vs_build_vs_knockoff": {
+
+    "A_premium_commercial_devices": {
+      "overview": "Established brands with independent third-party testing, warranties, customer support, and generally higher build quality. Premium pricing reflects brand positioning, R&D, and marketing overhead.",
+      "devices": [
+        {
+          "brand": "Joovv",
+          "model": "Solo 3.0",
+          "price_usd": "1,699",
+          "wavelengths": "660nm + 850nm (2 wavelengths)",
+          "led_count": "150 LEDs",
+          "features": "Ambient mode, Recovery+ mode, Bluetooth/app control, modular (stackable with other Joovv units)",
+          "warranty": "2 years",
+          "irradiance_claimed": ">100 mW/cm2 at 6 inches",
+          "notes": "Pioneer brand, premium positioning. Most expensive per watt. Good build quality and ecosystem but priced for brand cachet."
+        },
+        {
+          "brand": "PlatinumLED",
+          "model": "BioMax 600",
+          "price_usd": "899-1,099",
+          "wavelengths": "630nm + 660nm + 810nm + 830nm + 850nm (5 wavelengths), newer models add 1060nm (6 wavelengths)",
+          "led_count": "200 dual-chip LEDs",
+          "features": "R+/NIR+ modes, modular, third-party tested, low EMF, low flicker",
+          "warranty": "3 years",
+          "irradiance_claimed": ">100 mW/cm2 at 6 inches",
+          "notes": "Widely considered best specs-per-dollar among premium brands. The BioMax 900 (300 LEDs) runs ~$1,199+."
+        },
+        {
+          "brand": "Mito Red Light",
+          "model": "MitoPRO 1500+",
+          "price_usd": "1,099-1,199 (frequently discounted 12-20%)",
+          "wavelengths": "630nm + 660nm + 810nm + 830nm + 850nm (5 wavelengths)",
+          "led_count": "300 dual-chip LEDs",
+          "features": "Large full-body panel, third-party tested, modular, HSA/FSA eligible",
+          "warranty": "3 years",
+          "irradiance_claimed": ">100 mW/cm2 at 6 inches",
+          "notes": "Best value among premium brands. Roughly 40% cheaper than comparable Joovv. The MitoPRO X series adds touchscreen and 6 wavelengths."
+        }
+      ],
+      "price_range_summary": "$900-$1,700 for a single mid-to-large panel",
+      "pros": [
+        "Third-party tested irradiance, wavelength accuracy, EMF, and flicker",
+        "Proper thermal management and UL/ETL-listed power supplies",
+        "Customer support, warranties (2-3 years), and return policies (30-60 days)",
+        "Low EMF (<0.5 uT) and low flicker (<1%) in reputable brands",
+        "FDA Class II cleared (most major brands)",
+        "Modular systems for scaling to full-body coverage"
+      ],
+      "cons": [
+        "Significant upfront cost ($900-$3,000+ for full-body setups)",
+        "Brand markup - you're paying for marketing, packaging, and brand premium",
+        "Many use the same OEM LED chips as budget brands",
+        "Irradiance claims are sometimes inflated (measured with solar meters instead of spectrometers)"
+      ]
+    },
+
+    "B_budget_knockoff_devices": {
+      "overview": "Lower-cost alternatives available on Amazon, often manufactured by the same Chinese OEMs that supply some premium brands. Quality varies significantly. Some are genuinely good value; others cut corners on wavelength accuracy, driver quality, or EMF shielding.",
+      "devices": [
+        {
+          "brand": "Hooga",
+          "model": "HG300",
+          "price_usd": "159",
+          "wavelengths": "660nm + 850nm",
+          "led_count": "60 x 5W dual-chip LEDs",
+          "irradiance_claimed": ">70 mW/cm2",
+          "warranty": "3 years",
+          "notes": "Very popular entry-level panel. Solid build for the price. 60-day trial. Available on Amazon."
+        },
+        {
+          "brand": "Hooga",
+          "model": "PRO300",
+          "price_usd": "242",
+          "wavelengths": "660nm + 850nm",
+          "led_count": "60 dual-chip LEDs (upgraded from HG300)",
+          "irradiance_claimed": "Higher than HG300",
+          "warranty": "3 years",
+          "notes": "Upgraded version with better driver and cooling. One of the most recommended budget panels."
+        },
+        {
+          "brand": "BestQool",
+          "model": "Various models",
+          "price_usd": "160-400",
+          "wavelengths": "660nm + 850nm",
+          "notes": "Budget option on Amazon with dual-chip LEDs. Mixed independent reviews on actual irradiance vs claims."
+        },
+        {
+          "brand": "Generic AliExpress/Alibaba panels",
+          "model": "Various 660nm/850nm panels",
+          "price_usd": "80-300 (depending on size)",
+          "wavelengths": "Usually 660nm + 850nm",
+          "notes": "Direct from Chinese factories. Cheapest option but highest risk: no third-party testing, potential wavelength drift, higher EMF/flicker, minimal warranty enforcement, and long shipping times."
+        }
+      ],
+      "price_range_summary": "$80-$400 for comparable panel sizes",
+      "pros": [
+        "60-80% cheaper than premium brands for similar LED count and panel size",
+        "Many use the same OEM LED chips (e.g., Bridgelux, Epistar) as premium brands",
+        "Amazon options have easy returns and buyer protection",
+        "Good enough for experimenting / seeing if RLT works for you before investing more",
+        "Hooga specifically has built a good reputation in the budget segment"
+      ],
+      "cons": [
+        "Irradiance claims often untested or inflated",
+        "Higher EMF emissions common (some budget panels measure 10-50+ uT at surface)",
+        "Flicker can be significant (>5-10%) with cheap drivers",
+        "Wavelength accuracy less guaranteed (could be 640nm instead of 660nm)",
+        "Power supplies may not be UL-listed (fire safety concern)",
+        "Build quality and longevity uncertain",
+        "AliExpress panels have effectively no warranty enforcement"
+      ]
+    },
+
+    "C_diy_build": {
+      "overview": "Building your own panel from individual LED chips, drivers, and heatsinks. Ranges from simple LED strip builds (~$50-100) to serious high-power panels (~$150-400). Requires electronics knowledge.",
+
+      "difficulty_levels": {
+        "easy_led_strip_build": {
+          "description": "Using pre-made 660nm and 850nm LED strips mounted on a frame or inside a wearable",
+          "components": [
+            "660nm LED strips (5m roll): $15-30",
+            "850nm LED strips (5m roll): $15-30",
+            "12V DC power supply: $10-20",
+            "Frame material (aluminum/wood): $10-20",
+            "Wiring, connectors, switch: $5-10"
+          ],
+          "total_cost": "$50-110",
+          "irradiance": "LOW. LED strips typically deliver 5-20 mW/cm2 at best. Far below therapeutic thresholds for deeper tissue, but potentially useful for superficial skin contact applications.",
+          "difficulty": "Easy - basic soldering and wiring",
+          "notes": "The Hackaday 2025 project used this approach (~$100) for a wearable LED mask/suit. Simple but low power."
+        },
+        "moderate_high_power_led_build": {
+          "description": "Using individual high-power 3W-5W LEDs (660nm and 850nm) on aluminum PCBs with proper drivers and heatsinks",
+          "components": [
+            "60x high-power 3W LEDs (mix of 660nm and 850nm, e.g., Bridgelux/Epistar): $30-60 (from AliExpress/Mouser)",
+            "Aluminum PCB star boards or custom PCB: $20-40",
+            "Constant current LED drivers (Meanwell or equivalent): $30-60",
+            "Aluminum heatsink extrusion (large): $20-40",
+            "Cooling fans (40mm or 60mm, 12V): $10-15",
+            "Frame and mounting: $15-30",
+            "Wiring, thermal paste, lenses (optional): $10-20",
+            "Power supply (36-48V, sufficient wattage): $20-40"
+          ],
+          "total_cost": "$150-300",
+          "irradiance": "MODERATE to HIGH. With proper design, can achieve 50-100+ mW/cm2 at 6 inches. Comparable to budget commercial panels.",
+          "difficulty": "Moderate - requires understanding of LED driving, thermal management, and electrical safety",
+          "notes": "This is where the real savings are. A panel equivalent to a $500-800 commercial panel can be built for $150-300."
+        },
+        "advanced_professional_grade": {
+          "description": "Full panel with EMF shielding, low-flicker drivers, precise wavelength-binned LEDs, and proper enclosure",
+          "components": [
+            "All components from moderate build, plus:",
+            "Wavelength-binned LEDs from reputable supplier (tighter nm tolerance): +$20-40",
+            "EMF shielding (mu-metal or copper foil): +$15-30",
+            "Low-ripple constant current driver (reduces flicker): +$20-40",
+            "Professional enclosure/housing: +$30-50",
+            "Dimmer/timer circuit: +$10-20"
+          ],
+          "total_cost": "$250-500",
+          "irradiance": "HIGH. With quality components, can match or exceed commercial panels.",
+          "difficulty": "Advanced - requires electronics experience, soldering skills, and ideally a way to test output (spectrometer, power meter)",
+          "notes": "At this level you can genuinely match premium panels for 30-50% of the cost, but you need the skills and testing equipment."
+        }
+      },
+
+      "pros": [
+        "Potentially 60-80% savings vs commercial panels",
+        "Full control over wavelengths, LED density, and panel geometry",
+        "Educational and satisfying if you enjoy electronics projects",
+        "Can customize for specific body areas or use cases",
+        "Can upgrade and repair individual components"
+      ],
+      "cons": [
+        "No warranty or customer support",
+        "Risk of electrical safety issues (fire, shock) if not done properly",
+        "Difficult to verify wavelength accuracy without a spectrometer (~$300+ for a decent one)",
+        "Thermal management is critical and easy to get wrong (LEDs degrade fast when overheated)",
+        "EMF and flicker are hard to test and mitigate without proper equipment",
+        "Time investment: 10-40+ hours depending on complexity and experience",
+        "Generic red LEDs from random suppliers may NOT be at therapeutic wavelengths",
+        "No FDA clearance or safety certification"
+      ]
+    }
+  },
+
+  "4_key_considerations": {
+    "irradiance": {
+      "what_it_is": "Power density of light reaching your skin, measured in mW/cm2",
+      "therapeutic_range": "10-100+ mW/cm2 at treatment distance (typically 6-18 inches)",
+      "typical_session_dose": "Aim for 20-60 J/cm2 per session. At 50 mW/cm2, a 10-minute session delivers 30 J/cm2.",
+      "red_flags": "Claims of >150 mW/cm2 at 6+ inches from a standard panel are likely inflated (measured with solar meters, not spectrometers). Always look for third-party testing with a calibrated spectrometer."
+    },
+    "treatment_distance": {
+      "guideline": "Most panels are designed for 6-18 inch treatment distance. Closer = higher irradiance but smaller treatment area. Further = lower irradiance but more coverage.",
+      "contact_vs_distance": "Some protocols use direct skin contact for maximum dose. Most home panels are used at 6-12 inches."
+    },
+    "emf_concerns": {
+      "what_to_look_for": "Magnetic field <0.5 uT and electric field <1 V/m at treatment distance (6 inches)",
+      "context": "All electronic devices emit EMF. Concern is proportional to proximity and duration. Premium panels actively mitigate with shielding. Budget panels often do not.",
+      "how_to_test": "Use a TriField or similar EMF meter ($150-200). Test at your treatment distance, not at the panel surface."
+    },
+    "flicker": {
+      "what_it_is": "Rapid on/off cycling of LEDs driven by AC-derived power. Measured as flicker percentage.",
+      "safe_levels": "Flicker <1% is excellent. <5% is acceptable for most people. >10% can cause headaches, eye strain, and reduces dose consistency.",
+      "how_to_test_quick": "Use smartphone slow-motion video (240fps). Visible banding = high flicker.",
+      "cause": "Cheap LED drivers that don't fully smooth the AC ripple. Quality constant-current drivers virtually eliminate flicker."
+    },
+    "fda_status": {
+      "classification": "Most red light therapy panels are Class II medical devices",
+      "status": "FDA CLEARED (510k) - NOT FDA APPROVED. Clearance means 'substantially equivalent to a predicate device.' It does NOT mean the FDA has independently verified efficacy claims.",
+      "implication": "FDA clearance provides some baseline safety assurance but should not be confused with clinical validation of marketing claims.",
+      "notable": "In November 2024, the FDA authorized the first PBM device for age-related macular degeneration treatment."
+    },
+    "wavelength_accuracy": {
+      "importance": "Therapeutic effects are wavelength-specific. A 640nm LED is not the same as a 660nm LED for cytochrome c oxidase absorption.",
+      "how_to_verify": "Request spectral power distribution reports. Reputable brands provide third-party spectroradiometry data.",
+      "tolerance": "LEDs typically have +/-10nm tolerance. Binned LEDs have tighter tolerance (+/-5nm). For therapy, being within 10nm of target is generally considered acceptable."
+    },
+    "eye_safety": {
+      "red_660nm": "Visible and bright. Uncomfortable to look at directly but generally low risk at therapy distances. Wear goggles if treating face.",
+      "nir_850nm": "INVISIBLE but still hits retina. More dangerous because you don't squint reflexively. Always use appropriate eye protection for NIR exposure, especially at close range."
+    }
+  },
+
+  "5_verdict_and_recommendation": {
+    "for_budget_conscious_beginners": {
+      "recommendation": "Buy a Hooga HG300 ($159) or PRO300 ($242)",
+      "reasoning": "Best risk/reward ratio. Low enough cost to experiment without commitment. Adequate specs for a starter panel. Amazon return policy provides safety net. If you find RLT beneficial, you can upgrade later. This is the 'try before you invest heavily' option."
+    },
+    "for_serious_users_wanting_quality": {
+      "recommendation": "Buy a Mito Red MitoPRO series or PlatinumLED BioMax series ($900-$1,200)",
+      "reasoning": "Best balance of price, specs, and verification. Both brands provide third-party testing data, have 3-year warranties, low EMF/flicker, and multi-wavelength output. Mito Red offers the best value; PlatinumLED offers the most wavelengths and build quality. Skip Joovv unless you specifically want their app ecosystem -- you pay a significant premium for the brand name."
+    },
+    "for_electronics_hobbyists": {
+      "recommendation": "DIY moderate-level build ($150-300)",
+      "reasoning": "If you have electronics experience, enjoy building things, and understand LED driving/thermal management, you can build a panel matching budget commercial devices for half the cost. Use Bridgelux or Epistar 3W LEDs from a reputable supplier, Meanwell constant-current drivers, and proper aluminum heatsinking. However, you MUST be able to verify your output -- without at least a basic power meter, you're guessing at dosimetry."
+    },
+    "for_cheapest_possible_option": {
+      "recommendation": "AliExpress generic panel ($80-150) OR simple LED strip DIY ($50-100)",
+      "reasoning": "If you purely want to minimize cost and accept uncertainty about exact specs, AliExpress panels give you the most watts per dollar. LED strip DIY is the absolute cheapest but delivers low irradiance. Neither option provides verified therapeutic parameters, but at these prices the financial risk is minimal."
+    },
+    "general_advice": [
+      "Start small and cheap. A $159 Hooga panel lets you test if RLT works for your specific goals before spending $1,000+.",
+      "Don't buy Joovv unless you truly value their ecosystem. You're paying 40-70% more for comparable specs.",
+      "If going budget/knockoff, prioritize Amazon over AliExpress for buyer protection.",
+      "If going DIY, invest in a $30-50 optical power meter to verify your output. Building blind is building wrong.",
+      "Regardless of device, consistency matters more than device cost. 10 minutes daily with a $150 panel beats owning a $1,500 panel you never use.",
+      "Protect your eyes, especially with NIR wavelengths. Budget $10-20 for proper laser safety goggles rated for your wavelengths."
+    ]
+  },
+
+  "sources": [
+    "https://med.stanford.edu/news/insights/2025/02/red-light-therapy-skin-hair-medical-clinics.html",
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC3926176/",
+    "https://pubmed.ncbi.nlm.nih.gov/28070154/",
+    "https://pubmed.ncbi.nlm.nih.gov/28748217/",
+    "https://pmc.ncbi.nlm.nih.gov/articles/PMC3635110/",
+    "https://pubmed.ncbi.nlm.nih.gov/34818111/",
+    "https://www.mdpi.com/1422-0067/25/8/4483",
+    "https://my.clevelandclinic.org/health/articles/22114-red-light-therapy",
+    "https://joovv.com/products/joovv-solo-3-0",
+    "https://platinumtherapylights.com/products/biomax-rlt",
+    "https://mitoredlight.com/products/mitopro-series",
+    "https://hoogahealth.com/products/hooga-300w-red-and-near-infrared-light-therapy-panel",
+    "https://hackaday.com/2025/03/18/diy-your-own-red-light-therapy-gear/",
+    "https://lighttherapyred.com/diy-red-light-therapy-panel-a-genius-hack-or-a-dangerous-mistake",
+    "https://outliyr.com/red-light-therapy-flicker-and-health",
+    "https://rlthome.com/blogs/news/emf-in-red-light-therapy-the-facts-and-why-you-should-care",
+    "https://www.kaiyanmedical.com/post/is-red-light-therapy-fda-approved",
+    "https://redlitex.com/joovv-vs-platinumled-vs-mito-red-light/",
+    "https://www.lighttherapyinsiders.com/best-value-red-light-therapy-panel/"
+  ]
+}

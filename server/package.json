@@ -1,0 +1,11 @@
+{
+  "name": "ikigai-bridge",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@claude-sessions/manager": "file:/Users/openclaudio/claude-sessions/management"
+  }
+}

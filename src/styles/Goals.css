@@ -1,0 +1,387 @@
+/* ── Nav Tabs ─────────────────────────────── */
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.nav-tab {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── Tag Colors ──────────────────────────── */
+.tag-health { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.tag-tech { background: rgba(59, 130, 246, 0.12); color: #60a5fa; }
+.tag-home { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.tag-finance { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+
+/* ── Goal Card Hero ──────────────────────── */
+.goal-card-hero {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05));
+  border-bottom: 1px solid var(--border);
+}
+
+.goal-card-icon {
+  font-size: 48px;
+}
+
+.goal-status-pill {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.goal-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.goals-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ── Goal Detail Tabs ────────────────────── */
+.goal-detail-status {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.goal-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 24px;
+}
+
+.goal-tab {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 14px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.goal-tab:hover { color: var(--text); }
+.goal-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.goal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 40px;
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Overview Tab ────────────────────────── */
+.goal-overview {}
+
+.go-section {
+  margin-bottom: 32px;
+}
+
+.go-section h3 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.go-section p {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+
+.go-wavelengths {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.go-wl-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.go-wl-nm {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.go-wl-type {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.go-wl-depth {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.go-wl-for {
+  font-size: 12px;
+  color: var(--gold);
+  margin-top: 4px;
+}
+
+.go-highlight {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #c4b5fd;
+  margin-bottom: 32px;
+}
+
+.go-considerations {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.go-consideration {
+  display: flex;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.go-c-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.go-c-detail {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.go-bottomline {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #6ee7b7;
+}
+
+.go-bottomline strong {
+  color: #34d399;
+}
+
+/* ── Research Tab ────────────────────────── */
+.gr-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.gr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.gr-item {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.2s;
+}
+
+.gr-item:hover { border-color: rgba(99, 102, 241, 0.3); }
+
+.gr-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.gr-body { flex: 1; }
+
+.gr-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.gr-title a {
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.gr-title a:hover { color: var(--accent); }
+
+.gr-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.gr-meta span:not(:last-child)::after {
+  content: '·';
+  margin-left: 12px;
+  color: var(--border);
+}
+
+.gr-finding {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* ── Options Tab ─────────────────────────── */
+.go-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.go-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.go-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.go-col-emoji {
+  margin-right: 6px;
+}
+
+.go-table td {
+  padding: 12px 16px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  line-height: 1.5;
+}
+
+.go-table tr:last-child td { border-bottom: none; }
+
+.go-table tr:hover td { background: rgba(99, 102, 241, 0.03); }
+
+.go-criteria {
+  font-weight: 600;
+  color: var(--text) !important;
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+/* ── Notes Tab ───────────────────────────── */
+.goal-notes {
+  max-width: 680px;
+}
+
+.goal-notes pre {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 768px) {
+  .goal-tabs { padding: 0 16px; gap: 0; }
+  .goal-tab { padding: 12px 14px; font-size: 13px; }
+  .goal-content { padding: 20px 16px; }
+  .go-section h3 { font-size: 15px; }
+  .go-section p { font-size: 13px; }
+  .go-consideration { flex-direction: column; gap: 4px; }
+  .go-c-label { min-width: unset; }
+  .go-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .go-table { font-size: 12px; min-width: 500px; }
+  .go-table th, .go-table td { padding: 10px 12px; }
+  .go-wl-card { padding: 12px; }
+  .gr-item { gap: 10px; }
+  .gr-title { font-size: 14px; }
+  .goal-card-hero { height: 100px; }
+}

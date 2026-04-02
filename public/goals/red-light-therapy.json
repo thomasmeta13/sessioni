@@ -1,0 +1,167 @@
+{
+  "id": "red-light-therapy",
+  "title": "Red Light Therapy",
+  "status": "researching",
+  "tag": "Health",
+  "tagClass": "tag-health",
+  "summary": "Should I buy a commercial red light therapy panel, get a budget knock-off, or build one myself? Investigating photobiomodulation for skin health, muscle recovery, and general wellness.",
+  "budget": "$100–$1,200",
+  "updated": "2026-03-30",
+  "overview": {
+    "what": "Red light therapy (photobiomodulation) uses 660nm red and 850nm near-infrared light to stimulate mitochondrial ATP production via cytochrome c oxidase absorption. The result: enhanced cellular energy, reduced inflammation, and faster tissue repair.",
+    "wavelengths": [
+      { "nm": "660nm", "type": "Red", "depth": "Skin & surface tissue", "best_for": "Collagen, wound healing, acne" },
+      { "nm": "850nm", "type": "Near-Infrared", "depth": "Deep tissue, muscle, joints", "best_for": "Recovery, pain, inflammation" }
+    ],
+    "science_status": "Biologically plausible with growing peer-reviewed support. Most studies are small but consistent. FDA cleared first PBM device for macular degeneration in Nov 2024. Still needs larger RCTs for many claims.",
+    "key_metric": "Aim for 20–60 J/cm² per session. At 50 mW/cm², a 10-min session delivers 30 J/cm².",
+    "bottom_line": "Start cheap to validate it works for your goals, then invest if warranted. Consistency matters more than device cost."
+  },
+  "research": [
+    {
+      "title": "Controlled Trial: Red & NIR Light on Skin Collagen",
+      "authors": "Wunsch A, Matuschka K",
+      "year": 2014,
+      "journal": "Photomedicine and Laser Surgery",
+      "finding": "136 volunteers showed significantly improved skin complexion, reduced roughness, and increased intradermal collagen density over 30 sessions vs controls.",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3926176/",
+      "type": "paper"
+    },
+    {
+      "title": "Mechanisms of Photobiomodulation",
+      "authors": "de Freitas LF, Hamblin MR",
+      "year": 2016,
+      "journal": "IEEE J. Selected Topics in Quantum Electronics",
+      "finding": "Established cytochrome c oxidase as primary chromophore. Photon absorption dissociates inhibitory NO, increasing electron transport and ATP production.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28070154/",
+      "type": "paper"
+    },
+    {
+      "title": "Anti-Inflammatory Effects of Photobiomodulation",
+      "authors": "Hamblin MR",
+      "year": 2017,
+      "journal": "AIMS Biophysics",
+      "finding": "PBM reduces pro-inflammatory cytokines (TNF-α, IL-1β, IL-6) and increases anti-inflammatory IL-10 via NF-κB pathway modulation.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28748217/",
+      "type": "paper"
+    },
+    {
+      "title": "LLLT on Muscle Tissue: Performance, Fatigue & Repair",
+      "authors": "Ferraresi C, Huang YY, Hamblin MR",
+      "year": 2012,
+      "journal": "Photonics & Lasers in Medicine",
+      "finding": "LLLT before exercise increased VO2max, exercise time, and reduced creatine kinase (muscle damage marker) vs placebo.",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3635110/",
+      "type": "paper"
+    },
+    {
+      "title": "Phototherapy Meta-Analysis: Exercise Recovery",
+      "authors": "Leal-Junior EC et al.",
+      "year": 2015,
+      "journal": "Lasers in Medical Science",
+      "finding": "Meta-analysis of 16 RCTs confirmed phototherapy before exercise significantly increases reps, time to exhaustion, and reduces CK levels. PBM outperformed cryotherapy.",
+      "type": "paper"
+    },
+    {
+      "title": "PBM Beyond Cytochrome c Oxidase",
+      "authors": "Hamblin MR, Liebert A",
+      "year": 2022,
+      "journal": "Photobiomod. Photomed. Laser Surg.",
+      "finding": "Identifies additional chromophores including opsins and light-gated ion channels. Effects may involve microbiome and circadian biology.",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/34818111/",
+      "type": "paper"
+    },
+    {
+      "title": "Comprehensive Review: PBM on Skin (2024)",
+      "authors": "Various",
+      "year": 2024,
+      "journal": "Int. J. Molecular Sciences (MDPI)",
+      "finding": "Confirms PBM efficacy for skin rejuvenation, wound healing, and dermatological conditions. Field moving toward standardized dosimetry.",
+      "url": "https://www.mdpi.com/1422-0067/25/8/4483",
+      "type": "paper"
+    },
+    {
+      "title": "Stanford Medicine: What the Science Says",
+      "authors": "Stanford Medicine editorial",
+      "year": 2025,
+      "journal": "Stanford Medicine News",
+      "finding": "Balanced institutional take: legitimate mechanisms and clinical evidence, but many consumer claims outpace the science. Promising but maturing.",
+      "url": "https://med.stanford.edu/news/insights/2025/02/red-light-therapy-skin-hair-medical-clinics.html",
+      "type": "article"
+    },
+    {
+      "title": "DIY Your Own Red Light Therapy Gear",
+      "year": 2025,
+      "journal": "Hackaday",
+      "finding": "Step-by-step DIY build using LED strips for ~$100. Simple approach but lower irradiance than commercial panels.",
+      "url": "https://hackaday.com/2025/03/18/diy-your-own-red-light-therapy-gear/",
+      "type": "guide"
+    }
+  ],
+  "options": {
+    "criteria": ["Price Range", "Wavelengths", "Irradiance", "EMF/Flicker", "Warranty", "Effort", "Verdict"],
+    "columns": [
+      {
+        "name": "Premium (Mito Red / PlatinumLED)",
+        "emoji": "🏆",
+        "values": [
+          "$900–$1,200",
+          "5 wavelengths (630/660/810/830/850nm)",
+          ">100 mW/cm² at 6\"",
+          "Low EMF, <1% flicker, third-party tested",
+          "3 years",
+          "Plug and play",
+          "Best for serious, committed users"
+        ]
+      },
+      {
+        "name": "Budget (Hooga HG300)",
+        "emoji": "💰",
+        "values": [
+          "$159–$242",
+          "2 wavelengths (660/850nm)",
+          ">70 mW/cm²",
+          "Acceptable but not independently verified",
+          "3 years (Amazon)",
+          "Plug and play",
+          "Best starter — validate before investing more"
+        ]
+      },
+      {
+        "name": "DIY Build",
+        "emoji": "🔧",
+        "values": [
+          "$150–$300",
+          "Custom (you choose LEDs)",
+          "50–100+ mW/cm² if done right",
+          "Depends on your driver and shielding",
+          "None",
+          "10–40 hours + electronics skills",
+          "Best if you enjoy building and can verify output"
+        ]
+      },
+      {
+        "name": "AliExpress Generic",
+        "emoji": "📦",
+        "values": [
+          "$80–$150",
+          "Usually 660/850nm (unverified)",
+          "Unknown — likely inflated claims",
+          "Often high EMF, untested flicker",
+          "Effectively none",
+          "Plug and play",
+          "Cheapest, but you're gambling on specs"
+        ]
+      }
+    ]
+  },
+  "considerations": [
+    { "label": "Irradiance", "detail": "Target 10–100+ mW/cm² at treatment distance. Claims >150 mW/cm² at 6\"+ are likely inflated." },
+    { "label": "EMF", "detail": "Keep <0.5 μT at treatment distance. Premium panels shield; budget ones often don't. Test with a TriField meter ($150)." },
+    { "label": "Flicker", "detail": "<1% excellent, <5% acceptable, >10% causes headaches. Test with phone slow-mo (240fps) — visible banding = bad." },
+    { "label": "FDA Status", "detail": "Class II CLEARED (not approved). Clearance ≠ efficacy validation, just 'substantially equivalent to existing device.'" },
+    { "label": "Eye Safety", "detail": "850nm NIR is invisible but hits retina. Always wear rated goggles, especially at close range." },
+    { "label": "Wavelength Accuracy", "detail": "±10nm tolerance is normal. Binned LEDs are tighter (±5nm). Generic LEDs may be way off target." }
+  ],
+  "notes": "Leaning toward starting with a Hooga HG300 ($159) to test if RLT actually helps before committing to a premium panel.\n\nKey open questions:\n- Am I primarily targeting skin or muscle recovery?\n- Do I care enough about DIY to invest the time?\n- Is EMF a real concern at these exposure levels or is it overblown?\n\nGeneral advice from research: consistency of use matters more than device cost. 10 min daily with a $150 panel beats owning a $1,500 panel you never use."
+}
