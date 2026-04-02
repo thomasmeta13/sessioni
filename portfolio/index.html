@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio OS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d0d12;--surface:#13131c;--card:#1a1a26;--border:rgba(255,255,255,0.07);
+  --text:#e2e8f0;--muted:#6b7280;--label:#9ca3af;
+  --blue:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#fbbf24;--purple:#a855f7;--orange:#f97316;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;font-size:14px;min-height:100vh;display:flex;flex-direction:column}
+
+/* NAV */
+nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:48px;flex-shrink:0;position:sticky;top:0;z-index:100}
+.nav-logo{font-size:15px;font-weight:700;color:#fff;margin-right:32px;letter-spacing:-0.3px}
+.nav-logo span{color:var(--blue)}
+.nav-tab{padding:0 16px;height:48px;display:flex;align-items:center;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.nav-total{font-size:13px;color:var(--muted)}
+.nav-total b{color:var(--text);font-weight:600}
+
+/* PAGES */
+.page{display:none;flex:1;padding:28px 28px 40px}
+.page.active{display:block}
+.page-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+
+/* GRID */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:20px}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card-sm{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px}
+.sec-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+
+/* STAT CARDS */
+.stat-num{font-size:28px;font-weight:700;line-height:1}
+.stat-label{font-size:12px;color:var(--muted);margin-top:5px}
+.stat-change{font-size:12px;margin-top:6px;font-weight:500}
+.up{color:var(--green)}.down{color:var(--red)}
+
+/* RISK SLIDER */
+.risk-wrap{margin-bottom:20px}
+.risk-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.risk-label{font-size:13px;color:var(--label)}
+.risk-value{font-size:15px;font-weight:700}
+.slider-track{position:relative;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;margin-bottom:6px}
+.slider-fill{position:absolute;left:0;top:0;height:100%;border-radius:4px;transition:width .2s,background .2s}
+input[type=range]{width:100%;appearance:none;height:8px;background:transparent;position:relative;z-index:2;cursor:pointer;margin:0}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:grab}
+.risk-zones{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.risk-buckets{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px}
+.bucket{background:rgba(255,255,255,0.04);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--border)}
+.bucket-pct{font-size:18px;font-weight:700;margin-bottom:3px}
+.bucket-label{font-size:11px;color:var(--muted)}
+.bucket-amt{font-size:12px;color:var(--label);margin-top:2px}
+
+/* POSITIONS TABLE */
+.positions-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 80px;gap:8px;padding:8px 14px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+.position-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 80px;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center;transition:background .1s}
+.position-row:hover{background:rgba(255,255,255,0.02)}
+.pos-name{display:flex;align-items:center;gap:10px}
+.pos-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pos-ticker{font-weight:600;font-size:13px}
+.pos-type{font-size:10px;color:var(--muted);margin-top:1px}
+.risk-badge{padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.risk-high{background:rgba(239,68,68,.12);color:var(--red)}
+.risk-med{background:rgba(251,191,36,.12);color:var(--yellow)}
+.risk-low{background:rgba(34,197,94,.12);color:var(--green)}
+.pos-bar-wrap{width:60px}
+.pos-bar{height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden}
+.pos-fill{height:100%;border-radius:2px}
+
+/* ALLOCATION DONUT */
+.donut-wrap{display:flex;align-items:center;gap:24px}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.legend-pct{margin-left:auto;font-weight:600;color:var(--text)}
+
+/* THESES PAGE */
+.thesis-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-bottom:20px}
+.thesis-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s}
+.thesis-card:hover{border-color:rgba(255,255,255,0.15)}
+.thesis-card.active{border-color:var(--blue)}
+.thesis-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.thesis-icon{font-size:22px}
+.thesis-title{font-size:15px;font-weight:600;color:#fff;margin-bottom:3px}
+.thesis-meta{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.thesis-body{font-size:13px;color:var(--label);line-height:1.6;margin-bottom:14px}
+.thesis-tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{padding:3px 8px;border-radius:5px;font-size:11px;background:rgba(255,255,255,0.06);color:var(--label);border:1px solid var(--border)}
+.thesis-status{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;margin-bottom:10px}
+.status-active{background:rgba(34,197,94,.12);color:var(--green)}
+.status-watch{background:rgba(251,191,36,.12);color:var(--yellow)}
+.status-research{background:rgba(59,130,246,.12);color:var(--blue)}
+
+/* RESEARCH TABLE */
+.research-row{display:flex;gap:14px;padding:14px;border-bottom:1px solid rgba(255,255,255,.04);align-items:flex-start}
+.research-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.research-title{font-size:13px;font-weight:600;color:#fff;margin-bottom:3px}
+.research-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.research-date{font-size:11px;color:var(--muted);flex-shrink:0;margin-left:auto;padding-top:2px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Portfolio <span>OS</span></div>
+  <div class="nav-tab active" onclick="showPage('portfolio')">Portfolio</div>
+  <div class="nav-tab" onclick="showPage('research')">Theses & Research</div>
+  <div class="nav-tab" onclick="showPage('signals')">Signal Monitor</div>
+  <div class="nav-right">
+    <div class="nav-total">Total: <b id="nav-total">$0</b></div>
+    <div style="font-size:11px;color:var(--muted)" id="nav-date"></div>
+  </div>
+</nav>
+
+<!-- ═══ PORTFOLIO PAGE ═══════════════════════════════════════════════════ -->
+<div class="page active" id="page-portfolio">
+  <div class="page-title">Portfolio Manager</div>
+  <div class="page-sub">March 2026 · $750k starting capital</div>
+
+  <!-- Stats row -->
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="card-sm">
+      <div class="stat-num" id="stat-total">$750,000</div>
+      <div class="stat-label">Total Capital</div>
+      <div class="stat-change up">Starting position</div>
+    </div>
+    <div class="card-sm">
+      <div class="stat-num" id="stat-deployed" style="color:var(--blue)">$635,000</div>
+      <div class="stat-label">Deployed</div>
+      <div class="stat-change" style="color:var(--muted)">84.7% of capital</div>
+    </div>
+    <div class="card-sm">
+      <div class="stat-num" id="stat-liquid" style="color:var(--green)">$115,000</div>
+      <div class="stat-label">Liquid / Reserve</div>
+      <div class="stat-change" style="color:var(--muted)">15.3% buffer</div>
+    </div>
+    <div class="card-sm">
+      <div class="stat-num" id="stat-positions">12</div>
+      <div class="stat-label">Positions</div>
+      <div class="stat-change" style="color:var(--muted)">Across 4 buckets</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Risk Slider -->
+    <div class="card">
+      <div class="sec-label">Risk Profile</div>
+      <div class="risk-wrap">
+        <div class="risk-header">
+          <span class="risk-label">Overall Risk Appetite</span>
+          <span class="risk-value" id="risk-label">Aggressive</span>
+        </div>
+        <div class="slider-track">
+          <div class="slider-fill" id="slider-fill" style="width:75%;background:var(--orange)"></div>
+          <input type="range" id="risk-slider" min="0" max="100" value="75">
+        </div>
+        <div class="risk-zones">
+          <span>Conservative</span><span>Moderate</span><span>Aggressive</span><span>Maximum</span>
+        </div>
+      </div>
+      <div class="risk-buckets">
+        <div class="bucket">
+          <div class="bucket-pct up" id="b-safe">15%</div>
+          <div class="bucket-label">Safe</div>
+          <div class="bucket-amt" id="b-safe-amt">$112k</div>
+        </div>
+        <div class="bucket">
+          <div class="bucket-pct" id="b-med" style="color:var(--yellow)">35%</div>
+          <div class="bucket-label">Medium</div>
+          <div class="bucket-amt" id="b-med-amt">$263k</div>
+        </div>
+        <div class="bucket">
+          <div class="bucket-pct down" id="b-high">50%</div>
+          <div class="bucket-label">High Risk</div>
+          <div class="bucket-amt" id="b-high-amt">$375k</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Allocation donut -->
+    <div class="card">
+      <div class="sec-label">Allocation by Type</div>
+      <div class="donut-wrap">
+        <canvas id="donut" width="120" height="120"></canvas>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Positions Table -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div class="sec-label" style="margin:0">Positions</div>
+      <div style="font-size:12px;color:var(--muted)">Drag to reorder · click to edit</div>
+    </div>
+    <div class="positions-header">
+      <div>Asset</div><div>Allocation</div><div>Size</div><div>Risk</div><div>Horizon</div><div>Weight</div>
+    </div>
+    <div id="positions-body"></div>
+  </div>
+</div>
+
+<!-- ═══ SIGNAL MONITOR PAGE ══════════════════════════════════════════════ -->
+<div class="page" id="page-signals">
+  <div class="page-title">Signal Monitor</div>
+  <div class="page-sub">Live thesis signals · updated <span id="sig-updated"></span> · sources: IEA, Bloomberg, on-chain data, major press</div>
+
+  <div id="signals-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px"></div>
+
+  <div class="card" style="padding:16px 20px">
+    <div class="sec-label">What to watch next — across all signals</div>
+    <div id="watch-list" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
+
+<!-- ═══ RESEARCH PAGE ════════════════════════════════════════════════════ -->
+<div class="page" id="page-research">
+  <div class="page-title">Theses & Research</div>
+  <div class="page-sub">Active investment theses · updated March 2026</div>
+
+  <div class="thesis-grid" id="thesis-grid"></div>
+
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+      <div class="sec-label" style="margin:0">Research Notes</div>
+    </div>
+    <div id="research-list"></div>
+  </div>
+</div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────────────
+const TOTAL = 750000;
+
+const POSITIONS = [
+  // Crypto
+  { ticker:'BTC', name:'Bitcoin', type:'Crypto Spot', size:150000, risk:'high', horizon:'12-18mo', color:'#F7931A', category:'Crypto' },
+  { ticker:'SOL', name:'Solana', type:'Crypto Spot', size:100000, risk:'high', horizon:'6-12mo', color:'#9945FF', category:'Crypto' },
+  { ticker:'BTC Calls', name:'BTC Dec Calls', type:'Options', size:30000, risk:'high', horizon:'9mo', color:'#3B82F6', category:'Crypto' },
+  { ticker:'GDX', name:'Gold Miners ETF', type:'Equity ETF', size:60000, risk:'med', horizon:'3-6mo', color:'#FBBF24', category:'Macro' },
+  { ticker:'VLO', name:'Valero Energy', type:'Equity', size:50000, risk:'med', horizon:'2-4mo', color:'#F97316', category:'Macro' },
+  { ticker:'PBF', name:'PBF Energy', type:'Equity', size:30000, risk:'high', horizon:'2-4mo', color:'#EF4444', category:'Macro' },
+  { ticker:'APD', name:'Air Products', type:'Equity', size:40000, risk:'med', horizon:'6-12mo', color:'#06B6D4', category:'Tech Infra' },
+  { ticker:'AMD', name:'AMD', type:'Equity', size:50000, risk:'med', horizon:'12-18mo', color:'#22C55E', category:'Tech Infra' },
+  { ticker:'CEG', name:'Constellation Energy', type:'Equity', size:35000, risk:'med', horizon:'12-24mo', color:'#A855F7', category:'Energy' },
+  { ticker:'BIZD Puts', name:'BDC ETF Puts', type:'Options', size:20000, risk:'high', horizon:'3-6mo', color:'#EC4899', category:'Short' },
+  { ticker:'DAL', name:'Delta Airlines', type:'Equity', size:30000, risk:'med', horizon:'2-6mo', color:'#60A5FA', category:'Macro' },
+  { ticker:'ONDO', name:'Ondo Finance', type:'Crypto', size:40000, risk:'high', horizon:'12-18mo', color:'#34D399', category:'Crypto' },
+];
+
+const LIQUID = 115000;
+
+const THESES = [
+  {
+    icon:'⚡', title:'The Private Credit Unwind', status:'active',
+    meta:'Short · 3-6 months',
+    body:'The $2T private credit industry is seeing accelerating redemptions. When funds gate or sell at distressed prices, contagion hits publicly-traded BDCs. This is not priced into BIZD or similar ETFs yet.',
+    tags:['Short', 'Credit', 'BDCs', 'BIZD Puts'],
+    plays:['BIZD Puts', 'BDC basket short']
+  },
+  {
+    icon:'🥇', title:'Gold Crash = Buy Signal', status:'active',
+    meta:'Contrarian Long · 3-6 months',
+    body:'Gold\'s worst week in 43 years is forced liquidation by Gulf sovereign wealth funds needing cash — not a fundamental breakdown. Energy inflation is wildly bullish for gold long-term. This is a structural dislocation, not a breakdown.',
+    tags:['Gold', 'GDX', 'Contrarian', 'Geopolitical'],
+    plays:['GDX (gold miners)', 'GLD calls']
+  },
+  {
+    icon:'🛢️', title:'Crack Spread Trade', status:'active',
+    meta:'Long · 2-4 months',
+    body:'Diesel +109% YTD, jet fuel +84%. US independent refiners buy cheap WTI and sell globally-inflated refined products. Zero Hormuz exposure on the input side. Valero, PBF, Marathon are printing money. Nobody is watching this vs. crude.',
+    tags:['Energy', 'VLO', 'PBF', 'MPC', 'Crack Spread'],
+    plays:['VLO', 'PBF Energy', 'MPC']
+  },
+  {
+    icon:'🫧', title:'Helium Shortage — 4-Hop Chain', status:'watch',
+    meta:'Long Infra · 6-12 months',
+    body:'Qatar\'s Ras Laffan LNG (33% of global helium supply) is offline. Helium is non-substitutable for semiconductor manufacturing. Chipmakers have 6-month inventory. Samsung/SK Hynix get 64% of helium from Qatar. Air Products and Linde benefit from price spike + panic inventory buying.',
+    tags:['Helium', 'APD', 'LIN', 'Semiconductor Supply Chain'],
+    plays:['APD', 'LIN (Linde)']
+  },
+  {
+    icon:'⚡', title:'BTC vs Gold Ratio Trade', status:'active',
+    meta:'Pair Trade · 12-18 months',
+    body:'The week gold was -11%, BTC was +6.1%. After the US froze Russian FX reserves, the neutral state-free money thesis got serious. A narrative shift is happening in real time — BTC repricing relative to gold is a distinct, durable thesis, not just "buy BTC".',
+    tags:['BTC', 'Gold', 'Macro Regime', 'Safe Haven Shift'],
+    plays:['Long BTC / Short GLD', 'BTC calls']
+  },
+  {
+    icon:'✈️', title:'De-escalation Trade: Airlines', status:'watch',
+    meta:'Long · 2-6 months · Catalyst-dependent',
+    body:'Airlines are priced for $200/barrel jet fuel forever. Any ceasefire or Strait of Hormuz reopening triggers a violent recovery. DAL, UAL down 30-40% from recent highs. Defined risk — you know what kills the trade (no ceasefire).',
+    tags:['DAL', 'UAL', 'Geopolitical', 'Mean Reversion'],
+    plays:['DAL calls', 'UAL', 'JETS ETF']
+  },
+  {
+    icon:'🔌', title:'Nuclear / AI Power Constraint', status:'active',
+    meta:'Long · 12-24 months',
+    body:'Every AI data center runs on power. The bottleneck isn\'t chips — it\'s electricity. Nobody is building new nuclear fast enough. Microsoft signed a 20-year PPA with Constellation Energy to restart Three Mile Island specifically for data center load. Secular trend, not a trade.',
+    tags:['CEG', 'VST', 'Nuclear', 'AI Infrastructure'],
+    plays:['CEG', 'VST', 'URA (uranium ETF)']
+  },
+  {
+    icon:'🤖', title:'RWAs — Onchain Finance Infrastructure', status:'research',
+    meta:'Long Crypto · 12-18 months',
+    body:'SEC Chair Atkins: all US markets could be onchain "within two years." Stablecoins at $310B+. The infrastructure protocols bringing real-world assets onchain are pre-narrative. Ondo Finance (tokenized treasuries) is the first mover with institutional traction.',
+    tags:['RWA', 'ONDO', 'Stablecoins', 'DeFi'],
+    plays:['ONDO', 'Maple Finance', 'Centrifuge']
+  },
+];
+
+const RESEARCH_NOTES = [
+  { icon:'📊', title:'Investment Framework Session', desc:'Defined 4 strategy buckets: short losers (SaaS puts), energy play, crypto options, BTC spot. Avoided: token picking, Solana maximalism, Palantir (already long via comp).', date:'Mar 25' },
+  { icon:'🔍', title:'Contrarian Research — March 2026', desc:'Helium shortage (4-hop chain), gold crash = buy signal, crack spreads, private credit unwind, BTC/Gold ratio regime change, de-escalation airlines trade.', date:'Mar 25' },
+  { icon:'📈', title:'Macro Context', desc:'Mid-bull crypto cycle (MVRV 2.38, peak at 3.5-4x). Active US-Iran conflict. Strait of Hormuz partially shut. WTI ~$98, diesel +109% YTD. Bitcoin outperforming gold as safe haven.', date:'Mar 25' },
+  { icon:'💡', title:'Thesis: AGI Fear Pump', desc:'As AGI discourse spreads, people unable to escape via traditional systems turn to crypto as the escape valve. This creates a final large pump before broader reckoning. Timing trigger: white-collar layoff waves + political UBI bills.', date:'Mar 25' },
+  { icon:'⚠️', title:'What NOT to buy', desc:'SaaS companies with per-seat pricing (AI disrupts), Palantir (already long via comp, priced for perfection), token narrative plays without infra (AI agent tokens, etc.), private credit vehicles (redemption risk).', date:'Mar 25' },
+];
+
+// ── Render positions ─────────────────────────────────────────────────────────
+function renderPositions() {
+  const total = POSITIONS.reduce((s,p)=>s+p.size,0);
+  const body = document.getElementById('positions-body');
+  body.innerHTML = POSITIONS.map(p => {
+    const pct = (p.size/TOTAL*100).toFixed(1);
+    const ofDeployed = (p.size/total*100).toFixed(0);
+    const riskClass = p.risk==='high'?'risk-high':p.risk==='med'?'risk-med':'risk-low';
+    const riskLabel = p.risk==='high'?'High':p.risk==='med'?'Medium':'Low';
+    return `<div class="position-row">
+      <div class="pos-name">
+        <div class="pos-dot" style="background:${p.color}"></div>
+        <div>
+          <div class="pos-ticker">${p.ticker}</div>
+          <div class="pos-type">${p.name} · ${p.category}</div>
+        </div>
+      </div>
+      <div style="font-size:13px">${pct}%</div>
+      <div style="font-size:13px;font-weight:600">$${(p.size/1000).toFixed(0)}k</div>
+      <div><span class="risk-badge ${riskClass}">${riskLabel}</span></div>
+      <div style="font-size:12px;color:var(--muted)">${p.horizon}</div>
+      <div class="pos-bar-wrap">
+        <div class="pos-bar"><div class="pos-fill" style="width:${ofDeployed}%;background:${p.color}"></div></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">${ofDeployed}% of deployed</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Donut chart ──────────────────────────────────────────────────────────────
+function renderDonut() {
+  const canvas = document.getElementById('donut');
+  const ctx = canvas.getContext('2d');
+  const cats = {};
+  POSITIONS.forEach(p => { cats[p.category] = (cats[p.category]||0) + p.size; });
+  cats['Liquid'] = LIQUID;
+  const colors = { Crypto:'#9945FF', Macro:'#F97316', 'Tech Infra':'#22C55E', Energy:'#A855F7', Short:'#EC4899', Liquid:'#374151' };
+  const entries = Object.entries(cats);
+  const total = Object.values(cats).reduce((s,v)=>s+v,0);
+  let startAngle = -Math.PI/2;
+  const cx=60, cy=60, r=50, ir=32;
+  ctx.clearRect(0,0,120,120);
+  entries.forEach(([cat,val]) => {
+    const angle = (val/total)*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,startAngle,startAngle+angle);
+    ctx.fillStyle = colors[cat]||'#6B7280';
+    ctx.fill();
+    startAngle += angle;
+  });
+  // Inner circle cutout
+  ctx.beginPath();
+  ctx.arc(cx,cy,ir,0,Math.PI*2);
+  ctx.fillStyle='#1a1a26';
+  ctx.fill();
+
+  // Legend
+  const legend = document.getElementById('donut-legend');
+  legend.innerHTML = entries.map(([cat,val]) => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${colors[cat]||'#6B7280'}"></div>
+      <span style="color:var(--label)">${cat}</span>
+      <span class="legend-pct">$${(val/1000).toFixed(0)}k</span>
+    </div>
+  `).join('');
+}
+
+// ── Risk slider ───────────────────────────────────────────────────────────────
+const slider = document.getElementById('risk-slider');
+function updateRisk(val) {
+  const fill = document.getElementById('slider-fill');
+  const label = document.getElementById('risk-label');
+  let color, lbl, safe, med, high;
+  if (val < 25) { color='#22C55E'; lbl='Conservative'; safe=50; med=35; high=15; }
+  else if (val < 50) { color='#FBBF24'; lbl='Moderate'; safe=30; med=45; high=25; }
+  else if (val < 75) { color='#F97316'; lbl='Aggressive'; safe=15; med=35; high=50; }
+  else { color='#EF4444'; lbl='Maximum Risk'; safe=5; med=20; high=75; }
+  fill.style.width=val+'%'; fill.style.background=color;
+  label.textContent=lbl; label.style.color=color;
+  document.getElementById('b-safe').textContent=safe+'%';
+  document.getElementById('b-med').textContent=med+'%';
+  document.getElementById('b-high').textContent=high+'%';
+  document.getElementById('b-safe-amt').textContent='$'+(TOTAL*safe/100/1000).toFixed(0)+'k';
+  document.getElementById('b-med-amt').textContent='$'+(TOTAL*med/100/1000).toFixed(0)+'k';
+  document.getElementById('b-high-amt').textContent='$'+(TOTAL*high/100/1000).toFixed(0)+'k';
+}
+slider.addEventListener('input', e => updateRisk(+e.target.value));
+
+// ── Theses ────────────────────────────────────────────────────────────────────
+function renderTheses() {
+  const grid = document.getElementById('thesis-grid');
+  const statusMap = { active:'status-active', watch:'status-watch', research:'status-research' };
+  const statusLabel = { active:'Active Position', watch:'Watching', research:'In Research' };
+  grid.innerHTML = THESES.map(t => `
+    <div class="thesis-card">
+      <div class="thesis-header">
+        <div class="thesis-icon">${t.icon}</div>
+        <div>
+          <div class="thesis-title">${t.title}</div>
+          <div class="thesis-meta">${t.meta}</div>
+        </div>
+      </div>
+      <div class="thesis-status ${statusMap[t.status]}">${statusLabel[t.status]}</div>
+      <div class="thesis-body">${t.body}</div>
+      <div class="thesis-tags">${t.tags.map(tag=>`<span class="tag">${tag}</span>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function renderResearch() {
+  const list = document.getElementById('research-list');
+  list.innerHTML = RESEARCH_NOTES.map(r => `
+    <div class="research-row">
+      <div class="research-icon">${r.icon}</div>
+      <div>
+        <div class="research-title">${r.title}</div>
+        <div class="research-desc">${r.desc}</div>
+      </div>
+      <div class="research-date">${r.date}</div>
+    </div>
+  `).join('');
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelector(`.nav-tab[onclick="showPage('${id}')"]`).classList.add('active');
+}
+
+// ── Signals ───────────────────────────────────────────────────────────────────
+const SIGNALS = {
+  lastUpdated: "Mar 25, 2026",
+  signals: [
+    {
+      id:"agi", title:"AGI Timeline", icon:"🤖", sentiment:"rising",
+      events:[
+        {date:"Jan 20", text:"At WEF Davos, Anthropic CEO Dario Amodei reaffirmed AGI could arrive as early as 2026. DeepMind's Hassabis urged caution. First time both lab CEOs publicly gave concrete timelines on the same stage."},
+        {date:"Feb 2026", text:"The Atlantic: 'Do You Feel the AGI Yet?' — frontier AI CEO forecasts compressed dramatically. Most major lab leaders now predict AGI within 1–3 years, a sharp shift from 2024 consensus."},
+        {date:"Mar 2026", text:"Microsoft CEO Satya Nadella warns AI must 'change outcomes of people, communities, industries' — signaling internal pressure on trillion-dollar infrastructure spend. The AGI framing is under scrutiny even inside the AI industry."}
+      ],
+      watchNext:"Watch for OpenAI's next major model release and whether Anthropic's Claude 4 demonstrates autonomous multi-step reasoning that pushes 'AGI arrived' from hypothetical to concrete."
+    },
+    {
+      id:"ubi", title:"UBI / Economic Displacement", icon:"💸", sentiment:"rising",
+      events:[
+        {date:"Mar 23", text:"America Magazine op-ed calls UBI 'overdue', citing Nobel economists Acemoglu and Johnson (MIT) on AI-driven displacement. Mainstream centrist press shifting toward UBI advocacy."},
+        {date:"Mar 2026", text:"ILO data widely cited: AI-driven automation already displaced ~85M jobs globally. McKinsey projects up to 30% of all work activities automated by 2030."},
+        {date:"2026 ongoing", text:"Nobel economist Esther Duflo (MIT): 'The question is no longer whether AI will displace jobs, but how quickly.' Academic consensus is building toward UBI as near-term policy necessity."}
+      ],
+      watchNext:"Watch for any US Congressional bill or EU directive proposing AI-tax-funded UBI pilots — a single large-government pilot announcement would be the inflection point for mass fear sentiment."
+    },
+    {
+      id:"crypto", title:"Crypto Market Sentiment", icon:"₿", sentiment:"neutral",
+      events:[
+        {date:"Mar 24", text:"Bitcoin ETFs logged $2.5B in gross inflows in March 2026 — nearly erasing the full-year deficit. First positive net-flow month of 2026 after 4 months of outflows ($6.4B exited Nov 2025–Feb 2026)."},
+        {date:"Mar 13", text:"BTC at ~$69,791 (down 20% YTD). Showing relief bounce toward $70K. Key resistance: $65.5K–$74K. Decoupling slightly from geopolitical volatility."},
+        {date:"Mar 2026", text:"The Iran war energy shock was the primary driver of crypto selling. March reversal coincides with oil price stabilization and reduced macro fear."}
+      ],
+      watchNext:"Watch whether BTC reclaims $74K+ and sustains ETF inflows into April. Combined with any Iran de-escalation, this could trigger the next leg toward $100K–$120K analyst targets."
+    },
+    {
+      id:"iran", title:"US–Iran War / Hormuz", icon:"⚠️", sentiment:"alarming",
+      events:[
+        {date:"Mar 24", text:"IEA Director Birol: Iran war is 'worse than both 1970s oil shocks combined.' Qatar slashed LNG exports 17%, threatening force majeure. Oil hit ~$119/barrel. 80%+ of Asian crude supply at risk."},
+        {date:"Mar 24", text:"CBS: Trump called off a Strait of Hormuz ultimatum, US mediators passing messages to Tehran. Iran threatened to mine the entire Persian Gulf. Active diplomacy channel exists for first time."},
+        {date:"Mar 20", text:"Trump on South Lawn: 'You don't do a ceasefire when you're obliterating the other side' — but simultaneously posted US is 'getting close to objectives' and considering 'winding down military efforts.' Mixed signals."}
+      ],
+      watchNext:"Watch the Strait of Hormuz status and any formal US–Iran diplomatic channel. Even partial de-escalation or a humanitarian corridor announcement would crater oil prices and trigger a major risk-on rally."
+    },
+    {
+      id:"solana", title:"Solana Ecosystem", icon:"◎", sentiment:"neutral",
+      events:[
+        {date:"Mar 2026", text:"SOL at $88.90, down 65% from $295 ATH. Critical support at $87. 17M SOL overhead supply at $117 creates a significant resistance wall."},
+        {date:"Feb–Mar", text:"SOL TVL hit all-time high of $7.5B despite price crashing 35% YTD. Bullish fundamental divergence. Stablecoin liquidity on-chain: $15.6B. Pump.fun first $1B revenue platform."},
+        {date:"Mar 2026", text:"Solana spot ETF products: $1B+ inflows. CLARITY Act progressing in Congress. Standard Chartered year-end target: $250 — contingent on ETF acceleration and TVL continuation."}
+      ],
+      watchNext:"Watch whether SOL holds $87 critical support and if CLARITY Act passes a vote — passage unlocks institutional flows and likely pushes SOL above the $117 supply wall."
+    }
+  ]
+};
+
+const SENT_CONFIG = {
+  rising:  { color:'#FBBF24', label:'Rising ↑', bg:'rgba(251,191,36,.1)' },
+  neutral: { color:'#6B7280', label:'Neutral →', bg:'rgba(107,114,128,.1)' },
+  alarming:{ color:'#EF4444', label:'Alarming ↑↑', bg:'rgba(239,68,68,.1)' },
+  falling: { color:'#22C55E', label:'Easing ↓', bg:'rgba(34,197,94,.1)' },
+};
+
+// Link signals to theses
+const SIGNAL_THESIS_MAP = {
+  agi:    ['The AGI Fear Pump (thesis)', 'BTC vs Gold Ratio Trade', 'RWAs — Onchain Finance'],
+  ubi:    ['The AGI Fear Pump (thesis)', 'Short the Losers: SaaS'],
+  crypto: ['BTC vs Gold Ratio Trade', 'De-escalation Trade: Airlines'],
+  iran:   ['Crack Spread Trade', 'Gold Crash = Buy Signal', 'De-escalation Trade: Airlines', 'Private Credit Unwind'],
+  solana: ['Solana: Hold or Reduce?'],
+};
+
+function renderSignals() {
+  document.getElementById('sig-updated').textContent = SIGNALS.lastUpdated;
+  const grid = document.getElementById('signals-grid');
+  grid.innerHTML = SIGNALS.signals.map(sig => {
+    const sc = SENT_CONFIG[sig.sentiment] || SENT_CONFIG.neutral;
+    const linked = SIGNAL_THESIS_MAP[sig.id] || [];
+    return `
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">${sig.icon}</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#fff">${sig.title}</div>
+          </div>
+        </div>
+        <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${sc.bg};color:${sc.color}">${sc.label}</span>
+      </div>
+      <div style="padding:14px 18px">
+        ${sig.events.map(e=>`
+          <div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-start">
+            <div style="font-size:10px;color:var(--muted);white-space:nowrap;padding-top:2px;min-width:44px">${e.date}</div>
+            <div style="font-size:12px;color:var(--label);line-height:1.55">${e.text}</div>
+          </div>
+        `).join('')}
+        <div style="margin-top:10px;padding:10px 12px;background:rgba(255,255,255,.03);border-radius:8px;border-left:2px solid ${sc.color}">
+          <div style="font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Watch next</div>
+          <div style="font-size:12px;color:var(--label);line-height:1.5">${sig.watchNext}</div>
+        </div>
+        ${linked.length ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px">${linked.map(t=>`<span style="padding:2px 7px;border-radius:4px;font-size:10px;background:rgba(59,130,246,.1);color:#60A5FA;border:1px solid rgba(59,130,246,.2)">${t}</span>`).join('')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Watch list summary
+  const watchList = document.getElementById('watch-list');
+  watchList.innerHTML = SIGNALS.signals.map(sig => {
+    const sc = SENT_CONFIG[sig.sentiment] || SENT_CONFIG.neutral;
+    return `<div style="display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="font-size:16px">${sig.icon}</span>
+      <div style="flex:1">
+        <span style="font-size:12px;font-weight:600;color:#fff">${sig.title}:</span>
+        <span style="font-size:12px;color:var(--label);margin-left:4px">${sig.watchNext}</span>
+      </div>
+      <span style="font-size:10px;font-weight:600;color:${sc.color};white-space:nowrap">${sc.label}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+const deployed = POSITIONS.reduce((s,p)=>s+p.size,0);
+document.getElementById('nav-total').textContent = '$'+TOTAL.toLocaleString();
+document.getElementById('stat-total').textContent = '$'+TOTAL.toLocaleString();
+document.getElementById('stat-deployed').textContent = '$'+deployed.toLocaleString();
+document.getElementById('stat-liquid').textContent = '$'+LIQUID.toLocaleString();
+document.getElementById('stat-positions').textContent = POSITIONS.length;
+document.getElementById('nav-date').textContent = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+updateRisk(75);
+renderPositions();
+renderDonut();
+renderTheses();
+renderResearch();
+renderSignals();
+</script>
+</body>
+</html>

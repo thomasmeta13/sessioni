@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cognition OS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0D0D12;
+    --sidebar: #13131A;
+    --card: #1A1A24;
+    --border: rgba(255,255,255,0.05);
+    --text: #FFFFFF;
+    --muted: #6B7280;
+    --label: #9CA3AF;
+    --blue: #3B82F6;
+    --cyan: #06B6D4;
+    --yellow: #FBBF24;
+    --green: #22C55E;
+    --orange: #F97316;
+    --pink: #EC4899;
+    --purple: #A855F7;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; display: flex; min-height: 100vh; overflow: hidden; }
+
+  /* SIDEBAR */
+  .sidebar { width: 220px; min-width: 220px; background: var(--sidebar); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 16px; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; }
+  .logo { padding: 8px 12px 24px; }
+  .logo-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .logo-title span { color: var(--blue); }
+  .logo-version { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; margin-top: 2px; }
+  .nav { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--muted); transition: all 0.15s; text-decoration: none; }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .nav-item.active { background: rgba(59,130,246,0.15); color: var(--blue); }
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); margin-left: auto; }
+  .sidebar-footer { padding-top: 16px; border-top: 1px solid var(--border); }
+  .status-line { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); padding: 8px 12px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* MAIN */
+  .main { margin-left: 220px; flex: 1; overflow-y: auto; overflow-x: hidden; height: 100vh; }
+  .page { display: none; padding: 40px; min-height: 100vh; }
+  .page.active { display: block; }
+  .page-title { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+  .page-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+
+  /* CARDS */
+  .card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 24px; }
+  .card-sm { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 20px; }
+  .section-label { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 16px; }
+
+  /* HOME PAGE */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 24px; }
+  .stat-num { font-size: 42px; font-weight: 700; line-height: 1; }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+  .agent-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .agent-row:last-child { border-bottom: none; }
+  .agent-emoji { font-size: 18px; width: 32px; text-align: center; }
+  .agent-info { flex: 1; }
+  .agent-name { font-size: 14px; font-weight: 500; }
+  .agent-role { font-size: 12px; color: var(--muted); }
+  .agent-bar-wrap { width: 80px; }
+  .bar-bg { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 2px; }
+  .agent-conf { font-size: 12px; color: var(--muted); margin-top: 3px; text-align: right; }
+  .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 500; }
+  .badge-active { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge-idle { background: rgba(107,114,128,0.15); color: var(--muted); }
+  .activity-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-time { font-size: 12px; color: var(--muted); width: 48px; flex-shrink: 0; padding-top: 1px; }
+  .activity-body { font-size: 13px; }
+  .activity-agent { font-weight: 600; }
+
+  /* AGENTS PAGE */
+  .agents-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .agent-card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 24px; }
+  .agent-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .agent-avatar { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .agent-card-name { font-size: 16px; font-weight: 600; }
+  .agent-card-force { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .cap-tag { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 5px; font-size: 11px; background: rgba(255,255,255,0.06); color: var(--label); margin: 2px; }
+  .conf-ring-wrap { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .conf-ring { position: relative; width: 44px; height: 44px; }
+  .conf-ring svg { transform: rotate(-90deg); }
+  .conf-ring-val { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+  .network-canvas { width: 100%; height: 340px; background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; position: relative; overflow: hidden; }
+
+  /* DECISION MAP */
+  .decision-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .decision-card { background: var(--card); border-radius: 16px; border: 1px solid var(--border); padding: 24px; }
+  .decision-option { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .decision-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .meta-item { background: rgba(255,255,255,0.04); border-radius: 6px; padding: 8px; }
+  .meta-key { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .meta-val { font-size: 15px; font-weight: 700; margin-top: 2px; }
+
+  /* ARTIFACT */
+  .phase-track { display: flex; gap: 0; margin-bottom: 28px; }
+  .phase-step { flex: 1; padding: 14px 16px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); position: relative; }
+  .phase-step:first-child { border-radius: 10px 0 0 10px; }
+  .phase-step:last-child { border-radius: 0 10px 10px 0; }
+  .phase-step.done { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); }
+  .phase-step.current { background: rgba(59,130,246,0.2); border-color: var(--blue); }
+  .phase-name { font-size: 12px; font-weight: 600; }
+  .phase-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .tension-box { background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.3); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 10px; }
+  .questions-list li { font-size: 13px; color: var(--label); margin-bottom: 8px; padding-left: 4px; }
+
+  /* ======= ARENAS PAGE ======= */
+  .arenas-layout { display: grid; grid-template-columns: 1fr 380px; gap: 24px; height: calc(100vh - 120px); }
+  .constellation-wrap { position: relative; background: rgba(255,255,255,0.02); border-radius: 20px; border: 1px solid var(--border); overflow: hidden; }
+  .constellation-svg { width: 100%; height: 100%; }
+  .constellation-bg-text { position: absolute; bottom: 20px; left: 24px; font-size: 11px; color: rgba(255,255,255,0.15); letter-spacing: 2px; text-transform: uppercase; }
+  .arena-panel { display: flex; flex-direction: column; gap: 0; }
+  .arena-detail { background: var(--card); border-radius: 20px; border: 1px solid var(--border); flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .arena-detail-header { padding: 24px 24px 16px; border-bottom: 1px solid var(--border); }
+  .arena-detail-icon { font-size: 32px; margin-bottom: 8px; }
+  .arena-detail-name { font-size: 20px; font-weight: 700; }
+  .arena-detail-domain { font-size: 12px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+  .arena-detail-desc { font-size: 13px; color: var(--label); margin-top: 10px; line-height: 1.6; }
+  .arena-phase-track { display: flex; gap: 6px; margin-top: 16px; }
+  .arena-phase { flex: 1; padding: 8px 6px; border-radius: 8px; text-align: center; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; border: 1px solid var(--border); color: var(--muted); transition: all 0.2s; }
+  .arena-phase.done { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: var(--blue); }
+  .arena-phase.current { background: rgba(59,130,246,0.25); border-color: var(--blue); color: #fff; }
+  .arena-sections { padding: 20px 24px; flex: 1; display: flex; flex-direction: column; gap: 20px; }
+  .arena-section-title { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .arena-list-item { font-size: 13px; color: var(--label); padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 7px; margin-bottom: 6px; line-height: 1.5; display: flex; gap: 8px; align-items: flex-start; }
+  .arena-list-item::before { content: '—'; color: rgba(255,255,255,0.2); flex-shrink: 0; margin-top: 0px; }
+  .arena-progress-row { display: flex; align-items: center; gap: 12px; margin-top: 2px; }
+  .arena-progress-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .arena-progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .arena-progress-pct { font-size: 13px; font-weight: 700; }
+  .arena-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: var(--muted); text-align: center; gap: 12px; padding: 40px; }
+  .arena-empty-icon { font-size: 40px; opacity: 0.3; }
+  .arena-empty-text { font-size: 14px; }
+
+  /* Constellation nodes */
+  .node-circle { cursor: pointer; transition: all 0.2s; }
+  .node-label { font-size: 12px; fill: rgba(255,255,255,0.7); font-family: -apple-system, sans-serif; pointer-events: none; }
+  .node-label.selected { fill: #fff; font-weight: 600; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+  .progress-ring-svg { transform: rotate(-90deg); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-title">Cognition <span>OS</span></div>
+    <div class="logo-version">ALPHA · V0.2</div>
+  </div>
+  <div class="nav">
+    <a class="nav-item active" onclick="showPage('home')" data-page="home">
+      <span class="nav-icon">⬡</span> Home
+      <span class="nav-dot"></span>
+    </a>
+    <a class="nav-item" onclick="showPage('agents')" data-page="agents">
+      <span class="nav-icon">◈</span> Agents
+    </a>
+    <a class="nav-item" onclick="showPage('arenas')" data-page="arenas">
+      <span class="nav-icon">✦</span> Arenas
+    </a>
+    <a class="nav-item" onclick="showPage('decisions')" data-page="decisions">
+      <span class="nav-icon">⑂</span> Decisions
+    </a>
+    <a class="nav-item" onclick="showPage('artifact')" data-page="artifact">
+      <span class="nav-icon">◎</span> Artifact
+    </a>
+    <a class="nav-item" onclick="showPage('mission')" data-page="mission">
+      <span class="nav-icon">⚙</span> Mission Control
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div class="status-line">
+      <div class="status-dot"></div>
+      System nominal
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- HOME -->
+  <div class="page active" id="page-home">
+    <div class="page-title">Command Center</div>
+    <div class="page-subtitle">Cognition OS · Build log active</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num" style="color:var(--blue)">6</div><div class="stat-label">Active Agents</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--yellow)">5</div><div class="stat-label">Open Arenas</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--green)">3</div><div class="stat-label">Decisions Made</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--purple)">0.81</div><div class="stat-label">Avg Confidence</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="section-label">Agent Fleet</div>
+        <div class="agent-row">
+          <div class="agent-emoji">🧠</div>
+          <div class="agent-info"><div class="agent-name">Orchestrator</div><div class="agent-role">Meta-Coordination</div></div>
+          <span class="badge badge-active">active</span>
+          <div class="agent-bar-wrap">
+            <div class="bar-bg"><div class="bar-fill" style="width:95%;background:var(--purple)"></div></div>
+            <div class="agent-conf">0.95</div>
+          </div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-emoji">🔨</div>
+          <div class="agent-info"><div class="agent-name">Builder</div><div class="agent-role">Execution</div></div>
+          <span class="badge badge-active">active</span>
+          <div class="agent-bar-wrap">
+            <div class="bar-bg"><div class="bar-fill" style="width:90%;background:var(--orange)"></div></div>
+            <div class="agent-conf">0.90</div>
+          </div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-emoji">🔬</div>
+          <div class="agent-info"><div class="agent-name">Analyst</div><div class="agent-role">Pattern Extraction</div></div>
+          <span class="badge badge-idle">idle</span>
+          <div class="agent-bar-wrap">
+            <div class="bar-bg"><div class="bar-fill" style="width:81%;background:var(--yellow)"></div></div>
+            <div class="agent-conf">0.81</div>
+          </div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-emoji">⚡</div>
+          <div class="agent-info"><div class="agent-name">Critic</div><div class="agent-role">Adversarial Pressure</div></div>
+          <span class="badge badge-idle">idle</span>
+          <div class="agent-bar-wrap">
+            <div class="bar-bg"><div class="bar-fill" style="width:75%;background:var(--pink)"></div></div>
+            <div class="agent-conf">0.75</div>
+          </div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-emoji">🔭</div>
+          <div class="agent-info"><div class="agent-name">Scout</div><div class="agent-role">Novelty / Breadth</div></div>
+          <span class="badge badge-idle">idle</span>
+          <div class="agent-bar-wrap">
+            <div class="bar-bg"><div class="bar-fill" style="width:72%;background:var(--cyan)"></div></div>
+            <div class="agent-conf">0.72</div>
+          </div>
+        </div>
+        <div class="agent-row">
+          <div class="agent-emoji">🧬</div>
+          <div class="agent-info"><div class="agent-name">Synthesizer</div><div class="agent-role">Coherence</div></div>
+          <span class="badge badge-idle">idle</span>
+          <div class="agent-bar-wrap">
+            <div class="bar-bg"><div class="bar-fill" style="width:68%;background:var(--green)"></div></div>
+            <div class="agent-conf">0.68</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label">Activity Feed</div>
+        <div class="activity-item">
+          <div class="activity-time">now</div>
+          <div class="activity-body"><span class="activity-agent" style="color:var(--blue)">System</span> — Arenas page deployed, life OS initialized</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">11:28</div>
+          <div class="activity-body"><span class="activity-agent" style="color:var(--purple)">Thomas</span> — 5 arenas defined: Cognition OS, Abraxas, Nasal Health, Hair, Agent 3D</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">03/23</div>
+          <div class="activity-body"><span class="activity-agent" style="color:var(--orange)">Builder</span> — Dashboard v2 deployed to Netlify</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">03/23</div>
+          <div class="activity-body"><span class="activity-agent" style="color:var(--yellow)">Analyst</span> — 6 agent schemas designed and stored</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">03/23</div>
+          <div class="activity-body"><span class="activity-agent" style="color:var(--cyan)">Scout</span> — Debate engine built and tested</div>
+        </div>
+        <div class="activity-item">
+          <div class="activity-time">03/23</div>
+          <div class="activity-body"><span class="activity-agent" style="color:var(--purple)">Orchestrator</span> — First boot, identity established as Cleo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGENTS -->
+  <div class="page" id="page-agents">
+    <div class="page-title">Agent Fleet</div>
+    <div class="page-subtitle">6 agents · dynamic activation · directional forces</div>
+
+    <!-- Network visualization -->
+    <div class="network-canvas" id="network-canvas">
+      <svg id="network-svg" width="100%" height="100%"></svg>
+    </div>
+
+    <div class="agents-grid">
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-avatar" style="background:rgba(168,85,247,0.15)">🧠</div>
+          <div>
+            <div class="agent-card-name">Orchestrator</div>
+            <div class="agent-card-force">Meta-Coordination</div>
+          </div>
+          <span class="badge badge-active" style="margin-left:auto">active</span>
+        </div>
+        <div><span class="cap-tag">task_decomposition</span><span class="cap-tag">routing_logic</span><span class="cap-tag">agent_spawning</span></div>
+        <div class="conf-ring-wrap" style="margin-top:14px">
+          <svg class="progress-ring-svg" width="44" height="44"><circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#A855F7" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="6" stroke-linecap="round"/></svg>
+          <div><div style="font-size:15px;font-weight:700">0.95</div><div style="font-size:11px;color:var(--muted)">confidence</div></div>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-avatar" style="background:rgba(249,115,22,0.15)">🔨</div>
+          <div>
+            <div class="agent-card-name">Builder</div>
+            <div class="agent-card-force">Execution</div>
+          </div>
+          <span class="badge badge-active" style="margin-left:auto">active</span>
+        </div>
+        <div><span class="cap-tag">code_generation</span><span class="cap-tag">deployment</span><span class="cap-tag">tool_use</span></div>
+        <div class="conf-ring-wrap" style="margin-top:14px">
+          <svg class="progress-ring-svg" width="44" height="44"><circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#F97316" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="11" stroke-linecap="round"/></svg>
+          <div><div style="font-size:15px;font-weight:700">0.90</div><div style="font-size:11px;color:var(--muted)">confidence</div></div>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-avatar" style="background:rgba(251,191,36,0.15)">🔬</div>
+          <div>
+            <div class="agent-card-name">Analyst</div>
+            <div class="agent-card-force">Rigor / Skepticism</div>
+          </div>
+          <span class="badge badge-idle" style="margin-left:auto">idle</span>
+        </div>
+        <div><span class="cap-tag">pattern_extraction</span><span class="cap-tag">validation</span><span class="cap-tag">metrics</span></div>
+        <div class="conf-ring-wrap" style="margin-top:14px">
+          <svg class="progress-ring-svg" width="44" height="44"><circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#FBBF24" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="21" stroke-linecap="round"/></svg>
+          <div><div style="font-size:15px;font-weight:700">0.81</div><div style="font-size:11px;color:var(--muted)">confidence</div></div>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-avatar" style="background:rgba(236,72,153,0.15)">⚡</div>
+          <div>
+            <div class="agent-card-name">Critic</div>
+            <div class="agent-card-force">Adversarial Pressure</div>
+          </div>
+          <span class="badge badge-idle" style="margin-left:auto">idle</span>
+        </div>
+        <div><span class="cap-tag">failure_modes</span><span class="cap-tag">stress_testing</span><span class="cap-tag">red_team</span></div>
+        <div class="conf-ring-wrap" style="margin-top:14px">
+          <svg class="progress-ring-svg" width="44" height="44"><circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#EC4899" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="28" stroke-linecap="round"/></svg>
+          <div><div style="font-size:15px;font-weight:700">0.75</div><div style="font-size:11px;color:var(--muted)">confidence</div></div>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-avatar" style="background:rgba(6,182,212,0.15)">🔭</div>
+          <div>
+            <div class="agent-card-name">Scout</div>
+            <div class="agent-card-force">Novelty / Breadth</div>
+          </div>
+          <span class="badge badge-idle" style="margin-left:auto">idle</span>
+        </div>
+        <div><span class="cap-tag">web_search</span><span class="cap-tag">exploration</span><span class="cap-tag">signals</span></div>
+        <div class="conf-ring-wrap" style="margin-top:14px">
+          <svg class="progress-ring-svg" width="44" height="44"><circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#06B6D4" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="32" stroke-linecap="round"/></svg>
+          <div><div style="font-size:15px;font-weight:700">0.72</div><div style="font-size:11px;color:var(--muted)">confidence</div></div>
+        </div>
+      </div>
+      <div class="agent-card">
+        <div class="agent-card-header">
+          <div class="agent-avatar" style="background:rgba(34,197,94,0.15)">🧬</div>
+          <div>
+            <div class="agent-card-name">Synthesizer</div>
+            <div class="agent-card-force">Coherence</div>
+          </div>
+          <span class="badge badge-idle" style="margin-left:auto">idle</span>
+        </div>
+        <div><span class="cap-tag">tension_resolution</span><span class="cap-tag">integration</span><span class="cap-tag">summary</span></div>
+        <div class="conf-ring-wrap" style="margin-top:14px">
+          <svg class="progress-ring-svg" width="44" height="44"><circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="#22C55E" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="36" stroke-linecap="round"/></svg>
+          <div><div style="font-size:15px;font-weight:700">0.68</div><div style="font-size:11px;color:var(--muted)">confidence</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARENAS -->
+  <div class="page" id="page-arenas">
+    <div class="page-title">Arenas</div>
+    <div class="page-subtitle">Active domains · click a node to explore</div>
+    <div class="arenas-layout">
+      <div class="constellation-wrap">
+        <svg class="constellation-svg" id="constellation-svg"></svg>
+        <div class="constellation-bg-text">Arena Constellation</div>
+      </div>
+      <div class="arena-panel">
+        <div class="arena-detail" id="arena-detail">
+          <div class="arena-empty">
+            <div class="arena-empty-icon">✦</div>
+            <div class="arena-empty-text">Select an arena to explore its depth</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DECISIONS -->
+  <div class="page" id="page-decisions">
+    <div class="page-title">Decision Map</div>
+    <div class="page-subtitle">Open choices · probability-weighted · agent-assigned</div>
+    <div class="decision-grid">
+      <div class="decision-card">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Persistence Layer</div>
+        <div class="decision-option" style="color:var(--green)">✓ Flat Files (chosen)</div>
+        <div class="decision-meta">
+          <div class="meta-item"><div class="meta-key">confidence</div><div class="meta-val" style="color:var(--green)">0.85</div></div>
+          <div class="meta-item"><div class="meta-key">impact</div><div class="meta-val" style="color:var(--yellow)">high</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Upgrade to vector store when agent count >10 or memory exceeds usability threshold</div>
+      </div>
+      <div class="decision-card">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Artifact Schema</div>
+        <div class="decision-option" style="color:var(--yellow)">⟳ Pending</div>
+        <div class="decision-meta">
+          <div class="meta-item"><div class="meta-key">confidence</div><div class="meta-val" style="color:var(--yellow)">0.60</div></div>
+          <div class="meta-item"><div class="meta-key">assigned</div><div class="meta-val" style="font-size:13px">🧬</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Build after agent roles are clear. Synthesizer leads. Fields: understanding, questions, decisions, confidence, tensions</div>
+      </div>
+      <div class="decision-card">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Deploy Cadence</div>
+        <div class="decision-option" style="color:var(--orange)">⚡ Tension</div>
+        <div class="decision-meta">
+          <div class="meta-item"><div class="meta-key">builder says</div><div class="meta-val" style="color:var(--orange);font-size:13px">ship now</div></div>
+          <div class="meta-item"><div class="meta-key">critic says</div><div class="meta-val" style="color:var(--pink);font-size:13px">validate</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Unresolved. Main active tension in the system. Needs explicit resolution protocol.</div>
+      </div>
+      <div class="decision-card">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Abraxas Platform</div>
+        <div class="decision-option" style="color:var(--muted)">○ Open</div>
+        <div class="decision-meta">
+          <div class="meta-item"><div class="meta-key">option A</div><div class="meta-val" style="font-size:13px">Mobile app</div></div>
+          <div class="meta-item"><div class="meta-key">option B</div><div class="meta-val" style="font-size:13px">TikTok-first</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Not enough research yet. Scout should explore video gen tools (Sora, Runway, Kling) and audience first.</div>
+      </div>
+      <div class="decision-card">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Health: Nose — First Move</div>
+        <div class="decision-option" style="color:var(--muted)">○ Open</div>
+        <div class="decision-meta">
+          <div class="meta-item"><div class="meta-key">option A</div><div class="meta-val" style="font-size:13px">ENT consult</div></div>
+          <div class="meta-item"><div class="meta-key">option B</div><div class="meta-val" style="font-size:13px">Self-research</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Years-long issue — not a quick fix. Root cause first: structural? allergic? inflammatory?</div>
+      </div>
+      <div class="decision-card">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Agent 3D — Stack</div>
+        <div class="decision-option" style="color:var(--muted)">○ Open</div>
+        <div class="decision-meta">
+          <div class="meta-item"><div class="meta-key">option A</div><div class="meta-val" style="font-size:13px">Three.js</div></div>
+          <div class="meta-item"><div class="meta-key">option B</div><div class="meta-val" style="font-size:13px">Babylon.js</div></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Blocked on: what data drives agent positions? Real-time vs replay? Define spatial metaphor first.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARTIFACT -->
+  <div class="page" id="page-artifact">
+    <div class="page-title">Artifact State</div>
+    <div class="page-subtitle">Shared evolving understanding — current system state</div>
+    <div class="phase-track">
+      <div class="phase-step done"><div class="phase-name">Bootstrap</div><div class="phase-label">Identity + Setup</div></div>
+      <div class="phase-step current"><div class="phase-name">Architecture</div><div class="phase-label">Agents + Schema</div></div>
+      <div class="phase-step"><div class="phase-name">Execution</div><div class="phase-label">Build + Ship</div></div>
+      <div class="phase-step"><div class="phase-name">Integrate</div><div class="phase-label">Feedback loop</div></div>
+    </div>
+    <div class="two-col" style="margin-bottom:24px">
+      <div class="card">
+        <div class="section-label">Understanding</div>
+        <div style="font-size:14px;line-height:1.8;color:var(--label)">
+          Cognition OS is an adaptive multi-agent system where agents are directional forces, not pipelines. A shared artifact evolves over time, tracking state across: understanding, open questions, key decisions, confidence, and tensions. The human (Thomas) operates as the final arbiter while agents propose, argue, and build.
+        </div>
+        <div style="margin-top:16px;display:flex;align-items:center;gap:10px">
+          <div style="font-size:12px;color:var(--muted)">Maturity</div>
+          <div style="flex:1" class="bar-bg"><div class="bar-fill" style="width:35%;background:linear-gradient(90deg,var(--blue),var(--purple))"></div></div>
+          <div style="font-size:13px;font-weight:700;color:var(--blue)">35%</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label">Key Decisions</div>
+        <div style="font-size:13px;color:var(--label);line-height:2">
+          ✓ Flat files for persistence (upgrade later)<br>
+          ✓ 6 agents: Orchestrator, Scout, Analyst, Synth, Critic, Builder<br>
+          ✓ Dashboard as primary surface<br>
+          ✓ Life OS scope: code + health + creative<br>
+          ○ Artifact schema — pending<br>
+          ○ Builder/Critic cadence — unresolved
+        </div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="section-label">Open Questions</div>
+        <ul class="questions-list" style="list-style:none">
+          <li>→ What does the artifact schema look like concretely?</li>
+          <li>→ How do agents spawn sub-agents?</li>
+          <li>→ When does the economic confidence layer get built?</li>
+          <li>→ What's the right Builder vs Critic resolution protocol?</li>
+          <li>→ How do arenas interface with the agent system?</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="section-label">Active Tensions</div>
+        <div class="tension-box" style="margin-bottom:12px">
+          <span style="font-size:18px">⚡</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--orange)">Ship vs Validate</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Builder pushes to deploy; Critic wants validation gates. No protocol defined yet.</div>
+          </div>
+        </div>
+        <div class="tension-box">
+          <span style="font-size:18px">🌀</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--orange)">Scope creep vs Focus</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">5 arenas active simultaneously. Risk of spreading thin before any reaches Act phase.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MISSION CONTROL -->
+  <div class="page" id="page-mission">
+    <div class="page-title">Mission Control</div>
+    <div class="page-subtitle">Orchestrator live view · Event-driven agent pipeline</div>
+
+    <div style="display:grid;grid-template-columns:1fr 380px;gap:24px;height:calc(100vh - 140px)">
+
+      <!-- LEFT: Phase track + event log -->
+      <div style="display:flex;flex-direction:column;gap:20px;overflow:hidden">
+
+        <!-- Phase tracker -->
+        <div class="card" style="padding:20px 24px">
+          <div class="section-label">Current Task</div>
+          <div id="mc-task-name" style="font-size:18px;font-weight:700;margin-bottom:4px">Design Review — Cognition OS Dashboard</div>
+          <div id="mc-task-meta" style="font-size:12px;color:var(--muted);margin-bottom:18px">Started 03:22 · Phase 2 of 4</div>
+          <div class="phase-track" id="mc-phase-track">
+            <div class="phase-step done"><div class="phase-name">🔭 Scout</div><div class="phase-label">Research done</div></div>
+            <div class="phase-step done"><div class="phase-name">🎨 Designer</div><div class="phase-label">Output ready</div></div>
+            <div class="phase-step current"><div class="phase-name">⚡ Critic</div><div class="phase-label">Running…</div></div>
+            <div class="phase-step"><div class="phase-name">✅ Gate</div><div class="phase-label">Awaiting approval</div></div>
+            <div class="phase-step"><div class="phase-name">🔨 Builder</div><div class="phase-label">Queued</div></div>
+          </div>
+        </div>
+
+        <!-- Event log -->
+        <div class="card" style="flex:1;overflow:hidden;display:flex;flex-direction:column;padding:20px 24px">
+          <div class="section-label" style="margin-bottom:12px">Live Event Log</div>
+          <div id="mc-event-log" style="flex:1;overflow-y:auto;font-family:'SF Mono',monospace;font-size:12px;color:var(--label);line-height:1.8"></div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Agent status panel -->
+      <div style="display:flex;flex-direction:column;gap:16px;overflow-y:auto">
+
+        <div class="card" style="padding:20px 24px">
+          <div class="section-label" style="margin-bottom:14px">Agent Status</div>
+          <div id="mc-agent-status" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+
+        <!-- Gate / Approval -->
+        <div class="card" style="padding:20px 24px;border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.05)">
+          <div class="section-label" style="color:var(--yellow);margin-bottom:10px">⚠ Gate Pending</div>
+          <div style="font-size:13px;color:var(--label);margin-bottom:14px;line-height:1.6">
+            Critic must approve Designer output before Builder proceeds. Waiting on Critic to finish.
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="mcApprove()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--green);background:rgba(34,197,94,0.1);color:var(--green);font-size:13px;font-weight:600;cursor:pointer">✓ Approve</button>
+            <button onclick="mcReject()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--pink);background:rgba(236,72,153,0.1);color:var(--pink);font-size:13px;font-weight:600;cursor:pointer">✗ Reject</button>
+          </div>
+        </div>
+
+        <!-- Orchestrator thought -->
+        <div class="card" style="padding:20px 24px">
+          <div class="section-label" style="margin-bottom:10px">🧠 Orchestrator</div>
+          <div id="mc-orch-thought" style="font-size:13px;color:var(--label);line-height:1.7;font-style:italic">
+            "Critic is reviewing Designer output. Scout and Analyst are idle. If Critic approves, routing to Builder. If rejected, looping Designer back with feedback."
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── Data ───────────────────────────────────────────────────────────────────
+const arenas = [
+  {
+    id: 'cognition-os',
+    name: 'Cognition OS',
+    icon: '🤖',
+    domain: 'Tech',
+    phase: 1,
+    description: 'Multi-agent OS where agents are directional forces on a shared evolving artifact. Dynamic orchestration, temporal trajectory, swarm inspiration.',
+    progress: 62,
+    color: '#3B82F6',
+    cx: 0.32, cy: 0.38,
+    research: [
+      '6 agents defined with markdown memory files',
+      'Dashboard v2 deployed to Netlify',
+      'Debate engine built and running',
+      'Architecture vision documented in memory'
+    ],
+    questions: [
+      'What does the artifact schema look like concretely?',
+      'How do agents spawn sub-agents?',
+      'When to add vector store / upgrade persistence?',
+      'Economic confidence layer — build now or later?'
+    ],
+    actions: [
+      'Build artifact schema (Synthesizer leads)',
+      'Wire up sub-agent spawning',
+      'Resolve Builder vs Critic cadence',
+      '3D visualization prototype'
+    ]
+  },
+  {
+    id: 'abraxas',
+    name: 'Abraxas Realms',
+    icon: '🦴',
+    domain: 'Creative',
+    phase: 0,
+    description: 'Gnostic-themed app + TikTok content engine. AI-generated skeleton videos walking through surreal fake realms — different realities, different arenas.',
+    progress: 15,
+    color: '#A855F7',
+    cx: 0.68, cy: 0.28,
+    research: [
+      'Gnostic cosmology + Abraxas archon explored',
+      'Hero/intro/mid imagery generated',
+      'App concept loosely sketched'
+    ],
+    questions: [
+      'Platform: mobile app, web, or TikTok-first?',
+      'Video gen tool: Sora, Runway, Kling?',
+      'What are the named realms / taxonomy?',
+      'Narrative structure — episodic or continuous?'
+    ],
+    actions: [
+      'Define the realm taxonomy (names, aesthetics)',
+      'Prototype first skeleton video',
+      'Explore video gen tools',
+      'Map out app screens / user flow'
+    ]
+  },
+  {
+    id: 'health-nose',
+    name: 'Nasal Health',
+    icon: '🫁',
+    domain: 'Health',
+    phase: 0,
+    description: 'Chronic congestion — years-long problem. Not a quick fix. Requires real research into root cause before acting.',
+    progress: 5,
+    color: '#22C55E',
+    cx: 0.22, cy: 0.68,
+    research: [
+      'Problem acknowledged and scoped',
+      'No deep research conducted yet'
+    ],
+    questions: [
+      'Structural cause (deviated septum)?',
+      'Allergic / environmental triggers?',
+      'Inflammatory / chronic sinusitis?',
+      'Have I had an ENT evaluation before?'
+    ],
+    actions: [
+      'Research root cause taxonomy',
+      'Track symptoms + potential triggers for 1 week',
+      'Book ENT consultation',
+      'Review existing treatment options'
+    ]
+  },
+  {
+    id: 'health-hair',
+    name: 'Hair Health',
+    icon: '💇',
+    domain: 'Health',
+    phase: 0,
+    description: 'Keep hair healthy and prevent balding. Proactive research-driven approach.',
+    progress: 8,
+    color: '#06B6D4',
+    cx: 0.42, cy: 0.72,
+    research: [
+      'Awareness of potential issue'
+    ],
+    questions: [
+      'Family history of balding?',
+      'DHT levels / hormonal factors?',
+      'Current hair care routine quality?',
+      'Early intervention window still open?'
+    ],
+    actions: [
+      'Research DHT, minoxidil, finasteride',
+      'Consult dermatologist / trichologist',
+      'Establish baseline hair care routine',
+      'Document current state (photos for tracking)'
+    ]
+  },
+  {
+    id: 'agent-3d',
+    name: 'Agent 3D View',
+    icon: '👁️',
+    domain: 'Tech',
+    phase: 0,
+    description: 'Spatial 3D visualization of agents moving and acting in a world. Beyond flat dashboards — agents as entities with presence.',
+    progress: 5,
+    color: '#FBBF24',
+    cx: 0.72, cy: 0.65,
+    research: [
+      'Concept: agents as spatial entities',
+      'Inspired by existing 3D agent demos'
+    ],
+    questions: [
+      'Three.js vs Babylon.js vs WebGPU?',
+      'What data drives agent positions/movement?',
+      'Real-time or replay mode?',
+      'How does this integrate with Cognition OS?'
+    ],
+    actions: [
+      'Define agent spatial metaphor',
+      'Prototype basic Three.js scene',
+      'Map Cognition OS state → 3D positions',
+      'Connect to live agent activity feed'
+    ]
+  }
+];
+
+const phaseNames = ['Understand', 'Explore', 'Act', 'Integrate'];
+
+// ─── Navigation ──────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.querySelector('[data-page="' + id + '"]').classList.add('active');
+  if (id === 'arenas') renderConstellation();
+  if (id === 'agents') renderNetwork();
+}
+
+// ─── Constellation ───────────────────────────────────────────────────────────
+let selectedArena = null;
+
+function renderConstellation() {
+  const svg = document.getElementById('constellation-svg');
+  const wrap = svg.parentElement;
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+
+  // Stars background
+  const starGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', Math.random() * W);
+    c.setAttribute('cy', Math.random() * H);
+    const r = Math.random() * 1.2;
+    c.setAttribute('r', r);
+    c.setAttribute('fill', `rgba(255,255,255,${Math.random() * 0.4 + 0.05})`);
+    starGroup.appendChild(c);
+  }
+  svg.appendChild(starGroup);
+
+  // Domain cluster labels
+  const domainLabels = [
+    { label: 'TECH', x: 0.5, y: 0.1 },
+    { label: 'CREATIVE', x: 0.78, y: 0.14 },
+    { label: 'HEALTH', x: 0.18, y: 0.82 }
+  ];
+  domainLabels.forEach(d => {
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', d.x * W);
+    t.setAttribute('y', d.y * H);
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('fill', 'rgba(255,255,255,0.1)');
+    t.setAttribute('font-size', '11');
+    t.setAttribute('font-family', 'system-ui,sans-serif');
+    t.setAttribute('letter-spacing', '3');
+    t.textContent = d.label;
+    svg.appendChild(t);
+  });
+
+  // Connection lines
+  const connections = [
+    ['cognition-os', 'agent-3d'],
+    ['cognition-os', 'abraxas'],
+    ['health-nose', 'health-hair']
+  ];
+
+  const posMap = {};
+  arenas.forEach(a => { posMap[a.id] = { x: a.cx * W, y: a.cy * H }; });
+
+  connections.forEach(([a, b]) => {
+    const pa = posMap[a], pb = posMap[b];
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', pa.x); line.setAttribute('y1', pa.y);
+    line.setAttribute('x2', pb.x); line.setAttribute('y2', pb.y);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.07)');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('stroke-dasharray', '4 6');
+    svg.appendChild(line);
+  });
+
+  // Nodes
+  arenas.forEach(arena => {
+    const x = arena.cx * W;
+    const y = arena.cy * H;
+    const isSelected = selectedArena && selectedArena.id === arena.id;
+    const radius = isSelected ? 28 : 22;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.style.cursor = 'pointer';
+
+    // Glow
+    const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    glow.setAttribute('cx', x); glow.setAttribute('cy', y);
+    glow.setAttribute('r', radius + 14);
+    glow.setAttribute('fill', arena.color);
+    glow.setAttribute('opacity', isSelected ? '0.15' : '0.07');
+    g.appendChild(glow);
+
+    // Outer ring
+    const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    ring.setAttribute('cx', x); ring.setAttribute('cy', y);
+    ring.setAttribute('r', radius + 4);
+    ring.setAttribute('fill', 'none');
+    ring.setAttribute('stroke', arena.color);
+    ring.setAttribute('stroke-width', isSelected ? '1.5' : '0.5');
+    ring.setAttribute('opacity', isSelected ? '0.9' : '0.35');
+    g.appendChild(ring);
+
+    // Progress arc (shows how far along)
+    if (arena.progress > 0) {
+      const pct = arena.progress / 100;
+      const r2 = radius + 4;
+      const circ = 2 * Math.PI * r2;
+      const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      arc.setAttribute('cx', x); arc.setAttribute('cy', y);
+      arc.setAttribute('r', r2);
+      arc.setAttribute('fill', 'none');
+      arc.setAttribute('stroke', arena.color);
+      arc.setAttribute('stroke-width', '2.5');
+      arc.setAttribute('stroke-dasharray', `${pct * circ} ${circ}`);
+      arc.setAttribute('stroke-dashoffset', circ * 0.25);
+      arc.setAttribute('stroke-linecap', 'round');
+      arc.setAttribute('opacity', '0.8');
+      g.appendChild(arc);
+    }
+
+    // Main circle
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', x); circle.setAttribute('cy', y);
+    circle.setAttribute('r', radius);
+    circle.setAttribute('fill', isSelected ? arena.color : `${arena.color}22`);
+    circle.setAttribute('stroke', arena.color);
+    circle.setAttribute('stroke-width', isSelected ? '2' : '1.5');
+    g.appendChild(circle);
+
+    // Icon
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    icon.setAttribute('x', x); icon.setAttribute('y', y + 7);
+    icon.setAttribute('text-anchor', 'middle');
+    icon.setAttribute('font-size', isSelected ? '20' : '16');
+    icon.textContent = arena.icon;
+    g.appendChild(icon);
+
+    // Label
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', x); label.setAttribute('y', y + radius + 18);
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('fill', isSelected ? '#fff' : 'rgba(255,255,255,0.6)');
+    label.setAttribute('font-size', '11');
+    label.setAttribute('font-family', 'system-ui,sans-serif');
+    label.setAttribute('font-weight', isSelected ? '600' : '400');
+    label.textContent = arena.name;
+    g.appendChild(label);
+
+    // Phase dot
+    const phaseDot = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    phaseDot.setAttribute('x', x); phaseDot.setAttribute('y', y + radius + 30);
+    phaseDot.setAttribute('text-anchor', 'middle');
+    phaseDot.setAttribute('fill', 'rgba(255,255,255,0.3)');
+    phaseDot.setAttribute('font-size', '9');
+    phaseDot.setAttribute('font-family', 'system-ui,sans-serif');
+    phaseDot.setAttribute('letter-spacing', '1');
+    phaseDot.textContent = phaseNames[arena.phase].toUpperCase();
+    g.appendChild(phaseDot);
+
+    g.addEventListener('click', () => {
+      selectedArena = arena;
+      renderConstellation();
+      renderArenaDetail(arena);
+    });
+
+    svg.appendChild(g);
+  });
+}
+
+function renderArenaDetail(arena) {
+  const panel = document.getElementById('arena-detail');
+
+  const phaseHtml = phaseNames.map((p, i) => {
+    let cls = '';
+    if (i < arena.phase) cls = 'done';
+    else if (i === arena.phase) cls = 'current';
+    return `<div class="arena-phase ${cls}">${p}</div>`;
+  }).join('');
+
+  const researchHtml = arena.research.map(r => `<div class="arena-list-item">${r}</div>`).join('');
+  const questionsHtml = arena.questions.map(q => `<div class="arena-list-item">${q}</div>`).join('');
+  const actionsHtml = arena.actions.map(a => `<div class="arena-list-item">${a}</div>`).join('');
+
+  panel.innerHTML = `
+    <div class="arena-detail-header">
+      <div class="arena-detail-icon">${arena.icon}</div>
+      <div class="arena-detail-name">${arena.name}</div>
+      <div class="arena-detail-domain">${arena.domain}</div>
+      <div class="arena-detail-desc">${arena.description}</div>
+      <div class="arena-phase-track">${phaseHtml}</div>
+    </div>
+    <div class="arena-sections">
+      <div>
+        <div class="arena-section-title">
+          <span>◈</span> Progress
+        </div>
+        <div class="arena-progress-row">
+          <div class="arena-progress-bar">
+            <div class="arena-progress-fill" style="width:${arena.progress}%;background:${arena.color}"></div>
+          </div>
+          <div class="arena-progress-pct" style="color:${arena.color}">${arena.progress}%</div>
+        </div>
+      </div>
+      <div>
+        <div class="arena-section-title"><span>◎</span> Research So Far</div>
+        ${researchHtml}
+      </div>
+      <div>
+        <div class="arena-section-title"><span>?</span> Open Questions</div>
+        ${questionsHtml}
+      </div>
+      <div>
+        <div class="arena-section-title"><span>→</span> Next Actions</div>
+        ${actionsHtml}
+      </div>
+    </div>
+  `;
+}
+
+// ─── Agent Network ───────────────────────────────────────────────────────────
+function renderNetwork() {
+  const svg = document.getElementById('network-svg');
+  const wrap = svg.parentElement;
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+
+  const nodes = [
+    { id: 'orchestrator', label: '🧠', name: 'Orchestrator', color: '#A855F7', x: W/2, y: H/2 },
+    { id: 'scout',        label: '🔭', name: 'Scout',        color: '#06B6D4', x: W/2, y: 60 },
+    { id: 'analyst',      label: '🔬', name: 'Analyst',      color: '#FBBF24', x: W - 80, y: H * 0.35 },
+    { id: 'synthesizer',  label: '🧬', name: 'Synthesizer',  color: '#22C55E', x: W - 80, y: H * 0.7 },
+    { id: 'critic',       label: '⚡', name: 'Critic',       color: '#EC4899', x: W/2, y: H - 60 },
+    { id: 'builder',      label: '🔨', name: 'Builder',      color: '#F97316', x: 80,    y: H * 0.5 }
+  ];
+
+  const edges = [
+    ['orchestrator','scout'],['orchestrator','analyst'],['orchestrator','synthesizer'],
+    ['orchestrator','critic'],['orchestrator','builder'],
+    ['scout','analyst'],['analyst','synthesizer'],['critic','synthesizer'],['synthesizer','builder']
+  ];
+
+  const posMap = {};
+  nodes.forEach(n => { posMap[n.id] = { x: n.x, y: n.y }; });
+
+  edges.forEach(([a, b]) => {
+    const pa = posMap[a], pb = posMap[b];
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', pa.x); line.setAttribute('y1', pa.y);
+    line.setAttribute('x2', pb.x); line.setAttribute('y2', pb.y);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.08)');
+    line.setAttribute('stroke-width', '1');
+    svg.appendChild(line);
+  });
+
+  nodes.forEach(n => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    glow.setAttribute('cx', n.x); glow.setAttribute('cy', n.y);
+    glow.setAttribute('r', '36'); glow.setAttribute('fill', n.color); glow.setAttribute('opacity', '0.08');
+    g.appendChild(glow);
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', n.x); c.setAttribute('cy', n.y);
+    c.setAttribute('r', '26'); c.setAttribute('fill', n.color + '22');
+    c.setAttribute('stroke', n.color); c.setAttribute('stroke-width', '1.5');
+    g.appendChild(c);
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    icon.setAttribute('x', n.x); icon.setAttribute('y', n.y + 7);
+    icon.setAttribute('text-anchor', 'middle'); icon.setAttribute('font-size', '18');
+    icon.textContent = n.label;
+    g.appendChild(icon);
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', n.x); label.setAttribute('y', n.y + 44);
+    label.setAttribute('text-anchor', 'middle'); label.setAttribute('fill', 'rgba(255,255,255,0.5)');
+    label.setAttribute('font-size', '11'); label.setAttribute('font-family', 'system-ui,sans-serif');
+    label.textContent = n.name;
+    g.appendChild(label);
+    svg.appendChild(g);
+  });
+}
+
+// Init
+window.addEventListener('resize', () => {
+  const arenaPage = document.getElementById('page-arenas');
+  if (arenaPage.classList.contains('active')) renderConstellation();
+  const agentPage = document.getElementById('page-agents');
+  if (agentPage.classList.contains('active')) renderNetwork();
+});
+
+// ─── Mission Control ─────────────────────────────────────────────────────────
+const mcAgents = [
+  { id: 'orchestrator', name: 'Orchestrator', icon: '🧠', color: '#A855F7', status: 'routing', statusLabel: 'Routing' },
+  { id: 'scout',        name: 'Scout',        icon: '🔭', color: '#06B6D4', status: 'done',    statusLabel: 'Done' },
+  { id: 'analyst',      name: 'Analyst',      icon: '🔬', color: '#FBBF24', status: 'idle',    statusLabel: 'Idle' },
+  { id: 'designer',     name: 'Designer',     icon: '🎨', color: '#EC4899', status: 'done',    statusLabel: 'Done' },
+  { id: 'critic',       name: 'Critic',       icon: '⚡', color: '#F97316', status: 'running', statusLabel: 'Running…' },
+  { id: 'builder',      name: 'Builder',      icon: '🔨', color: '#22C55E', status: 'queued',  statusLabel: 'Queued' },
+];
+
+const statusColors = {
+  running: '#F97316', done: '#22C55E', idle: '#6B7280', queued: '#3B82F6', routing: '#A855F7', blocked: '#FBBF24'
+};
+
+const mcEvents = [
+  { t: '03:22:01', agent: 'Orchestrator', msg: 'Task received: Design Review — Cognition OS Dashboard' },
+  { t: '03:22:02', agent: 'Orchestrator', msg: 'Phase plan: Scout → Designer → Critic → [Gate] → Builder' },
+  { t: '03:22:04', agent: 'Scout',        msg: 'Starting research pass on dashboard structure...' },
+  { t: '03:22:18', agent: 'Scout',        msg: 'Output: 5 findings. Gamery aesthetic confirmed as target.' },
+  { t: '03:22:19', agent: 'Orchestrator', msg: 'Scout done → routing to Designer' },
+  { t: '03:22:21', agent: 'Designer',     msg: 'Reviewing scout output. Generating design evaluation...' },
+  { t: '03:23:04', agent: 'Designer',     msg: 'Output: Dashboard needs stronger visual hierarchy. Colors solid. Navigation UX weak.' },
+  { t: '03:23:05', agent: 'Orchestrator', msg: 'Designer done → routing to Critic' },
+  { t: '03:23:07', agent: 'Critic',       msg: 'Analyzing Designer output for blind spots...' },
+];
+
+let mcEventIndex = 0;
+let mcApproved = false;
+
+function renderMcAgents() {
+  const el = document.getElementById('mc-agent-status');
+  if (!el) return;
+  el.innerHTML = mcAgents.map(a => {
+    const color = statusColors[a.status] || '#6B7280';
+    const pulse = a.status === 'running' ? `
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};
+        box-shadow:0 0 0 0 ${color};animation:mcPulse 1.2s infinite;margin-right:6px"></span>` :
+      `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};margin-right:6px;opacity:0.7"></span>`;
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05)">
+        <span style="font-size:18px">${a.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600">${a.name}</div>
+        </div>
+        <div style="display:flex;align-items:center;font-size:11px;font-weight:600;color:${color}">
+          ${pulse}${a.statusLabel}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function addMcEvent(ev) {
+  const el = document.getElementById('mc-event-log');
+  if (!el) return;
+  const agentColors = { Orchestrator: '#A855F7', Scout: '#06B6D4', Analyst: '#FBBF24', Designer: '#EC4899', Critic: '#F97316', Builder: '#22C55E' };
+  const color = agentColors[ev.agent] || '#9CA3AF';
+  const line = document.createElement('div');
+  line.style.cssText = 'padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);opacity:0;transition:opacity 0.4s';
+  line.innerHTML = `<span style="color:rgba(255,255,255,0.25)">${ev.t}</span> <span style="color:${color};font-weight:700">[${ev.agent}]</span> <span>${ev.msg}</span>`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  setTimeout(() => { line.style.opacity = '1'; }, 30);
+}
+
+function mcTick() {
+  if (mcEventIndex < mcEvents.length) {
+    addMcEvent(mcEvents[mcEventIndex++]);
+  }
+}
+
+function mcApprove() {
+  if (mcApproved) return;
+  mcApproved = true;
+  // Update critic to done, builder to running
+  mcAgents.find(a => a.id === 'critic').status = 'done';
+  mcAgents.find(a => a.id === 'critic').statusLabel = 'Done';
+  mcAgents.find(a => a.id === 'builder').status = 'running';
+  mcAgents.find(a => a.id === 'builder').statusLabel = 'Running…';
+  renderMcAgents();
+
+  // Update phase track
+  const steps = document.querySelectorAll('#mc-phase-track .phase-step');
+  if (steps[2]) { steps[2].classList.remove('current'); steps[2].classList.add('done'); steps[2].querySelector('.phase-label').textContent = 'Approved'; }
+  if (steps[3]) { steps[3].classList.add('done'); steps[3].querySelector('.phase-label').textContent = 'Gate passed'; }
+  if (steps[4]) { steps[4].classList.add('current'); steps[4].querySelector('.phase-label').textContent = 'Running…'; }
+
+  // Update gate card
+  const gateCard = document.querySelector('#page-mission .card:nth-child(2)');
+
+  addMcEvent({ t: now(), agent: 'Orchestrator', msg: 'Gate passed — routing to Builder' });
+  addMcEvent({ t: now(), agent: 'Builder', msg: 'Implementing design changes...' });
+
+  document.getElementById('mc-orch-thought').textContent = '"Gate approved. Builder is now executing. Monitoring for completion or error signals."';
+}
+
+function mcReject() {
+  if (mcApproved) return;
+  mcAgents.find(a => a.id === 'critic').status = 'done';
+  mcAgents.find(a => a.id === 'critic').statusLabel = 'Rejected';
+  mcAgents.find(a => a.id === 'designer').status = 'running';
+  mcAgents.find(a => a.id === 'designer').statusLabel = 'Revising…';
+  renderMcAgents();
+  addMcEvent({ t: now(), agent: 'Orchestrator', msg: 'Gate rejected — looping Designer back with Critic feedback' });
+  addMcEvent({ t: now(), agent: 'Designer', msg: 'Received critique. Revising output...' });
+  document.getElementById('mc-orch-thought').textContent = '"Critic rejected. Sending feedback back to Designer. Will re-run Critic when revision is ready."';
+}
+
+function now() {
+  return new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// Add pulse animation
+const style = document.createElement('style');
+style.textContent = `@keyframes mcPulse { 0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,0.6)} 50%{box-shadow:0 0 0 6px rgba(249,115,22,0)} }`;
+document.head.appendChild(style);
+
+// Boot mission control when page loads
+const origShowPage = showPage;
+window.showPage = function(id) {
+  origShowPage(id);
+  if (id === 'mission') {
+    renderMcAgents();
+    // replay events with staggered timing
+    mcEventIndex = 0;
+    document.getElementById('mc-event-log').innerHTML = '';
+    mcEvents.forEach((_, i) => setTimeout(mcTick, i * 280));
+  }
+};
+</script>
+</body>
+</html>

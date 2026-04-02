@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cognition OS</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;background:#0d0d10;color:#e2e8f0;height:100vh;overflow:hidden}
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2d2d3a;border-radius:2px}
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes slideUp{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .modal-box{background:#13131a;border:1px solid #2d2d3a;border-radius:16px;width:680px;max-height:80vh;display:flex;flex-direction:column;animation:slideUp .2s ease;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+    .modal-header{padding:20px 24px;border-bottom:1px solid #1e1e2e;display:flex;align-items:center;justify-content:space-between}
+    .modal-body{padding:24px;overflow-y:auto;flex:1}
+    .md-content{font-size:13px;line-height:1.7;color:#94a3b8}
+    .md-content h1{font-size:18px;font-weight:800;color:#e2e8f0;margin-bottom:16px}
+    .md-content h2{font-size:12px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px}
+    .md-content ul{padding-left:16px}.md-content li{margin-bottom:4px}
+    .md-content strong{color:#cbd5e1}
+    .md-content table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+    .md-content th{text-align:left;padding:6px 10px;color:#4b5563;border-bottom:1px solid #1e1e2e;font-weight:600}
+    .md-content td{padding:6px 10px;border-bottom:1px solid #1a1a25;color:#64748b}
+    .close-btn{background:#1e1e2e;border:none;color:#64748b;width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+    .close-btn:hover{background:#2d2d3a;color:#e2e8f0}
+    .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;margin-right:5px;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .bubble-fade{animation:bubblePop .3s ease}
+    @keyframes bubblePop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+    .phase-btn{cursor:pointer;transition:all .2s}
+    .phase-btn:hover .phase-circle{transform:scale(1.15)}
+    .phase-circle{transition:all .2s}
+    .zoom-btn{background:#1e1e2e;border:1px solid #2d2d3a;color:#64748b;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;transition:all .15s}
+    .zoom-btn:hover,.zoom-btn.active{background:#6366f1;border-color:#6366f1;color:#fff}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef}=React;
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const AGENTS=[
+  {id:'orchestrator',name:'Orchestrator',role:'Coordinator',   force:'Meta-Coordination',   status:'active',icon:'🧠',color:'#a855f7',runs:12,confidence:.95},
+  {id:'scout',       name:'Scout',       role:'Explorer',      force:'Novelty / Breadth',   status:'idle',  icon:'🔭',color:'#6366f1',runs:0, confidence:.72},
+  {id:'analyst',     name:'Analyst',     role:'Stress-Tester', force:'Rigor / Skepticism',  status:'idle',  icon:'🔬',color:'#06b6d4',runs:0, confidence:.81},
+  {id:'synthesizer', name:'Synthesizer', role:'Integrator',    force:'Coherence',           status:'idle',  icon:'🧬',color:'#10b981',runs:0, confidence:.68},
+  {id:'critic',      name:'Critic',      role:'Challenger',    force:'Adversarial Pressure',status:'idle',  icon:'⚡',color:'#f59e0b',runs:0, confidence:.75},
+  {id:'builder',     name:'Builder',     role:'Executor',      force:'Execution',           status:'active',icon:'🔨',color:'#ec4899',runs:4, confidence:.90},
+];
+const EDGES=[
+  {from:'orchestrator',to:'scout',      label:'activates', strength:.90},
+  {from:'orchestrator',to:'analyst',    label:'activates', strength:.90},
+  {from:'orchestrator',to:'synthesizer',label:'activates', strength:.85},
+  {from:'orchestrator',to:'critic',     label:'activates', strength:.80},
+  {from:'orchestrator',to:'builder',    label:'directs',   strength:.95},
+  {from:'scout',       to:'analyst',    label:'feeds',     strength:.80},
+  {from:'analyst',     to:'synthesizer',label:'feeds',     strength:.75},
+  {from:'critic',      to:'synthesizer',label:'challenges',strength:.70},
+  {from:'synthesizer', to:'builder',    label:'specs',     strength:.85},
+  {from:'builder',     to:'critic',     label:'review',    strength:.65},
+];
+const NODE_POS={
+  orchestrator:{x:400,y:210},scout:{x:120,y:100},analyst:{x:680,y:100},
+  synthesizer:{x:680,y:320},critic:{x:400,y:380},builder:{x:120,y:320},
+};
+const CHAT_MESSAGES={
+  orchestrator:['Activating Scout →','Builder: deploy v3 ✓','Routing: research task','Synthesizer: integrate now','Confidence check...'],
+  scout:       ['Fetching 14 sources...','Swarm pattern found','→ Passing to Analyst','Deep search initiated'],
+  analyst:     ['3 unsupported claims ⚠','Force vector pattern ✓','Confidence: 0.81','Gap found in logic'],
+  synthesizer: ['Tension resolved','Coherence: 77% ↑','Spec ready → Builder','Merging proposals...'],
+  critic:      ['⚠ Ship risk detected','Validate before deploy?','Challenging claim #3','Flag: overconfidence'],
+  builder:     ['Writing dashboard.html','Netlify deploy: ✓','Screenshot captured','Artifact updated'],
+};
+const CURRENT_PHASE=2;
+const PHASE_DATA=[
+  {id:'INPUT',   label:'Input',     time:'00:00',
+   summary:'Task received: "Build adaptive multi-agent OS"',
+   decisions:['Accept architecture brief','Acknowledge system design intent'],
+   questions:['Primary output format?','End user beyond Thomas?'],
+   confidence:.45,contributors:['orchestrator'],
+   note:'Raw input ingested. No structure yet.'},
+  {id:'FRAMING', label:'Framing',   time:'00:42',
+   summary:'Core conceptual frame established — agents as force vectors on shared artifact',
+   decisions:['Agents = directional forces, not pipeline steps','Artifact is a living state object','Coordination geometry > fixed pipelines'],
+   questions:['How does economic layer bootstrap?','What defines success for the artifact?'],
+   confidence:.61,contributors:['orchestrator','analyst'],
+   note:'Key metaphors locked. Problem space defined.'},
+  {id:'SYNTHESIS',label:'Synthesis',time:'02:18',current:true,
+   summary:'Merging agent proposals, resolving conflicts, building coherent spec',
+   decisions:['6 agent roles defined','Markdown files for persistent state','Netlify for deployment (upgrade later)'],
+   questions:['DB vs flat files for artifact state?','How does confidence layer bootstrap?'],
+   confidence:.77,contributors:['orchestrator','synthesizer','analyst','builder'],
+   note:'Main tension: Builder (ship) vs Critic (validate)'},
+  {id:'STRUCTURE', label:'Structure', time:'--:--',locked:true},
+  {id:'EXECUTION', label:'Execution', time:'--:--',locked:true},
+  {id:'VALIDATION',label:'Validation',time:'--:--',locked:true},
+];
+const GOALS=[
+  {id:1,title:'Build adaptive multi-agent OS',  status:'in-progress',priority:'high',  progress:28,agents:['orchestrator','builder','analyst']},
+  {id:2,title:'Define shared artifact schema',  status:'open',       priority:'high',  progress:0, agents:['synthesizer','analyst']},
+  {id:3,title:'Deploy Cognition OS v3',         status:'in-progress',priority:'medium',progress:99,agents:['builder']},
+  {id:4,title:'Implement persistent memory',    status:'open',       priority:'medium',progress:0, agents:['orchestrator']},
+  {id:5,title:'Scout: first research run',      status:'open',       priority:'low',   progress:0, agents:['scout']},
+];
+const AGENT_PROFILES={
+  scout:`# Agent: Scout\n## Identity\n- **Role:** Explorer\n- **Force:** Novelty, Breadth\n- **Status:** idle\n\n## Capabilities\n- web_search\n- web_fetch\n- summarize\n- source ranking\n\n## Coordination\n- **Reports to:** Orchestrator\n- **Hands off to:** Analyst\n- **Influence Weight:** 0.70\n\n## Parameters\n- max_sources_per_run: 10\n- search_depth: broad\n- confidence_threshold: 0.60\n\n## Memory\n- last_activated: null\n- total_runs: 0\n\n## History\n| timestamp | task | key_output | confidence |\n|-----------|------|------------|------------|\n`,
+  analyst:`# Agent: Analyst\n## Identity\n- **Role:** Stress-Tester\n- **Force:** Rigor, Skepticism\n- **Status:** idle\n\n## Capabilities\n- pattern_extraction\n- claim_validation\n- gap_analysis\n\n## Coordination\n- **Receives from:** Scout\n- **Hands off to:** Synthesizer\n- **Influence Weight:** 0.81\n\n## Parameters\n- skepticism_level: high\n- min_sources_required: 2\n- confidence_threshold: 0.75\n\n## Memory\n- last_activated: null\n- total_runs: 0\n\n## History\n| timestamp | task | key_output | confidence |\n|-----------|------|------------|------------|\n`,
+  synthesizer:`# Agent: Synthesizer\n## Identity\n- **Role:** Integrator\n- **Force:** Coherence\n- **Status:** idle\n\n## Capabilities\n- cross-agent_synthesis\n- tension_resolution\n- confidence_aggregation\n\n## Coordination\n- **Receives from:** Analyst, Critic\n- **Hands off to:** Builder\n- **Influence Weight:** 0.68\n\n## Parameters\n- tension_tolerance: medium\n- surface_unresolved: true\n\n## Memory\n- last_activated: null\n- total_runs: 0\n\n## History\n| timestamp | task | key_output | confidence |\n|-----------|------|------------|------------|\n`,
+  critic:`# Agent: Critic\n## Identity\n- **Role:** Challenger\n- **Force:** Adversarial Pressure\n- **Status:** idle\n\n## Capabilities\n- assumption_challenging\n- failure_mode_analysis\n- red_teaming\n\n## Coordination\n- **Receives from:** Synthesizer, Builder\n- **Hands off to:** Synthesizer\n- **Influence Weight:** 0.75\n\n## Parameters\n- aggression_level: medium\n- block_threshold: 0.40\n\n## Memory\n- blocks_issued: 0\n- total_runs: 0\n\n## History\n| timestamp | task | key_output | confidence |\n|-----------|------|------------|------------|\n`,
+  builder:`# Agent: Builder\n## Identity\n- **Role:** Executor\n- **Force:** Execution\n- **Status:** active\n\n## Capabilities\n- code_generation\n- netlify_deploy\n- screenshot_capture\n\n## Coordination\n- **Receives from:** Synthesizer\n- **Hands off to:** Critic\n- **Influence Weight:** 0.90\n\n## Deployments\n- casa-thomas-keaton-kyle.netlify.app\n- cognition-os-dashboard.netlify.app\n\n## Memory\n- last_activated: "2026-03-23T22:32"\n- total_runs: 4\n\n## History\n| timestamp | task | key_output | confidence |\n|-----------|------|------------|------------|\n| 2026-03-23T21:37 | Apartment homepage | deployed | 0.95 |\n| 2026-03-23T21:45 | B2B landing | deployed | 0.92 |\n| 2026-03-23T22:10 | Dashboard v1 | deployed | 0.90 |\n| 2026-03-23T22:32 | Dashboard v3 | deployed | 0.91 |\n`,
+  orchestrator:`# Agent: Orchestrator\n## Identity\n- **Role:** Coordinator\n- **Force:** Meta-Coordination\n- **Status:** active\n\n## Capabilities\n- agent_spawning\n- task_decomposition\n- routing_logic\n\n## Routing Rules\n- research_task → Scout → Analyst → Synthesizer → Builder\n- build_task → Builder direct\n- ambiguous → Scout first\n\n## Memory\n- last_activated: "2026-03-23T22:32"\n- tasks_coordinated: 12\n- total_runs: 12\n\n## History\n| timestamp | task | routing | outcome |\n|-----------|------|---------|--------|\n| 2026-03-23T21:55 | Architecture brief | ingest | stored |\n| 2026-03-23T22:08 | Agent schemas | synthesis | 6 defined |\n| 2026-03-23T22:10 | Dashboard v1 | Builder | deployed |\n`,
+};
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function StatusDot({status}){const c={active:'#10b981',idle:'#4b5563',busy:'#f59e0b',error:'#ef4444'};return<span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:c[status]||'#4b5563',boxShadow:status==='active'?`0 0 6px ${c.active}`:'none',flexShrink:0}}/>}
+function ConfBar({value,color}){return<div style={{background:'#1e1e2e',borderRadius:4,height:4,width:'100%',overflow:'hidden'}}><div style={{width:`${value*100}%`,height:'100%',background:color,borderRadius:4}}/></div>}
+function Badge({children,color='#6366f1'}){return<span style={{background:color+'22',color,border:`1px solid ${color}44`,borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>{children}</span>}
+
+function renderMd(text){
+  const lines=text.split('\n');const els=[];let trows=[];let inT=false;let k=0;
+  const flushT=()=>{if(trows.length){els.push(<table key={k++}><tbody>{trows}</tbody></table>);trows=[];}inT=false;};
+  lines.forEach(line=>{
+    if(line.startsWith('| ')){inT=true;if(line.includes('---'))return;const cells=line.split('|').filter(c=>c.trim()).map(c=>c.trim());const isH=trows.length===0;trows.push(<tr key={k++}>{cells.map((c,i)=>isH?<th key={i}>{c}</th>:<td key={i}>{c}</td>)}</tr>);}
+    else{if(inT)flushT();if(line.startsWith('# '))els.push(<h1 key={k++}>{line.slice(2)}</h1>);else if(line.startsWith('## '))els.push(<h2 key={k++}>{line.slice(3)}</h2>);else if(line.startsWith('- ')){const parts=line.slice(2).split(/(\*\*.*?\*\*)/).map((p,i)=>p.startsWith('**')?<strong key={i}>{p.slice(2,-2)}</strong>:p);els.push(<ul key={k++}><li>{parts}</li></ul>);}else if(line.trim())els.push(<p key={k++} style={{marginBottom:4}}>{line}</p>);}
+  });if(inT)flushT();return els;
+}
+
+function edgePath(from,to,curve=35){
+  const mx=(from.x+to.x)/2,my=(from.y+to.y)/2;
+  const dx=to.x-from.x,dy=to.y-from.y,len=Math.sqrt(dx*dx+dy*dy)||1;
+  const nx=-dy/len*curve*.5,ny=dx/len*curve*.5;
+  return`M${from.x},${from.y} Q${mx+nx},${my+ny} ${to.x},${to.y}`;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function AgentModal({agent,onClose}){
+  return<div className="modal-overlay" onClick={e=>e.target.classList.contains('modal-overlay')&&onClose()}>
+    <div className="modal-box">
+      <div className="modal-header">
+        <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <span style={{fontSize:24}}>{agent.icon}</span>
+          <div><div style={{fontWeight:800,fontSize:15}}>{agent.name}</div><div style={{fontSize:11,color:'#4b5563'}}>System Profile · agents/{agent.id}.md</div></div>
+        </div>
+        <button className="close-btn" onClick={onClose}>✕</button>
+      </div>
+      <div className="modal-body"><div className="md-content">{renderMd(AGENT_PROFILES[agent.id]||'')}</div></div>
+    </div>
+  </div>;
+}
+
+// ── AGENT NETWORK ─────────────────────────────────────────────────────────────
+function AgentNetwork({onOpenModal}){
+  const[hovered,setHovered]=useState(null);
+  const[bubbles,setBubbles]=useState({});
+  const W=800,H=440;
+
+  useEffect(()=>{
+    const ids=AGENTS.map(a=>a.id);
+    let idx=0;
+    const interval=setInterval(()=>{
+      idx=(idx+1)%ids.length;
+      const id=ids[idx];
+      const msgs=CHAT_MESSAGES[id];
+      const msg=msgs[Math.floor(Math.random()*msgs.length)];
+      setBubbles(prev=>({...prev,[id]:msg}));
+      setTimeout(()=>setBubbles(prev=>{const n={...prev};delete n[id];return n;}),2400);
+    },1500);
+    return()=>clearInterval(interval);
+  },[]);
+
+  return(
+    <div style={{position:'relative',width:'100%',marginBottom:24}}>
+      <div style={{fontSize:11,fontWeight:700,color:'#4b5563',letterSpacing:'.15em',textTransform:'uppercase',textAlign:'center',marginBottom:10}}>Agent Network — Live</div>
+      <div style={{background:'#060610',border:'1px solid #1a1a28',borderRadius:16,overflow:'hidden'}}>
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:'block'}}>
+          <defs>
+            {AGENTS.map(a=><radialGradient key={a.id} id={`g-${a.id}`} cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor={a.color} stopOpacity=".45"/><stop offset="100%" stopColor={a.color} stopOpacity="0"/></radialGradient>)}
+            <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="glow2"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          {/* Stars */}
+          {Array.from({length:70},(_,i)=><circle key={i} cx={(i*137)%W} cy={(i*97)%H} r={i%5===0?1.2:.6} fill="white" opacity={.04+i%4*.02}/>)}
+
+          {/* Edges */}
+          {EDGES.map((e,i)=>{
+            const from=NODE_POS[e.from],to=NODE_POS[e.to];
+            const fa=AGENTS.find(a=>a.id===e.from);
+            const d=edgePath(from,to);
+            const isHov=hovered===e.from||hovered===e.to;
+            const dur=3.5-e.strength*1.8;
+            const numP=e.strength>.88?3:e.strength>.75?2:1;
+            return(
+              <g key={i}>
+                {isHov&&<path d={d} fill="none" stroke={fa.color} strokeWidth={6} strokeOpacity={.12} filter="url(#glow2)"/>}
+                <path d={d} fill="none" stroke={fa.color} strokeWidth={isHov?2:1} strokeOpacity={isHov?.85:.2} filter={isHov?"url(#glow)":"none"}/>
+                {Array.from({length:numP},(_,pi)=>(
+                  <circle key={pi} r={2.2} fill={fa.color} opacity={.9} filter="url(#glow)">
+                    <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${(pi/numP)*dur}s`} path={d}/>
+                  </circle>
+                ))}
+              </g>
+            );
+          })}
+
+          {/* Nodes */}
+          {AGENTS.map(a=>{
+            const p=NODE_POS[a.id];
+            const isHov=hovered===a.id;
+            const isAct=a.status==='active';
+            const bubble=bubbles[a.id];
+            const bw=148,bh=24;
+            const bx=p.x-bw/2;
+            const bubUp=p.y>220;
+            const by=bubUp?p.y-54:p.y+34;
+            return(
+              <g key={a.id} style={{cursor:'pointer'}} onMouseEnter={()=>setHovered(a.id)} onMouseLeave={()=>setHovered(null)} onClick={()=>onOpenModal(a)}>
+                <circle cx={p.x} cy={p.y} r={isHov?46:30} fill={`url(#g-${a.id})`} opacity={isHov?1:.55}/>
+                {isAct&&<circle cx={p.x} cy={p.y} r={24} fill="none" stroke={a.color} strokeWidth={1} strokeOpacity={.3} strokeDasharray="3 4"><animateTransform attributeName="transform" type="rotate" from={`0 ${p.x} ${p.y}`} to={`360 ${p.x} ${p.y}`} dur="9s" repeatCount="indefinite"/></circle>}
+                <circle cx={p.x} cy={p.y} r={20} fill="none" stroke={a.color} strokeWidth={isHov?2:1} strokeOpacity={isHov?.9:.4} filter={isHov?"url(#glow)":"none"}/>
+                <circle cx={p.x} cy={p.y} r={14} fill={a.color} fillOpacity={isHov?.28:.1}/>
+                <circle cx={p.x} cy={p.y} r={6} fill={a.color} filter="url(#glow)"/>
+                <text x={p.x} y={p.y+4} textAnchor="middle" fontSize={9}>{a.icon}</text>
+                <text x={p.x} y={p.y+36} textAnchor="middle" fontSize={10} fontWeight={isHov?700:500} fill={isHov?a.color:'#94a3b8'} filter={isHov?"url(#glow)":"none"}>{a.name.toUpperCase()}</text>
+                <text x={p.x} y={p.y+48} textAnchor="middle" fontSize={8} fill="#4b5563">{a.role}</text>
+                {/* Chat bubble */}
+                {bubble&&(
+                  <g className="bubble-fade">
+                    <rect x={bx} y={by} width={bw} height={bh} rx={5} fill="#1a1a2e" stroke={a.color} strokeWidth={1} strokeOpacity={.7}/>
+                    <text x={p.x} y={by+16} textAnchor="middle" fontSize={9} fill={a.color} fontWeight={600}>{bubble.length>22?bubble.slice(0,21)+'…':bubble}</text>
+                    {bubUp
+                      ?<polygon points={`${p.x-4},${by+bh} ${p.x+4},${by+bh} ${p.x},${by+bh+5}`} fill="#1a1a2e"/>
+                      :<polygon points={`${p.x-4},${by} ${p.x+4},${by} ${p.x},${by-5}`} fill="#1a1a2e"/>}
+                  </g>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Hover edge labels */}
+          {hovered&&EDGES.filter(e=>e.from===hovered||e.to===hovered).map((e,i)=>{
+            const from=NODE_POS[e.from],to=NODE_POS[e.to];
+            const mx=(from.x+to.x)/2,my=(from.y+to.y)/2;
+            const fa=AGENTS.find(a=>a.id===e.from);
+            return<g key={i}><rect x={mx-26} y={my-9} width={52} height={14} rx={4} fill="#0d0d10" fillOpacity={.9}/><text x={mx} y={my+1} textAnchor="middle" fontSize={8} fill={fa.color} fontWeight={600}>{e.label}</text></g>;
+          })}
+        </svg>
+      </div>
+      <div style={{textAlign:'center',marginTop:7,fontSize:11,color:'#2d2d3a'}}>Click any node · Messages stream in real time · Particles show signal flow</div>
+    </div>
+  );
+}
+
+// ── PAGES ─────────────────────────────────────────────────────────────────────
+function HomePage({onOpenModal}){
+  const activeAgents=AGENTS.filter(a=>a.status==='active').length;
+  const openGoals=GOALS.filter(g=>g.status!=='done').length;
+  const avgConf=(AGENTS.reduce((s,a)=>s+a.confidence,0)/AGENTS.length*100).toFixed(0);
+  return(
+    <div>
+      <div style={{marginBottom:28}}><h1 style={{fontSize:26,fontWeight:800,letterSpacing:-.5,marginBottom:6}}>Cognition OS <span style={{color:'#6366f1'}}>↗</span></h1><p style={{color:'#64748b',fontSize:14}}>Adaptive multi-agent intelligence platform · March 23, 2026</p></div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:16,marginBottom:24}}>
+        {[{label:'Active Agents',value:activeAgents,unit:`/ ${AGENTS.length}`,color:'#10b981'},{label:'Open Goals',value:openGoals,unit:'goals',color:'#6366f1'},{label:'Avg Confidence',value:`${avgConf}%`,unit:'system',color:'#f59e0b'},{label:'Artifact Commits',value:7,unit:'today',color:'#ec4899'}].map(s=>(
+          <div key={s.label} style={{background:'#13131a',border:'1px solid #1e1e2e',borderRadius:12,padding:'20px 24px'}}>
+            <div style={{fontSize:28,fontWeight:800,color:s.color}}>{s.value}</div>
+            <div style={{fontSize:12,color:'#64748b',marginTop:4}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{background:'#13131a',border:'1px solid #1e1e2e',borderRadius:12,padding:24,marginBottom:16}}>
+        <div style={{fontSize:13,fontWeight:700,color:'#94a3b8',marginBottom:16,textTransform:'uppercase',letterSpacing:'.08em'}}>Agent Fleet</div>
+        {AGENTS.map(a=>(
+          <div key={a.id} style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+            <span style={{fontSize:18,width:28}}>{a.icon}</span>
+            <div style={{flex:1}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:13,fontWeight:600}}>{a.name}</span><button onClick={()=>onOpenModal(a)} style={{background:'#1e1e2e',border:'none',color:'#4b5563',borderRadius:4,padding:'1px 7px',fontSize:10,cursor:'pointer',fontWeight:600}}>Profile</button></div>
+                <span style={{fontSize:11,color:'#64748b'}}>{(a.confidence*100).toFixed(0)}%</span>
+              </div>
+              <ConfBar value={a.confidence} color={a.color}/>
+            </div>
+            <StatusDot status={a.status}/>
+          </div>
+        ))}
+      </div>
+      <div style={{background:'#13131a',border:'1px solid #1e1e2e',borderRadius:12,padding:24}}>
+        <div style={{fontSize:13,fontWeight:700,color:'#94a3b8',marginBottom:16,textTransform:'uppercase',letterSpacing:'.08em'}}>Recent Activity</div>
+        {[
+          {time:'22:32',agent:'Builder',msg:'Dashboard v3 — animations + phase tracker + zoom',color:'#ec4899'},
+          {time:'22:23',agent:'Builder',msg:'Agent network graph, decision map, artifact state v1',color:'#ec4899'},
+          {time:'22:08',agent:'Orchestrator',msg:'Agent schema — 6 roles, 10 edges defined',color:'#a855f7'},
+          {time:'21:37',agent:'Builder',msg:'Apartment homepage deployed → casa-thomas-keaton-kyle.netlify.app',color:'#ec4899'},
+        ].map((e,i)=>(
+          <div key={i} style={{display:'flex',gap:12,paddingBottom:12,borderBottom:i<3?'1px solid #1a1a25':'none',marginBottom:i<3?12:0}}>
+            <span style={{fontSize:11,color:'#374151',width:38,flexShrink:0,paddingTop:1}}>{e.time}</span>
+            <div><span style={{fontSize:11,fontWeight:700,color:e.color}}>{e.agent}</span><span style={{fontSize:12,color:'#94a3b8',marginLeft:8}}>{e.msg}</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AgentsPage({onOpenModal}){
+  return(
+    <div>
+      <div style={{marginBottom:16}}><h1 style={{fontSize:22,fontWeight:800,marginBottom:4}}>Agent Fleet</h1><p style={{color:'#64748b',fontSize:13}}>6 cognitive roles · 2 active · 10 coordination edges · live message flow</p></div>
+      <AgentNetwork onOpenModal={onOpenModal}/>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
+        {AGENTS.map(a=>(
+          <div key={a.id} style={{background:'#13131a',border:'1px solid #1e1e2e',borderRadius:12,padding:18}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}><span style={{fontSize:26}}>{a.icon}</span><StatusDot status={a.status}/></div>
+            <div style={{fontWeight:700,fontSize:14,marginBottom:1}}>{a.name}</div>
+            <div style={{fontSize:11,color:'#64748b',marginBottom:4}}>{a.role}</div>
+            <div style={{fontSize:10,color:'#374151',marginBottom:10}}>{a.force}</div>
+            <ConfBar value={a.confidence} color={a.color}/>
+            <div style={{display:'flex',justifyContent:'space-between',marginTop:10,alignItems:'center'}}>
+              <div style={{display:'flex',gap:5}}><Badge color={a.color}>{(a.confidence*100).toFixed(0)}%</Badge><Badge color="#374151">×{a.runs}</Badge></div>
+              <button onClick={()=>onOpenModal(a)} style={{background:'transparent',border:`1px solid ${a.color}44`,color:a.color,borderRadius:6,padding:'3px 9px',fontSize:11,fontWeight:600,cursor:'pointer'}}>Profile →</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GoalsPage(){
+  const pc={high:'#ef4444',medium:'#f59e0b',low:'#10b981'};
+  const sc={'in-progress':'#6366f1',open:'#64748b',done:'#10b981'};
+  return(
+    <div>
+      <div style={{marginBottom:24}}><h1 style={{fontSize:22,fontWeight:800,marginBottom:4}}>Goals</h1><p style={{color:'#64748b',fontSize:13}}>{GOALS.length} goals · {GOALS.filter(g=>g.status==='in-progress').length} in progress</p></div>
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        {GOALS.map(g=>(
+          <div key={g.id} style={{background:'#13131a',border:'1px solid #1e1e2e',borderRadius:12,padding:'18px 22px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+              <div><span style={{fontSize:14,fontWeight:600}}>{g.title}</span>
+              <div style={{display:'flex',gap:6,marginTop:6,flexWrap:'wrap'}}><Badge color={sc[g.status]}>{g.status}</Badge><Badge color={pc[g.priority]}>{g.priority}</Badge>{g.agents.map(id=>{const a=AGENTS.find(x=>x.id===id);return a?<Badge key={id} color={a.color}>{a.icon} {a.name}</Badge>:null;})}</div></div>
+              <span style={{fontSize:13,fontWeight:700,color:g.progress>0?'#6366f1':'#374151'}}>{g.progress}%</span>
+            </div>
+            <div style={{background:'#0d0d10',borderRadius:4,height:4,overflow:'hidden'}}><div style={{width:`${g.progress}%`,height:'100%',background:'linear-gradient(90deg,#6366f1,#a855f7)',borderRadius:4}}/></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── DECISION MAP ──────────────────────────────────────────────────────────────
+function DecisionMapPage(){
+  const[zoom,setZoom]=useState(1);
+  const W=900,H=510;
+  const vbW=W/zoom,vbH=H/zoom,vbX=(W-vbW)/2,vbY=(H-vbH)/2;
+  const rootX=450,rootY=75,branchY=265;
+  const opts=[
+    {id:'A',title:'Build artifact layer first',prob:62,confidence:'High',  impact:'Moderate', cost:'Low',   color:'#6366f1',agents:['analyst','synthesizer','orchestrator'],rec:true, x:155},
+    {id:'B',title:'Wire live agent execution', prob:48,confidence:'Medium',impact:'High',     cost:'Medium',color:'#10b981',agents:['builder','critic','synthesizer'],        rec:false,x:450},
+    {id:'C',title:'Launch economic layer',     prob:25,confidence:'Low',   impact:'Very High',cost:'High',  color:'#f59e0b',agents:['critic','orchestrator'],                 rec:false,x:745},
+  ];
+  const zoomLevels=[{z:.7,label:'70%'},{z:1,label:'100%'},{z:1.4,label:'140%'},{z:1.8,label:'180%'}];
+  return(
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
+        <div><h1 style={{fontSize:22,fontWeight:800,marginBottom:4}}>Decision Map</h1><p style={{color:'#64748b',fontSize:13}}>Flow intensity = probability · highest flow = recommended path</p></div>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <span style={{fontSize:11,color:'#4b5563',marginRight:2}}>Zoom</span>
+          {zoomLevels.map(l=><button key={l.z} className={`zoom-btn${zoom===l.z?' active':''}`} onClick={()=>setZoom(l.z)}>{l.label}</button>)}
+        </div>
+      </div>
+      <div style={{background:'#060610',border:'1px solid #1a1a28',borderRadius:16,overflow:'hidden',marginBottom:16}}>
+        <svg viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`} width="100%" style={{display:'block',transition:'all .4s ease'}}>
+          <defs>
+            <filter id="gd"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="gd2"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            {opts.map(o=><linearGradient key={o.id} id={`dl-${o.id}`} x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor={o.color} stopOpacity=".35"/><stop offset="100%" stopColor={o.color} stopOpacity=".02"/></linearGradient>)}
+          </defs>
+          {Array.from({length:55},(_,i)=><circle key={i} cx={(i*173+20)%W} cy={(i*111+10)%H} r={.7} fill="white" opacity={.05}/>)}
+
+          {/* Flowing paths */}
+          {opts.map(o=>{
+            const pathD=`M${rootX},${rootY+30} C${rootX},${rootY+130} ${o.x},${branchY-90} ${o.x},${branchY}`;
+            const numP=Math.round(o.prob/16); // 1-4
+            const dur=4.2-(o.prob/100)*2.2;
+            const sw=.8+(o.prob/100)*3.5;
+            return(
+              <g key={o.id}>
+                {/* Glow aura */}
+                <path d={pathD} fill="none" stroke={o.color} strokeWidth={sw*4} strokeOpacity={.05} filter="url(#gd2)"/>
+                {/* Main path */}
+                <path d={pathD} fill="none" stroke={o.color} strokeWidth={sw} strokeOpacity={o.rec?.6:.3}/>
+                {/* Recommended star */}
+                {o.rec&&<>
+                  <rect x={o.x-45} y={branchY-20} width={90} height={16} rx={8} fill={o.color} fillOpacity={.2} stroke={o.color} strokeWidth={1} strokeOpacity={.6}/>
+                  <text x={o.x} y={branchY-9} textAnchor="middle" fontSize={8} fill={o.color} fontWeight={700}>★ RECOMMENDED</text>
+                </>}
+                {/* Particles */}
+                {Array.from({length:numP},(_,pi)=>(
+                  <circle key={pi} r={3} fill={o.color} opacity={.9} filter="url(#gd)">
+                    <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${(pi/numP)*dur}s`} path={pathD}/>
+                  </circle>
+                ))}
+              </g>
+            );
+          })}
+
+          {/* Root */}
+          <rect x={rootX-130} y={rootY-28} width={260} height={58} rx={8} fill="#13131a" stroke="#6366f133" strokeWidth={1}/>
+          <circle cx={rootX-108} cy={rootY-8} r={4} fill="#10b981" opacity={.9}><animate attributeName="opacity" values="1;.3;1" dur="2s" repeatCount="indefinite"/></circle>
+          <text x={rootX} y={rootY+4} textAnchor="middle" fontSize={12} fontWeight={700} fill="#e2e8f0">Current Artifact State</text>
+          <text x={rootX} y={rootY+19} textAnchor="middle" fontSize={9} fill="#64748b">v0.1 · Synthesis Phase · Active</text>
+
+          {/* Option cards */}
+          {opts.map(o=>{
+            const bw=220,bh=198,bx=o.x-bw/2,by=branchY+5;
+            const agents=o.agents.map(id=>AGENTS.find(a=>a.id===id)).filter(Boolean);
+            return(
+              <g key={o.id}>
+                <rect x={bx} y={by} width={bw} height={bh} rx={10} fill="#13131a" stroke={o.color} strokeWidth={o.rec?1.5:1} strokeOpacity={o.rec?.7:.3}/>
+                <rect x={bx} y={by} width={bw} height={bh} rx={10} fill={`url(#dl-${o.id})`} opacity={.18}/>
+                <text x={o.x} y={by+24} textAnchor="middle" fontSize={14} fontWeight={800} fill={o.color} filter="url(#gd)">Option {o.id}</text>
+                <text x={o.x} y={by+40} textAnchor="middle" fontSize={9} fill="#94a3b8">{o.title}</text>
+                {[['Probability',`${o.prob}%`,o.color],['Confidence',o.confidence,o.confidence==='High'?'#10b981':o.confidence==='Medium'?'#f59e0b':'#ef4444'],['Impact',o.impact,'#94a3b8'],['Cost',o.cost,'#94a3b8']].map(([l,v,vc],i)=>(
+                  <g key={l}><text x={bx+14} y={by+62+i*27} fontSize={10} fill="#4b5563">{l}</text><text x={bx+bw-14} y={by+62+i*27} textAnchor="end" fontSize={10} fontWeight={700} fill={vc}>{v}</text><line x1={bx+14} y1={by+66+i*27} x2={bx+bw-14} y2={by+66+i*27} stroke="#1e1e2e" strokeWidth={.5}/></g>
+                ))}
+                {agents.map((a,i)=><g key={a.id}><circle cx={bx+18+i*27} cy={by+bh-22} r={9} fill={a.color} fillOpacity={.2} stroke={a.color} strokeWidth={1} strokeOpacity={.5}/><text x={bx+18+i*27} y={by+bh-18} textAnchor="middle" fontSize={8}>{a.icon}</text></g>)}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <div style={{background:'#13131a',border:'1px solid #1e1e2e',borderRadius:12,padding:18}}>
+        <div style={{fontSize:12,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Orchestrator Recommendation</div>
+        <div style={{fontSize:13,color:'#64748b',lineHeight:1.7}}>Highest flow on <span style={{color:'#6366f1',fontWeight:600}}>Option A (62%)</span> reflects current confidence. Suggested sequence: <span style={{color:'#6366f1'}}>A</span> → <span style={{color:'#10b981'}}>B</span> → <span style={{color:'#f59e0b'}}>C</span> as system confidence accumulates.</div>
+      </div>
+    </div>
+  );
+}
+
+// ── ARTIFACT STATE ────────────────────────────────────────────────────────────
+function ArtifactPage(){
+  const[sel,setSel]=useState(CURRENT_PHASE);
+  const phase=PHASE_DATA[sel];
+  const phaseColor=(i)=>i<CURRENT_PHASE?'#10b981':i===CURRENT_PHASE?'#6366f1':'#1e1e2e';
+  return(
+    <div>
+      <div style={{marginBottom:20}}><h1 style={{fontSize:22,fontWeight:800,marginBottom:4}}>Artifact State</h1><p style={{color:'#64748b',fontSize:13}}>Click any phase to inspect its state · future phases are locked</p></div>
+
+      {/* Phase tracker */}
+      <div style={{background:'#13131a',border:'1px solid #1e1e2e',borderRadius:14,padding:'24px 24px 20px',marginBottom:16}}>
+        <div style={{display:'flex',alignItems:'center'}}>
+          {PHASE_DATA.map((p,i)=>{
+            const done=i<CURRENT_PHASE,active=i===CURRENT_PHASE,isLocked=p.locked,isSel=i===sel;
+            return(
+              <React.Fragment key={p.id}>
+                <div className="phase-btn" style={{textAlign:'center',minWidth:80,opacity:isLocked?.3:1}} onClick={()=>!isLocked&&setSel(i)}>
+                  <div className="phase-circle" style={{
+                    width:30,height:30,borderRadius:'50%',margin:'0 auto 6px',
+                    background:isSel?'#fff':done?'#10b981':active?'#6366f1':'#1e1e2e',
+                    border:`2px solid ${isSel?'#fff':phaseColor(i)}`,
+                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,color:isSel?'#000':done?'#000':active?'#fff':'#374151',
+                    boxShadow:isSel?`0 0 18px rgba(255,255,255,.4)`:active?'0 0 14px #6366f1':'none',
+                    fontWeight:700,
+                  }}>
+                    {isLocked?'🔒':done?'✓':active?'●':'○'}
+                  </div>
+                  <div style={{fontSize:9,fontWeight:700,color:isSel?'#e2e8f0':done?'#10b981':active?'#6366f1':'#374151',letterSpacing:'.05em'}}>{p.label.toUpperCase()}</div>
+                  <div style={{fontSize:9,color:isSel?'#64748b':'#2d2d3a',marginTop:1}}>{p.time}</div>
+                </div>
+                {i<PHASE_DATA.length-1&&<div style={{flex:1,height:2,background:i<CURRENT_PHASE?'#10b981':'#1e1e2e',margin:'0 0 22px',transition:'background .3s'}}/>}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Phase content */}
+      {phase.locked?(
+        <div style={{background:'#13131a',border:'1px solid #1e1e2e',borderRadius:12,padding:48,textAlign

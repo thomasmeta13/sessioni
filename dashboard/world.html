@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cognition OS — Agent Office</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { background:#0d1117; overflow:hidden; font-family:'Courier New',monospace; image-rendering:pixelated; }
+
+#topbar {
+  position:fixed; top:0; left:0; right:0; height:40px;
+  background:#0d1117; border-bottom:2px solid #21262d;
+  display:flex; align-items:center; padding:0 14px; gap:8px; z-index:200;
+  overflow:hidden;
+}
+.title { font-size:13px; font-weight:700; color:#58a6ff; white-space:nowrap; margin-right:4px; }
+.tsep { width:1px; height:20px; background:#30363d; flex-shrink:0; }
+.chip {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:3px 10px; border-radius:3px; font-size:10px; font-weight:700;
+  border:1px solid; white-space:nowrap; letter-spacing:0.5px; flex-shrink:0;
+}
+.chip-on  { background:rgba(46,160,67,0.12); color:#3fb950; border-color:#238636; }
+.chip-off { background:rgba(255,255,255,0.04); color:#6e7681; border-color:#30363d; }
+.chip-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.dot-on  { background:#3fb950; box-shadow:0 0 5px #3fb950; }
+.dot-off { background:#484f58; }
+
+#canvas-wrap {
+  position:fixed; top:40px; left:0; right:0; bottom:0;
+  display:flex; align-items:center; justify-content:center; background:#0d1117;
+}
+
+#panel {
+  position:fixed; right:14px; top:56px; width:196px;
+  background:#161b22; border:1px solid #30363d; border-radius:6px;
+  padding:14px; z-index:300; display:none;
+}
+.pclose { position:absolute; top:10px; right:12px; color:#6e7681; cursor:pointer; font-size:13px; }
+.picon  { font-size:26px; margin-bottom:6px; }
+.pname  { font-size:14px; font-weight:700; color:#e6edf3; }
+.prole  { font-size:10px; color:#6e7681; letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+.pdiv   { border:none; border-top:1px solid #21262d; margin:10px 0; }
+.plabel { font-size:9px; color:#6e7681; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:6px; }
+.pthought { font-size:11px; color:#8b949e; line-height:1.55; border-left:2px solid; padding-left:8px; font-style:italic; }
+.prow   { display:flex; align-items:center; gap:8px; margin-top:10px; }
+.pbar   { flex:1; height:3px; background:#21262d; border-radius:1px; overflow:hidden; }
+.pfill  { height:100%; border-radius:1px; }
+.pval   { font-size:12px; font-weight:700; }
+
+#ticker {
+  position:fixed; bottom:10px; left:10px; width:360px; z-index:200; pointer-events:none;
+}
+.tick {
+  font-size:10px; color:#484f58; padding:4px 10px; margin-bottom:3px;
+  background:rgba(13,17,23,0.9); border-left:2px solid #21262d;
+  animation:fin 0.3s ease;
+}
+.tick b { color:#6e7681; }
+@keyframes fin { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:none} }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <span class="title">🏢 Cognition OS Agent Office</span>
+  <div class="tsep"></div>
+  <div id="chips"></div>
+</div>
+<div id="canvas-wrap"><canvas id="c"></canvas></div>
+<div id="panel">
+  <span class="pclose" onclick="closePanel()">✕</span>
+  <div class="picon" id="pi"></div>
+  <div class="pname" id="pn"></div>
+  <div class="prole" id="pr"></div>
+  <hr class="pdiv">
+  <div class="plabel">Current thought</div>
+  <div class="pthought" id="pt"></div>
+  <div class="prow">
+    <div style="font-size:9px;color:#6e7681;letter-spacing:1px;text-transform:uppercase">CONF</div>
+    <div class="pbar"><div class="pfill" id="pf"></div></div>
+    <div class="pval" id="pv"></div>
+  </div>
+</div>
+<div id="ticker"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const S    = 3;       // screen pixels per logical pixel
+const T    = 16;      // tile size (logical)
+const COLS = 50;
+const ROWS = 30;
+const LW   = COLS*T;
+const LH   = ROWS*T;
+
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+canvas.width  = LW*S;
+canvas.height = LH*S;
+canvas.style.width  = LW*S+'px';
+canvas.style.height = LH*S+'px';
+ctx.imageSmoothingEnabled = false;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function F(lx,ly,lw,lh,color,a=1) {
+  if(a<1){ctx.save();ctx.globalAlpha=a;}
+  ctx.fillStyle=color;
+  ctx.fillRect(Math.round(lx*S),Math.round(ly*S),Math.round(lw*S),Math.round(lh*S));
+  if(a<1)ctx.restore();
+}
+function SR(lx,ly,lw,lh,color,thick=0.5) {
+  ctx.strokeStyle=color; ctx.lineWidth=thick*S;
+  ctx.strokeRect(Math.round(lx*S)+.5,Math.round(ly*S)+.5,Math.round(lw*S)-1,Math.round(lh*S)-1);
+  ctx.lineWidth=1;
+}
+
+// ── Agent definitions ─────────────────────────────────────────────────────────
+const AGENTS = [
+  { id:'orchestrator', name:'Orchestrator', icon:'🧠', color:'#A855F7',
+    hair:'#1a1040', shirt:'#3b2d75', skin:'#d4a87a', conf:.95, status:'active',
+    thoughts:['Routing task to Scout…','Monitoring confidence levels','Checking artifact state','Coordinating threads'], ti:0 },
+  { id:'scout', name:'Scout', icon:'🔭', color:'#06B6D4',
+    hair:'#1a3040', shirt:'#145a6a', skin:'#d4b080', conf:.72, status:'idle',
+    thoughts:['Scanning for signals…','Found 3 new repos','Indexing X demos','Diverging wide…'], ti:1 },
+  { id:'analyst', name:'Analyst', icon:'🔬', color:'#FBBF24',
+    hair:'#3a1a00', shirt:'#4a3510', skin:'#c89868', conf:.81, status:'idle',
+    thoughts:['Cross-referencing finds','Nasal cause: 0.78 conf','Autoresearch generalizes','Pattern detected'], ti:2 },
+  { id:'synthesizer', name:'Synthesizer', icon:'🧬', color:'#22C55E',
+    hair:'#0a1f0a', shirt:'#1a3a22', skin:'#d4a87a', conf:.68, status:'idle',
+    thoughts:['Integrating threads…','Resolving tension','Coherence: low','Building context'], ti:3 },
+  { id:'critic', name:'Critic', icon:'⚡', color:'#EC4899',
+    hair:'#1a0a2a', shirt:'#3a1040', skin:'#c8a070', conf:.75, status:'idle',
+    thoughts:['Stress-testing…','Scope creep: risk','Challenging flat files','Red-teaming…'], ti:4 },
+  { id:'builder', name:'Builder', icon:'🔨', color:'#F97316',
+    hair:'#1a0a00', shirt:'#3a1a00', skin:'#d09060', conf:.90, status:'active',
+    thoughts:['Pixel office: live','Dashboard: done','Building next…','Ship first!'], ti:5 },
+];
+
+// Agent world state
+const agents = AGENTS.map((a,i) => ({
+  ...a,
+  px: 0, py: 0, tx: 0, ty: 0,
+  dir: 'down', frame: 0, frameT: 0, moving: false,
+  sitting: false, sitAtDesk: null,
+  tIdx: 0, tText: '', tAlpha: 0, tTimer: 0,
+  clickable: true,
+}));
+
+// ── Room + furniture layout ───────────────────────────────────────────────────
+// Two rooms side by side, divided by a wall
+// Left room: cols 0-27, right room: cols 30-49, wall at col 28-29
+const ROOMS = [
+  { x:0,  y:0, w:28, h:ROWS, fl1:'#b0b4c0', fl2:'#b8bcc8', wc:'#2a2a3e', name:'Command Center' },
+  { x:30, y:0, w:20, h:ROWS, fl1:'#c8a460', fl2:'#d4b070', wc:'#3a2810', name:'Build Zone' },
+];
+
+const DESKS = [
+  // Left room — 2 rows of desks
+  { x:2, y:3, w:5, h:3, color:'#28200c', top:'#3a3010', monColor:'#0d1f3c', agent:0 },
+  { x:9, y:3, w:5, h:3, color:'#28200c', top:'#3a3010', monColor:'#0d1f3c', agent:1 },
+  { x:16,y:3, w:5, h:3, color:'#28200c', top:'#3a3010', monColor:'#0d2a20', agent:null },
+  { x:2, y:12,w:5, h:3, color:'#28200c', top:'#3a3010', monColor:'#0d1f3c', agent:2 },
+  { x:9, y:12,w:5, h:3, color:'#28200c', top:'#3a3010', monColor:'#0d1f3c', agent:3 },
+  { x:16,y:12,w:5, h:3, color:'#28200c', top:'#3a3010', monColor:'#1a1a00', agent:null },
+  // Right room
+  { x:31,y:3, w:5, h:3, color:'#201800', top:'#2e2200', monColor:'#1a2030', agent:4 },
+  { x:38,y:3, w:5, h:3, color:'#201800', top:'#2e2200', monColor:'#1a2030', agent:5 },
+  { x:31,y:12,w:5, h:3, color:'#201800', top:'#2e2200', monColor:'#0d1820', agent:null },
+  { x:38,y:12,w:5, h:3, color:'#201800', top:'#2e2200', monColor:'#0d1820', agent:null },
+];
+
+// Seated positions per desk: character sits at (desk.x + w/2, desk.y + 1)
+function deskSeatPos(desk) {
+  return { x: desk.x + Math.floor(desk.w/2), y: desk.y + 1 };
+}
+
+// Assign initial positions
+DESKS.forEach(desk => {
+  if (desk.agent !== null) {
+    const pos = deskSeatPos(desk);
+    const a = agents[desk.agent];
+    a.px = pos.x * T + T/2;
+    a.py = pos.y * T + T/2;
+    a.tx = a.px; a.ty = a.py;
+    a.sitting = true;
+    a.sitAtDesk = desk;
+  }
+});
+// Unseat agents randomly
+agents.forEach(a => {
+  if (!a.sitting) {
+    // Default wander positions
+    a.px = (5 + agents.indexOf(a)*4) * T;
+    a.py = (8 + (agents.indexOf(a)%2)*3) * T;
+    a.tx = a.px; a.ty = a.py;
+  }
+});
+
+// ── Sprite drawing ────────────────────────────────────────────────────────────
+function drawSprite(a) {
+  const x = a.px; const y = a.py;
+  const {hair, shirt, skin, color, sitting, frame, status} = a;
+
+  // Shadow
+  ctx.save(); ctx.globalAlpha=.2; ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(x*S,(y+4)*S,9*S,3*S,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  if (sitting) {
+    // Chair back
+    F(x-6,y-14, 12,4, '#6a3f1a');
+    F(x-5,y-13, 10,3, '#7a4e26');
+    // Chair seat
+    F(x-7,y-4, 14,6, '#6a3f1a');
+    F(x-6,y-3, 12,5, '#8b5e2e');
+  }
+
+  // Legs
+  if (!sitting) {
+    const lOff = (frame===1||frame===3) ? -1 : 0;
+    const rOff = -lOff;
+    F(x-4+lOff, y-6, 4,7, '#2a3558'); // left
+    F(x+1+rOff, y-6, 4,7, '#2a3558'); // right
+    F(x-5+lOff, y+0, 5,3, '#111');    // left shoe
+    F(x+1+rOff, y+0, 5,3, '#111');    // right shoe
+  }
+
+  // Body / shirt
+  F(x-6, y-14, 12,10, shirt);
+  // Shirt shading sides
+  F(x-6, y-14,  2,10, '#000', .15);
+  F(x+4, y-14,  2,10, '#000', .15);
+  // Arms
+  F(x-9, y-13,  4,7, skin); // left
+  F(x+5, y-13,  4,7, skin); // right
+
+  // Neck
+  F(x-2, y-16, 4,3, skin);
+
+  // Head
+  F(x-5, y-25, 10,9, skin);
+  F(x-6, y-23, 12,7, skin); // wider mid
+  F(x-5, y-17, 10,2, skin); // chin
+
+  // Hair
+  F(x-5, y-25, 10,4, hair);
+  F(x-6, y-24, 2, 5, hair); // left side
+  F(x+4, y-24, 2, 5, hair); // right side
+  // Hair highlight
+  F(x-2, y-25, 4,1, hair, .4);
+
+  // Eyes
+  F(x-4, y-22, 3,2, '#fff');
+  F(x+1, y-22, 3,2, '#fff');
+  F(x-3, y-21, 2,2, '#1a0800');
+  F(x+2, y-21, 2,2, '#1a0800');
+  F(x-3, y-21, 1,1, '#fff'); // shine
+  F(x+2, y-21, 1,1, '#fff');
+
+  // Eyebrows
+  F(x-4, y-23, 3,1, hair);
+  F(x+1, y-23, 3,1, hair);
+
+  // Nose
+  F(x-1, y-20, 2,1, '#b87850');
+
+  // Mouth
+  F(x-2, y-18, 5,1, '#c08060');
+  F(x-1, y-17, 3,1, '#a06040');
+
+  // Color badge on shirt
+  F(x-2, y-12, 4,4, color, .9);
+
+  // Active glow ring
+  if (status==='active') {
+    const r = 14 + Math.sin(Date.now()/400)*2;
+    ctx.save(); ctx.globalAlpha=.2+Math.sin(Date.now()/400)*.05;
+    ctx.strokeStyle=color; ctx.lineWidth=S*.7;
+    ctx.beginPath(); ctx.arc(x*S,y*S,r*S,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Thought bubble
+  if (a.tAlpha>0 && a.tText) {
+    ctx.save(); ctx.globalAlpha=a.tAlpha;
+    const txt = a.tText;
+    ctx.font = `bold ${S*3.5}px "Courier New"`;
+    const tw = ctx.measureText(txt).width;
+    const bw = tw + S*10;
+    const bh = S*14;
+    const bx = x*S - bw/2;
+    const by = (y-35)*S - bh;
+    // Dark bubble bg
+    ctx.fillStyle = '#0d1117';
+    ctx.strokeStyle = a.color;
+    ctx.lineWidth = S*.6;
+    ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,S*2); ctx.fill(); ctx.stroke();
+    // Tail
+    ctx.fillStyle='#0d1117';
+    ctx.beginPath();
+    ctx.moveTo(x*S-S*1.5,by+bh); ctx.lineTo(x*S+S*1.5,by+bh); ctx.lineTo(x*S,(y-28)*S); ctx.fill();
+    // Text (green like a terminal)
+    ctx.fillStyle='#3fb950'; ctx.textAlign='center';
+    ctx.fillText(txt, x*S, by+bh*.65);
+    ctx.restore(); ctx.textAlign='left';
+  }
+
+  // Name label
+  ctx.font=`bold ${S*3.2}px "Courier New"`;
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,.6)';
+  ctx.fillText(a.name,(x*S)+1,(y-27)*S+1);
+  ctx.fillStyle=a.color;
+  ctx.fillText(a.name,x*S,(y-27)*S);
+  ctx.textAlign='left';
+}
+
+// ── World drawing ─────────────────────────────────────────────────────────────
+function drawWorld() {
+  // Base fill
+  F(0,0,LW,LH,'#0d1117');
+
+  // Draw rooms
+  ROOMS.forEach(room => {
+    for(let r=room.y; r<room.y+room.h; r++) {
+      for(let c=room.x; c<room.x+room.w; c++) {
+        const even=(r+c)%2===0;
+        F(c*T, r*T, T, T, even?room.fl1:room.fl2);
+      }
+    }
+    // Subtle tile lines
+    ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=S*.3;
+    for(let r=room.y; r<=room.y+room.h; r++) {
+      ctx.beginPath(); ctx.moveTo(room.x*T*S,r*T*S); ctx.lineTo((room.x+room.w)*T*S,r*T*S); ctx.stroke();
+    }
+    for(let c=room.x; c<=room.x+room.w; c++) {
+      ctx.beginPath(); ctx.moveTo(c*T*S,room.y*T*S); ctx.lineTo(c*T*S,(room.y+room.h)*T*S); ctx.stroke();
+    }
+    ctx.lineWidth=1;
+    // Room border wall (top strip)
+    F(room.x*T, room.y*T, room.w*T, T*1, room.wc);
+    SR(room.x*T, room.y*T, room.w*T, room.h*T, 'rgba(0,0,0,.5)', .7);
+    // Room name
+    ctx.font=`bold ${S*3}px "Courier New"`;
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.12)';
+    ctx.fillText(room.name,(room.x+room.w/2)*T*S,(room.y+1.5)*T*S);
+    ctx.textAlign='left';
+  });
+
+  // Dividing wall
+  F(28*T, 0, 2*T, LH, '#1a1a2a');
+  // Door opening
+  F(28*T, 11*T, 2*T, 4*T, '#14141e');
+  // Door frame
+  F(28*T, 11*T, 1, 4*T, '#2a2a40');
+  F(30*T-1, 11*T, 1, 4*T, '#2a2a40');
+
+  // Bookshelves (left room left wall)
+  drawBookshelf(0, 4);
+  drawBookshelf(0, 14);
+  drawBookshelf(0, 22);
+  // Right room right wall
+  drawBookshelf(49, 4);
+  drawBookshelf(49, 14);
+
+  // Rugs
+  // Left room center rug
+  F(6*T, 18*T, 12*T, 7*T, '#3a2860', .6);
+  SR(6*T, 18*T, 12*T, 7*T, '#5040a0', .5);
+  // Right room rug
+  F(33*T, 18*T, 10*T, 7*T, '#602040', .5);
+  SR(33*T, 18*T, 10*T, 7*T, '#9040a0', .5);
+
+  // Plants
+  [[1,1],[24,1],[1,26],[24,26], [31,1],[47,1],[31,26],[47,26]].forEach(([c,r]) => drawPlant(c*T,r*T));
+
+  // Lamps
+  [[4,8],[13,8],[4,18],[13,18],[33,8],[43,8]].forEach(([c,r]) => drawLamp(c*T,r*T));
+
+  // Clock on left room wall
+  drawClock(13*T, T*.6);
+
+  // Desks
+  DESKS.forEach(desk => {
+    const t = Date.now();
+    // Desk body
+    F(desk.x*T, desk.y*T+T*.4, desk.w*T, desk.h*T-T*.4, desk.color);
+    // Desk top face (isometric hint)
+    F(desk.x*T, desk.y*T, desk.w*T, T*.5, desk.top);
+    // Monitor
+    const mx = (desk.x + Math.floor(desk.w/2) - 1)*T;
+    const my = desk.y*T;
+    F(mx, my+T*.1, T*2.5, T*1.2, '#111');
+    F(mx+T*.1, my+T*.2, T*2.3, T*.9, desk.monColor);
+    // Screen glow + scanline flicker
+    F(mx+T*.1, my+T*.2, T*2.3, T*.9, '#4090ff', .05+Math.sin(t/600+desk.x)*.03);
+    F(mx+T*.1, my+T*.2, T*2.3, T*.15, '#8ab8ff', .15+Math.sin(t/400+desk.y)*.08);
+    // Monitor stand
+    F(mx+T*.8, my+T*1.2, T*.9, T*.3, '#1a1a1a');
+    F(mx+T*.4, my+T*1.5, T*1.7, T*.2, '#1a1a1a');
+    // Chair in front of desk (if no agent sitting)
+    if (desk.agent === null || !agents[desk.agent]?.sitting) {
+      const cx = (desk.x + Math.floor(desk.w/2) - .5) * T;
+      const cy = (desk.y + desk.h) * T;
+      F(cx, cy, T*2, T*.8, '#5a3a1a');
+      F(cx+T*.1, cy+T*.1, T*1.8, T*.5, '#7a5030');
+    }
+    // Desk outline
+    SR(desk.x*T, desk.y*T, desk.w*T, desk.h*T, 'rgba(0,0,0,.3)', .4);
+  });
+}
+
+function drawBookshelf(col, row) {
+  const x=col*T, y=row*T;
+  // Back
+  F(x,y,T,T*2,'#2a1a0a');
+  // Shelves
+  F(x,y+T*.6,T,T*.1,'#4a2a10');
+  F(x,y+T*1.2,T,T*.1,'#4a2a10');
+  // Books (colorful spines)
+  const books=[['#c04040',T*.15],['#40a040',T*.12],['#4040c0',T*.14],['#c0a020',T*.13],['#804080',T*.12],['#20a0a0',T*.15]];
+  let bx=x;
+  books.forEach(([c,w])=>{ F(bx,y+T*.1,w,T*.5,c); bx+=w+T*.02; });
+  bx=x;
+  books.slice().reverse().forEach(([c,w])=>{ F(bx,y+T*.7,w,T*.45,c); bx+=w+T*.02; });
+}
+
+function drawPlant(x,y) {
+  // Pot
+  F(x+T*.3,y+T*.7,T*.4,T*.3,'#6a3010');
+  F(x+T*.25,y+T*.65,T*.5,T*.08,'#7a3a15');
+  // Leaves (diamond-ish shape)
+  const t=Date.now()/2000;
+  F(x+T*.35,y+T*.1,T*.3,T*.6,'#1a4020');
+  F(x+T*.1,y+T*.25,T*.8,T*.3,'#1a4020');
+  F(x+T*.2,y+T*.05,T*.6,T*.45,'#22502a');
+  F(x+T*.35,y+T*.1,T*.3,T*.2,'#2a6030',0.6);
+  // Shine
+  F(x+T*.4,y+T*.15,T*.1,T*.1,'#50a050',.5);
+}
+
+function drawLamp(x,y) {
+  // Stand
+  F(x+T*.45,y+T*.3,T*.1,T*.7,'#3a3a3a');
+  F(x+T*.3,y+T*.95,T*.4,T*.05,'#3a3a3a');
+  // Shade
+  F(x+T*.2,y+T*.1,T*.6,T*.25,'#c8a020');
+  F(x+T*.1,y+T*.0,T*.8,T*.15,'#c8a020');
+  // Glow
+  F(x+T*.15,y+T*.25,T*.7,T*.2,'#ffdc60',.15+Math.sin(Date.now()/1500+x)*.05);
+  ctx.save(); ctx.globalAlpha=.06+Math.sin(Date.now()/1500+x)*.02;
+  ctx.fillStyle='#ffdc60';
+  ctx.beginPath(); ctx.arc((x+T*.5)*S,(y+T*.4)*S,T*1.5*S,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function drawClock(x,y) {
+  F(x+T*.3,y,T*1.4,T*1.4,'#2a2a2a'); // clock face
+  SR(x+T*.3,y,T*1.4,T*1.4,'#444',.4);
+  // Clock face white
+  F(x+T*.4,y+T*.1,T*1.2,T*1.2,'#ddd');
+  ctx.save();
+  const now=new Date();
+  const cx2=(x+T)* S, cy2=(y+T*.8)*S;
+  // Hour hand
+  const hr=(now.getHours()%12)/12*Math.PI*2-Math.PI/2;
+  ctx.strokeStyle='#333'; ctx.lineWidth=S*.8;
+  ctx.beginPath(); ctx.moveTo(cx2,cy2);
+  ctx.lineTo(cx2+Math.cos(hr)*T*.4*S,cy2+Math.sin(hr)*T*.4*S); ctx.stroke();
+  // Min hand
+  const mn=now.getMinutes()/60*Math.PI*2-Math.PI/2;
+  ctx.strokeStyle='#111'; ctx.lineWidth=S*.5;
+  ctx.beginPath(); ctx.moveTo(cx2,cy2);
+  ctx.lineTo(cx2+Math.cos(mn)*T*.55*S,cy2+Math.sin(mn)*T*.55*S); ctx.stroke();
+  ctx.restore();
+}
+
+// ── Interaction ───────────────────────────────────────────────────────────────
+let selId = null;
+canvas.addEventListener('click', e => {
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)/S, my=(e.clientY-rect.top)/S;
+  let hit=null;
+  agents.forEach(a=>{ if(Math.hypot(mx-a.px,my-a.py)<12) hit=a; });
+  if(hit){ selId=hit.id; openPanel(hit); }
+  else { selId=null; closePanel(); }
+});
+canvas.addEventListener('mousemove', e => {
+  const rect=canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)/S, my=(e.clientY-rect.top)/S;
+  let hit=false;
+  agents.forEach(a=>{ if(Math.hypot(mx-a.px,my-a.py)<12) hit=true; });
+  canvas.style.cursor=hit?'pointer':'default';
+});
+
+function openPanel(a) {
+  document.getElementById('pi').textContent=a.icon;
+  document.getElementById('pn').textContent=a.name;
+  document.getElementById('pr').textContent=a.role||a.id;
+  document.getElementById('pt').textContent=a.tText||a.thoughts[0];
+  document.getElementById('pt').style.borderColor=a.color;
+  document.getElementById('pf').style.width=(a.conf*100)+'%';
+  document.getElementById('pf').style.background=a.color;
+  document.getElementById('pv').textContent=a.conf;
+  document.getElementById('pv').style.color=a.color;
+  document.getElementById('panel').style.display='block';
+}
+function closePanel() { document.getElementById('panel').style.display='none'; }
+
+// ── HUD chips ─────────────────────────────────────────────────────────────────
+const chipsEl = document.getElementById('chips');
+agents.forEach(a => {
+  const d=document.createElement('div');
+  d.className='chip '+(a.status==='active'?'chip-on':'chip-off');
+  d.innerHTML=`<span class="chip-dot ${a.status==='active'?'dot-on':'dot-off'}"></span>${a.icon} ${a.name.toUpperCase()} <span style="opacity:.6;font-weight:400">${a.status==='active'?'ACTIVE':'IDLE'}</span>`;
+  d.onclick=()=>{ selId=a.id; openPanel(a); };
+  chipsEl.appendChild(d);
+});
+
+// ── Ticker ────────────────────────────────────────────────────────────────────
+const IXNS = [
+  (a,b) => `<b>${a.icon} ${a.name}</b> routed task → <b>${b.icon} ${b.name}</b>`,
+  (a,b) => `<b>${a.icon} ${a.name}</b> flagged tension to <b>${b.icon} ${b.name}</b>`,
+  (a,b) => `<b>${a.icon} ${a.name}</b> synced artifact with <b>${b.icon} ${b.name}</b>`,
+  (a,b) => `<b>${a.icon} ${a.name}</b> handed off → <b>${b.icon} ${b.name}</b>`,
+  (a,b) => `<b>${a.icon} ${a.name}</b> challenged <b>${b.icon} ${b.name}</b>'s approach`,
+];
+function addTick(html) {
+  const el=document.getElementById('ticker');
+  const d=document.createElement('div'); d.className='tick'; d.innerHTML=html;
+  el.insertBefore(d,el.firstChild);
+  while(el.children.length>4) el.removeChild(el.lastChild);
+}
+
+// ── Agent behavior ────────────────────────────────────────────────────────────
+function wander(a) {
+  // Pick a zone based on agent
+  const rooms = [[0,27],[30,49]]; // left/right column bounds
+  const isLeft = a.id==='orchestrator'||a.id==='scout'||a.id==='analyst'||a.id==='synthesizer';
+  const room = isLeft ? 0 : 1;
+  const [c1,c2] = rooms[room];
+
+  // Occasionally sit at a desk
+  const myDesk = DESKS.find(d=>d.agent===agents.indexOf(a));
+  if (myDesk && Math.random()<0.35) {
+    const pos = deskSeatPos(myDesk);
+    a.tx = pos.x*T + T/2;
+    a.ty = pos.y*T + T/2;
+    a.sitting = true;
+  } else {
+    a.sitting = false;
+    a.tx = (c1+1+Math.floor(Math.random()*(c2-c1-2)))*T + T/2;
+    a.ty = (3+Math.floor(Math.random()*(ROWS-7)))*T + T/2;
+  }
+}
+
+// ── Main loop ─────────────────────────────────────────────────────────────────
+let last=0, moveT=0, thoughtT=0, tickT=0;
+const rnd = ()=>agents[Math.floor(Math.random()*agents.length)];
+
+function loop(ts) {
+  const dt=ts-last; last=ts;
+
+  moveT+=dt;
+  if(moveT>3200) { moveT=0; agents.forEach(wander); }
+
+  thoughtT+=dt;
+  if(thoughtT>4500) {
+    thoughtT=0;
+    const a=rnd();
+    a.tText=a.thoughts[a.tIdx%a.thoughts.length]; a.tIdx++;
+    a.tAlpha=1; a.tTimer=3000;
+    if(selId===a.id) document.getElementById('pt').textContent=a.tText;
+  }
+
+  tickT+=dt;
+  if(tickT>7000) {
+    tickT=0;
+    let a=rnd(), b=rnd(); while(b.id===a.id) b=rnd();
+    addTick(IXNS[Math.floor(Math.random()*IXNS.length)](a,b));
+  }
+
+  // Update agent positions
+  agents.forEach(a => {
+    if(a.sitting) { a.px=a.tx; a.py=a.ty; a.frame=0; a.moving=false; return; }
+    const dx=a.tx-a.px, dy=a.ty-a.py;
+    const dist=Math.hypot(dx,dy);
+    if(dist>1) {
+      a.moving=true;
+      const sp=22*dt/1000;
+      a.px+=dx/dist*sp; a.py+=dy/dist*sp;
+      if(Math.abs(dx)>Math.abs(dy)) a.dir=dx>0?'right':'left';
+      else a.dir=dy>0?'down':'up';
+      a.frameT+=dt;
+      if(a.frameT>180){a.frame=(a.frame+1)%4;a.frameT=0;}
+    } else { a.moving=false; a.frame=0; }
+    if(a.tTimer>0){
+      a.tTimer-=dt;
+      if(a.tTimer<600) a.tAlpha=Math.max(0,a.tTimer/600);
+    }
+  });
+
+  // Draw
+  drawWorld();
+  const sorted=[...agents].sort((x,y)=>x.py-y.py);
+  sorted.forEach(drawSprite);
+
+  requestAnimationFrame(loop);
+}
+
+addTick('<b>🧠 Orchestrator</b> initialized — all 6 agents online');
+agents.forEach(a => wander(a));
+requestAnimationFrame(ts=>{last=ts;requestAnimationFrame(loop);});
+</script>
+</body>
+</html>
