@@ -1126,6 +1126,29 @@ function update(dt) {
   mouseWorld.x = mouseX+camera.x;
   mouseWorld.y = mouseY+camera.y;
 
+  // ── Zone transition (runs before everything, can't be blocked) ──
+  if (zoneTransition.active) {
+    if (zoneTransition.phase === 'fadeOut') {
+      zoneTransition.alpha += dt * 1.5;
+      if (zoneTransition.alpha >= 1) {
+        zoneTransition.alpha = 1;
+        zoneTransition.phase = 'switch';
+        loadZone(zoneTransition.targetZone);
+      }
+    } else if (zoneTransition.phase === 'switch') {
+      zoneTransition.phase = 'fadeIn';
+    } else if (zoneTransition.phase === 'fadeIn') {
+      zoneTransition.alpha -= dt * 1.0;
+      if (zoneTransition.alpha <= 0) {
+        zoneTransition.alpha = 0;
+        zoneTransition.active = false;
+        zoneTransition.phase = 'none';
+      }
+    }
+    updateMusic(dt);
+    return; // Skip all game logic during transition
+  }
+
   // ── Dialogue update ──
   if (dialogue.active) {
     const line = dialogue.lines[dialogue.lineIndex];
@@ -1465,29 +1488,8 @@ function update(dt) {
 
   screenPulse *= 0.92;
 
-  // ── Zone transition ──
-  if (zoneTransition.active) {
-    if (zoneTransition.phase === 'fadeOut') {
-      zoneTransition.alpha += dt * 1.5;
-      if (zoneTransition.alpha >= 1) {
-        zoneTransition.alpha = 1;
-        zoneTransition.phase = 'switch';
-        loadZone(zoneTransition.targetZone);
-      }
-    } else if (zoneTransition.phase === 'switch') {
-      zoneTransition.phase = 'fadeIn';
-    } else if (zoneTransition.phase === 'fadeIn') {
-      zoneTransition.alpha -= dt * 1.2;
-      if (zoneTransition.alpha <= 0) {
-        zoneTransition.alpha = 0;
-        zoneTransition.active = false;
-        zoneTransition.phase = 'none';
-      }
-    }
-  }
-
   // Check if frog walks through open gate
-  if (gateOpen && !zoneTransition.active && frog.x > WORLD_W - 100) {
+  if (gateOpen && !zoneTransition.active && !dialogue.active && frog.x > WORLD_W - 120 && ZONES[currentZone + 1]) {
     zoneTransition.active = true;
     zoneTransition.phase = 'fadeOut';
     zoneTransition.alpha = 0;
