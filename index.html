@@ -278,6 +278,7 @@ let waterPlants=[], clouds=[], splashDrops=[];
 // ─── ZONE SYSTEM ───
 let currentZone = 1;
 let gateOpen = false;
+let gateConfirmShown = false;
 let zoneTransition = { active: false, alpha: 0, phase: 'none', targetZone: 0 };
 // Zone palettes
 const ZONES = {
@@ -300,6 +301,7 @@ const ZONES = {
 function loadZone(zoneNum) {
   currentZone = zoneNum;
   gateOpen = false;
+  gateConfirmShown = false;
   const zone = ZONES[currentZone];
   // Clear entities
   bugs=[]; lilyPads=[]; fireflies=[]; reeds=[]; cattails=[];
@@ -753,6 +755,15 @@ function advanceDialogue() {
   if (dialogue.choices) {
     const choice = dialogue.choices[dialogue.choiceIndex];
     // Handle special actions
+    if (choice.onSelect === 'enterZone') {
+      // Trigger the zone transition
+      dialogue.active = false;
+      zoneTransition.active = true;
+      zoneTransition.phase = 'fadeOut';
+      zoneTransition.alpha = 0;
+      zoneTransition.targetZone = currentZone + 1;
+      return;
+    }
     if (choice.onSelect === 'openGate') {
       gateOpen = true;
       screenShake = 0.3;
@@ -763,7 +774,15 @@ function advanceDialogue() {
       }
       sfx(80, 200, 0.5, 0.15);
     }
-    // Show response as next line
+    // Show response as next line (skip if just "...")
+    if (choice.response === '...') {
+      dialogue.choices = null;
+      dialogue.lineIndex = dialogue.lines.length; // Jump to end
+      dialogue.active = false;
+      if (dialogue.npc) dialogue.npc.talked = true;
+      gateConfirmShown = false;
+      return;
+    }
     dialogue.lines.splice(dialogue.lineIndex + 1, 0, {
       text: choice.response,
       speaker: dialogue.npc.name,
@@ -781,7 +800,8 @@ function advanceDialogue() {
   if (dialogue.lineIndex >= dialogue.lines.length) {
     // End dialogue
     dialogue.active = false;
-    dialogue.npc.talked = true;
+    if (dialogue.npc) dialogue.npc.talked = true;
+    gateConfirmShown = false; // Reset so player can walk to gate again
     return;
   }
   dialogue.charIndex = 0;
@@ -1488,12 +1508,31 @@ function update(dt) {
 
   screenPulse *= 0.92;
 
-  // Check if frog walks through open gate
-  if (gateOpen && !zoneTransition.active && !dialogue.active && frog.x > WORLD_W - 120 && ZONES[currentZone + 1]) {
-    zoneTransition.active = true;
-    zoneTransition.phase = 'fadeOut';
-    zoneTransition.alpha = 0;
-    zoneTransition.targetZone = currentZone + 1;
+  // Check if frog walks through open gate — show confirmation dialogue
+  if (gateOpen && !zoneTransition.active && !dialogue.active && frog.x > WORLD_W - 120 && ZONES[currentZone + 1] && !gateConfirmShown) {
+    gateConfirmShown = true;
+    const nextZone = ZONES[currentZone + 1];
+    // Create a gate confirmation "NPC" dialogue
+    dialogue.active = true;
+    dialogue.npc = { name: '', talked: false };
+    dialogue.lines = [
+      {
+        text: `You are about to enter\n${nextZone.name}.`,
+        speaker: 'Gate',
+        choices: [
+          { text: `Enter ${nextZone.name}`, response: '...', onSelect: 'enterZone' },
+          { text: 'Go back', response: '...' },
+        ]
+      },
+    ];
+    dialogue.lineIndex = 0;
+    dialogue.charIndex = 0;
+    dialogue.charTimer = 0;
+    dialogue.choices = null;
+    dialogue.choiceIndex = 0;
+    dialogue.fullLineShown = false;
+    // Push frog back slightly so they don't re-trigger
+    frog.x = WORLD_W - 130;
   }
   screenShake *= 0.90;
   updateMusic(dt);
