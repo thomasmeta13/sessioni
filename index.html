@@ -315,13 +315,18 @@ function loadZone(zoneNum) {
   initWorldEntities();
   // Update UI
   document.getElementById('title-ui').innerHTML = 'SWAMP<br>' + zone.name;
-  // Zone 2 specific music changes
+  // Zone 2 specific music — cantina groove
   if (currentZone === 2 && musicStarted) {
-    layers.sub.osc.frequency.setTargetAtTime(40, audioCtx.currentTime, 0.5);
-    layers.pad.osc.frequency.setTargetAtTime(92, audioCtx.currentTime, 0.5);
-    layers.pad2.osc.frequency.setTargetAtTime(92.8, audioCtx.currentTime, 0.5);
-    layers.pad.filter.frequency.setTargetAtTime(300, audioCtx.currentTime, 0.3);
-    masterGain.gain.setTargetAtTime(0.28, audioCtx.currentTime, 0.5);
+    const t = audioCtx.currentTime;
+    layers.sub.osc.frequency.setTargetAtTime(50, t, 0.5);
+    layers.sub.osc.type = 'triangle'; // warmer bass
+    layers.pad.osc.frequency.setTargetAtTime(130, t, 0.5);
+    layers.pad.osc.type = 'sawtooth'; // grittier pad
+    layers.pad2.osc.frequency.setTargetAtTime(131, t, 0.5);
+    layers.pad.filter.frequency.setTargetAtTime(500, t, 0.3);
+    layers.pad.gain.gain.setTargetAtTime(0.06, t, 0.3);
+    layers.pluck.gain.gain.setTargetAtTime(0.04, t, 0.3); // subtle pluck always on
+    masterGain.gain.setTargetAtTime(0.28, t, 0.5);
   }
 }
 
@@ -516,60 +521,150 @@ function initNPCs() {
     ],
   });
 
-  // Zone 2 NPCs
+  // Zone 2 NPCs — The Cantina
   if (currentZone === 2) {
+    // Bartender — big toad behind the bar
     npcs.push({
-      x: WORLD_W/2, y: WORLD_H/2 - 150,
+      x: WORLD_W/2, y: WORLD_H/2 - 80,
       type: 'oldfrog',
-      name: 'Murk',
-      size: 18,
-      color: '#4a5548',
-      eyeColor: '#a8d8b0',
+      name: 'Bog',
+      size: 24,
+      color: '#5a4a30',
+      eyeColor: '#fbbf24',
       bobPhase: Math.random()*Math.PI*2,
       dir: 1,
       talked: false,
       dialogue: [
-        { text: "You came from the pond?\nBold.", speaker: "Murk" },
-        { text: "Things are different here.\nThe water... it watches.", speaker: "Murk" },
-        { text: "You see those beetles?\nThey used to be normal.\nThe corruption changed them.", speaker: "Murk" },
+        { text: "Welcome to the Bog.\nWhat'll it be.", speaker: "Bog" },
+        { text: "I don't serve water here.\nOnly swamp juice. Fermented\nmoss. Beetle brew.", speaker: "Bog" },
         {
-          text: "If you're staying, you'll\nneed to be faster.",
-          speaker: "Murk",
+          text: "You drinking or just\nstanding there?",
+          speaker: "Bog",
           choices: [
-            { text: "What happened here?", response: "Something crawled up from\nthe depths. We don't talk\nabout it. We don't look at it." },
-            { text: "How do I get deeper?", response: "Keep going right. Always right.\nBut each gate demands more\nfrom you than the last." },
+            { text: "Swamp juice.", response: "Good choice.\n\n*slides a glass of something\nthat glows faintly green*\n\nDon't ask what's in it." },
+            { text: "Beetle brew.", response: "Brave.\n\n*pours something amber with\nlegs still floating in it*\n\nThey add protein." },
+            { text: "Just looking around.", response: "Tourists.\nFine. But don't start nothing.\nLast guy who did is now\na lily pad." },
           ]
         },
       ],
       dialogueAfter: [
-        { text: "Still alive? Impressive.", speaker: "Murk" },
+        { text: "Need another round?\n...You look like you\nneed another round.", speaker: "Bog" },
       ],
     });
 
+    // Musician — frog on a mushroom stage
     npcs.push({
-      x: WORLD_W/2 - 200, y: WORLD_H/2 + 250,
+      x: WORLD_W/2 + 250, y: WORLD_H/2 - 200,
       type: 'mushroom',
-      name: 'Gloomcap',
-      size: 18,
-      color: '#6366f1',
-      eyeColor: '#c7d2fe',
+      name: 'DJ Sploinky',
+      size: 16,
+      color: '#f472b6',
+      eyeColor: '#fce7f3',
       bobPhase: Math.random()*Math.PI*2,
       dir: -1,
       talked: false,
       dialogue: [
-        { text: "The spores here are...\ndifferent.", speaker: "Gloomcap" },
-        { text: "They carry memories of\nwhat the marsh used to be.\nBefore.", speaker: "Gloomcap" },
+        { text: "*bzzzt* *ribbit* *bzzzt*", speaker: "DJ Sploinky" },
+        { text: "Oh you can hear me?\nMost creatures just think\nit's the swamp making noise.", speaker: "DJ Sploinky" },
+        { text: "I've been dropping beats\ndown here for cycles.\nThe bugs vibe to it.", speaker: "DJ Sploinky" },
         {
-          text: "Want to see?",
-          speaker: "Gloomcap",
+          text: "Wanna hear my new track?\nIt's called 'Moist.'",
+          speaker: "DJ Sploinky",
           choices: [
-            { text: "Show me.", response: "...\n[The air shimmers with purple\nparticles. For a moment you\nsee green water, sunlight.]\n\nThat's what we lost." },
-            { text: "No thanks.", response: "Probably wise.\nSome memories are heavy." },
+            { text: "Drop it.", response: "*BWAAAAMP*\n*sploinky sploinky sploinky*\n*wet bass noises*\n\n...Yeah. That's the one." },
+            { text: "Maybe later.", response: "Your loss.\nThis track literally makes\nmushrooms grow faster.\nThat's peer-reviewed." },
           ]
         },
       ],
       dialogueAfter: [
-        { text: "The deeper you go, the older\nthe memories get.", speaker: "Gloomcap" },
+        { text: "*sploinky sploinky*\n\nSorry. In the zone.\nLiterally.", speaker: "DJ Sploinky" },
+      ],
+    });
+
+    // Sketchy dealer frog
+    npcs.push({
+      x: WORLD_W/2 - 300, y: WORLD_H/2 + 100,
+      type: 'oldfrog',
+      name: '???',
+      size: 14,
+      color: '#1a1a2e',
+      eyeColor: '#e11d48',
+      bobPhase: Math.random()*Math.PI*2,
+      dir: 1,
+      talked: false,
+      dialogue: [
+        { text: "Psst.", speaker: "???" },
+        { text: "Yeah you. C'mere.", speaker: "???" },
+        { text: "I got tongues.\nUpgraded tongues.\nLonger. Stickier.\nYou interested?", speaker: "???" },
+        {
+          text: "50 bugs for the\npremium sticky.",
+          speaker: "???",
+          choices: [
+            { text: "I don't have 50 bugs.", response: "Then why are you\nwasting my time?\n\n...Come back when\nyou're serious." },
+            { text: "That sounds illegal.", response: "It's only illegal if\nthere's a government.\nThis is a swamp.\nWe have vibes, not laws." },
+            { text: "Who are you?", response: "Nobody.\nEverybody.\nDepends on who's asking\nand what you're buying." },
+          ]
+        },
+      ],
+      dialogueAfter: [
+        { text: "Got bugs? No?\nThen keep moving.\n*retreats into shadow*", speaker: "???" },
+      ],
+    });
+
+    // Chill turtle at the bar
+    npcs.push({
+      x: WORLD_W/2 - 100, y: WORLD_H/2 - 60,
+      type: 'turtle',
+      name: 'Vibe',
+      size: 20,
+      color: '#7c3aed',
+      eyeColor: '#a78bfa',
+      bobPhase: Math.random()*Math.PI*2,
+      dir: 1,
+      talked: false,
+      dialogue: [
+        { text: "Yooo.", speaker: "Vibe" },
+        { text: "This place is so\nunderrated bro. Like\nthe swamp? Underrated.", speaker: "Vibe" },
+        { text: "The corruption?\nBro that's just like...\naesthetic.", speaker: "Vibe" },
+        {
+          text: "You ever just sit on\na lily pad and think\nabout the universe?",
+          speaker: "Vibe",
+          choices: [
+            { text: "All the time.", response: "Broooo. Same.\n\nWe should start a\npodcast or something.\nCall it 'Lily Pad Talks.'" },
+            { text: "I'm trying to save the swamp.", response: "Oh for sure for sure.\nRespect.\nI'm more of a vibes guy\nmyself but like, respect." },
+          ]
+        },
+      ],
+      dialogueAfter: [
+        { text: "Bro the beetle brew\nhits different tonight.\n\n*stares at nothing\nfor 30 seconds*\n\nYeah.", speaker: "Vibe" },
+      ],
+    });
+
+    // Mushroom bouncer at entrance
+    npcs.push({
+      x: 200, y: WORLD_H/2,
+      type: 'mushroom',
+      name: 'Spore',
+      size: 20,
+      color: '#6366f1',
+      eyeColor: '#c7d2fe',
+      bobPhase: Math.random()*Math.PI*2,
+      dir: 1,
+      talked: false,
+      dialogue: [
+        { text: "Welcome to The Bog.\nBiggest cantina in\nthe marsh.", speaker: "Spore" },
+        { text: "Rules are simple.\nNo fighting. No spitting.\nNo eating the other\ncustomers.", speaker: "Spore" },
+        {
+          text: "You cool?",
+          speaker: "Spore",
+          choices: [
+            { text: "I'm cool.", response: "Then go on in.\nBog's pouring tonight.\nDJ Sploinky's on the\nmushroom stage." },
+            { text: "What if I'm not cool?", response: "Then you become\na mushroom.\n\n...\n\nI'm kidding.\n\n...\n\nMostly." },
+          ]
+        },
+      ],
+      dialogueAfter: [
+        { text: "Enjoy yourself.\nBut not too much.", speaker: "Spore" },
       ],
     });
   }
@@ -863,7 +958,9 @@ if (isMobile) {
         if (npc) startDialogue(npc);
         continue;
       }
-      if (x > W - 100 && y > H - 100) {
+      // Flop button — generous zone, bottom-right
+      const flopDist = Math.sqrt(Math.pow(x - (W-55), 2) + Math.pow(y - (H-55), 2));
+      if (flopDist < 50) {
         touch.flopId = t.identifier;
         triggerFlop();
         continue;
@@ -1390,7 +1487,7 @@ function update(dt) {
   }
 
   // Check if frog walks through open gate
-  if (gateOpen && !zoneTransition.active && frog.x > WORLD_W - 60) {
+  if (gateOpen && !zoneTransition.active && frog.x > WORLD_W - 100) {
     zoneTransition.active = true;
     zoneTransition.phase = 'fadeOut';
     zoneTransition.alpha = 0;
@@ -2263,10 +2360,97 @@ function drawWater() {
     const cy=((Math.cos(globalTime*0.2+i*1.7)+1)/2)*WORLD_H;
     const size=50+Math.sin(globalTime*0.8+i)*25;
     const cg=ctx.createRadialGradient(cx,cy,0,cx,cy,size);
-    cg.addColorStop(0,`rgba(134,239,172,0.012)`);
+    const wh = zone.waterHighlight;
+    cg.addColorStop(0,`rgba(${wh[0]},${wh[1]},${wh[2]},0.012)`);
     cg.addColorStop(1,'transparent');
     ctx.fillStyle=cg;
     ctx.beginPath(); ctx.arc(cx,cy,size,0,Math.PI*2); ctx.fill();
+  }
+
+  // ── Zone 2: Cantina decorations ──
+  if (currentZone === 2) {
+    // Bar counter
+    const barX = WORLD_W/2 - 150, barY = WORLD_H/2 - 110;
+    const barW = 300, barH = 20;
+    ctx.fillStyle = '#1a1520';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = '#2a2030';
+    ctx.fillRect(barX, barY, barW, 3);
+    // Bar stools (log stumps)
+    for (let i = 0; i < 5; i++) {
+      const sx = barX + 30 + i * 60;
+      ctx.fillStyle = '#2a2018';
+      ctx.beginPath(); ctx.ellipse(sx, barY + 35, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3a3025';
+      ctx.beginPath(); ctx.ellipse(sx, barY + 33, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // Bottles on bar
+    const bottleColors = ['#4ade80','#f472b6','#fbbf24','#7dd3fc','#c084fc'];
+    for (let i = 0; i < 5; i++) {
+      const bx = barX + 20 + i * 55 + Math.sin(i*3)*10;
+      ctx.fillStyle = bottleColors[i];
+      ctx.globalAlpha = 0.3;
+      ctx.fillRect(bx - 2, barY - 12, 4, 12);
+      ctx.beginPath(); ctx.arc(bx, barY - 12, 3, 0, Math.PI * 2); ctx.fill();
+      // Glow
+      const bg = ctx.createRadialGradient(bx, barY - 6, 0, bx, barY - 6, 12);
+      bg.addColorStop(0, bottleColors[i].replace(')', ',0.1)').replace('rgb','rgba').replace('#','rgba('));
+      bg.addColorStop(1, 'transparent');
+      ctx.fillStyle = `${bottleColors[i]}20`;
+      ctx.beginPath(); ctx.arc(bx, barY - 6, 12, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Mushroom stage (top right area)
+    const stageX = WORLD_W/2 + 250, stageY = WORLD_H/2 - 230;
+    // Stage platform
+    ctx.fillStyle = '#1a1025';
+    ctx.beginPath(); ctx.ellipse(stageX, stageY + 20, 60, 15, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#251535';
+    ctx.beginPath(); ctx.ellipse(stageX, stageY + 18, 55, 12, 0, 0, Math.PI * 2); ctx.fill();
+    // Stage mushroom lights
+    for (let i = 0; i < 3; i++) {
+      const mx = stageX - 40 + i * 40;
+      const my = stageY - 10;
+      const pulseColor = ['#f472b6','#4ade80','#7dd3fc'][i];
+      const pulse = Math.sin(globalTime * (2 + i * 0.7) + i * 2) * 0.5 + 0.5;
+      // Stem
+      ctx.fillStyle = '#2a2035';
+      ctx.fillRect(mx - 2, my, 4, 20);
+      // Cap glow
+      const mg = ctx.createRadialGradient(mx, my, 0, mx, my, 20 + pulse * 10);
+      mg.addColorStop(0, pulseColor + '30');
+      mg.addColorStop(0.5, pulseColor + '10');
+      mg.addColorStop(1, 'transparent');
+      ctx.fillStyle = mg;
+      ctx.beginPath(); ctx.arc(mx, my, 20 + pulse * 10, 0, Math.PI * 2); ctx.fill();
+      // Cap
+      ctx.fillStyle = pulseColor + '60';
+      ctx.beginPath(); ctx.ellipse(mx, my, 8, 5, 0, Math.PI, Math.PI * 2); ctx.fill();
+    }
+
+    // Ambient colored light pools throughout
+    const lightColors = [
+      { x: WORLD_W/2, y: WORLD_H/2, color: [120,80,200], size: 120 },
+      { x: WORLD_W/2 + 250, y: WORLD_H/2 - 200, color: [244,114,182], size: 100 },
+      { x: WORLD_W/2 - 300, y: WORLD_H/2 + 100, color: [220,50,70], size: 80 },
+      { x: WORLD_W/2 - 100, y: WORLD_H/2 - 60, color: [120,180,255], size: 70 },
+    ];
+    lightColors.forEach(l => {
+      const pulse = 0.015 + Math.sin(globalTime * 1.5 + l.x * 0.01) * 0.008;
+      const lg = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.size);
+      lg.addColorStop(0, `rgba(${l.color[0]},${l.color[1]},${l.color[2]},${pulse})`);
+      lg.addColorStop(1, 'transparent');
+      ctx.fillStyle = lg;
+      ctx.beginPath(); ctx.arc(l.x, l.y, l.size, 0, Math.PI * 2); ctx.fill();
+    });
+
+    // Sketchy corner shadow (dealer area)
+    const sg = ctx.createRadialGradient(WORLD_W/2 - 300, WORLD_H/2 + 100, 0, WORLD_W/2 - 300, WORLD_H/2 + 100, 100);
+    sg.addColorStop(0, 'rgba(0,0,0,0.15)');
+    sg.addColorStop(1, 'transparent');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(WORLD_W/2 - 300, WORLD_H/2 + 100, 100, 0, Math.PI * 2); ctx.fill();
   }
 }
 
