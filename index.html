@@ -985,8 +985,8 @@ if (isMobile) {
         triggerFlop();
         continue;
       }
-      // Left ~45% = joystick (dynamic — appears where you touch)
-      if (x < W * 0.45 && touch.joyId === null) {
+      // Bottom-left quadrant only = joystick (dynamic — appears where you touch)
+      if (x < W * 0.4 && y > H * 0.5 && touch.joyId === null) {
         touch.joyId = t.identifier;
         touch.joyBaseX = x;
         touch.joyBaseY = y;
@@ -996,8 +996,8 @@ if (isMobile) {
         touch.joyActive = true;
         touch.joyFadeOut = 0;
       }
-      // Right side = aim + tongue
-      else if (x >= W * 0.4 && touch.atkId === null) {
+      // Everything else = aim + tongue
+      else if (touch.atkId === null) {
         touch.atkId = t.identifier;
         mouseX = x; mouseY = y;
         shootTongue(x + camera.x, y + camera.y);
@@ -2170,7 +2170,7 @@ function draw() {
       ctx.fillStyle = `rgba(134,239,172,${hintAlpha})`;
       ctx.font = '11px Courier New';
       ctx.textAlign = 'center';
-      ctx.fillText('touch here to move', W * 0.22, H * 0.85);
+      ctx.fillText('touch here to move', W * 0.2, H * 0.75);
       ctx.textAlign = 'start';
     }
 
