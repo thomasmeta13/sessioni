@@ -275,8 +275,62 @@ let bugs=[], lilyPads=[], ripples=[], particles=[];
 let fireflies=[], reeds=[], bubbles=[], cattails=[];
 let waterPlants=[], clouds=[], splashDrops=[];
 
+// ─── ZONE SYSTEM ───
+let currentZone = 1;
+let gateOpen = false;
+let zoneTransition = { active: false, alpha: 0, phase: 'none', targetZone: 0 };
+// Zone palettes
+const ZONES = {
+  1: {
+    name: 'The Surface Pond',
+    waterBase: [6,14,8], waterHighlight: [134,239,172],
+    fogColor: [134,200,160],
+    bgColor: '#060e08',
+    requiredBugs: 3,
+  },
+  2: {
+    name: 'The Marsh',
+    waterBase: [10,10,14], waterHighlight: [120,180,220],
+    fogColor: [100,120,160],
+    bgColor: '#080810',
+    requiredBugs: 8,
+  },
+};
+
+function loadZone(zoneNum) {
+  currentZone = zoneNum;
+  gateOpen = false;
+  const zone = ZONES[currentZone];
+  // Clear entities
+  bugs=[]; lilyPads=[]; fireflies=[]; reeds=[]; cattails=[];
+  waterPlants=[]; clouds=[]; bubbles=[]; ripples=[]; particles=[]; splashDrops=[];
+  npcs.length = 0;
+  frog.trail = [];
+  // Reset frog position (enter from left)
+  frog.x = 120; frog.y = WORLD_H / 2;
+  frog.vx = 0; frog.vy = 0;
+  camera.x = frog.x - W/2; camera.y = frog.y - H/2;
+  // Reinit
+  initNPCs();
+  initWorldEntities();
+  // Update UI
+  document.getElementById('title-ui').innerHTML = 'SWAMP<br>' + zone.name;
+  // Zone 2 specific music changes
+  if (currentZone === 2 && musicStarted) {
+    layers.sub.osc.frequency.setTargetAtTime(40, audioCtx.currentTime, 0.5);
+    layers.pad.osc.frequency.setTargetAtTime(92, audioCtx.currentTime, 0.5);
+    layers.pad2.osc.frequency.setTargetAtTime(92.8, audioCtx.currentTime, 0.5);
+    layers.pad.filter.frequency.setTargetAtTime(300, audioCtx.currentTime, 0.3);
+    masterGain.gain.setTargetAtTime(0.28, audioCtx.currentTime, 0.5);
+  }
+}
+
 function initWorld() {
   initNPCs();
+  initWorldEntities();
+}
+
+function initWorldEntities() {
   for (let c=0;c<7;c++) {
     const cx=200+Math.random()*(WORLD_W-400), cy=200+Math.random()*(WORLD_H-400);
     for (let i=0;i<3+Math.floor(Math.random()*4);i++) {
@@ -291,8 +345,10 @@ function initWorld() {
       });
     }
   }
-  for (let i=0;i<18;i++) spawnBug();
-  for (let i=0;i<50;i++) {
+  const bugCount = currentZone === 1 ? 18 : 24;
+  for (let i=0;i<bugCount;i++) spawnBug();
+  const fireflyCount = currentZone === 1 ? 50 : 25;
+  for (let i=0;i<fireflyCount;i++) {
     fireflies.push({
       cx:Math.random()*WORLD_W, cy:Math.random()*WORLD_H,
       x:0, y:0,
@@ -459,9 +515,115 @@ function initNPCs() {
       { text: ".............................\n.........still thinking.", speaker: "Shellsworth" },
     ],
   });
+
+  // Zone 2 NPCs
+  if (currentZone === 2) {
+    npcs.push({
+      x: WORLD_W/2, y: WORLD_H/2 - 150,
+      type: 'oldfrog',
+      name: 'Murk',
+      size: 18,
+      color: '#4a5548',
+      eyeColor: '#a8d8b0',
+      bobPhase: Math.random()*Math.PI*2,
+      dir: 1,
+      talked: false,
+      dialogue: [
+        { text: "You came from the pond?\nBold.", speaker: "Murk" },
+        { text: "Things are different here.\nThe water... it watches.", speaker: "Murk" },
+        { text: "You see those beetles?\nThey used to be normal.\nThe corruption changed them.", speaker: "Murk" },
+        {
+          text: "If you're staying, you'll\nneed to be faster.",
+          speaker: "Murk",
+          choices: [
+            { text: "What happened here?", response: "Something crawled up from\nthe depths. We don't talk\nabout it. We don't look at it." },
+            { text: "How do I get deeper?", response: "Keep going right. Always right.\nBut each gate demands more\nfrom you than the last." },
+          ]
+        },
+      ],
+      dialogueAfter: [
+        { text: "Still alive? Impressive.", speaker: "Murk" },
+      ],
+    });
+
+    npcs.push({
+      x: WORLD_W/2 - 200, y: WORLD_H/2 + 250,
+      type: 'mushroom',
+      name: 'Gloomcap',
+      size: 18,
+      color: '#6366f1',
+      eyeColor: '#c7d2fe',
+      bobPhase: Math.random()*Math.PI*2,
+      dir: -1,
+      talked: false,
+      dialogue: [
+        { text: "The spores here are...\ndifferent.", speaker: "Gloomcap" },
+        { text: "They carry memories of\nwhat the marsh used to be.\nBefore.", speaker: "Gloomcap" },
+        {
+          text: "Want to see?",
+          speaker: "Gloomcap",
+          choices: [
+            { text: "Show me.", response: "...\n[The air shimmers with purple\nparticles. For a moment you\nsee green water, sunlight.]\n\nThat's what we lost." },
+            { text: "No thanks.", response: "Probably wise.\nSome memories are heavy." },
+          ]
+        },
+      ],
+      dialogueAfter: [
+        { text: "The deeper you go, the older\nthe memories get.", speaker: "Gloomcap" },
+      ],
+    });
+  }
+
+  // Gatekeeper — blocks the path to next zone
+  npcs.push({
+    x: WORLD_W - 180, y: WORLD_H / 2,
+    type: 'gatekeeper',
+    name: 'Grimjaw',
+    size: 20,
+    color: '#4a5568',
+    eyeColor: '#fbbf24',
+    bobPhase: Math.random()*Math.PI*2,
+    dir: -1,
+    talked: false,
+    isGatekeeper: true,
+    dialogue: [
+      { text: "Halt.", speaker: "Grimjaw" },
+      { text: currentZone === 1 ? "The Marsh lies beyond.\nNothing pleasant in there." : "The Undergrowth is next.\nYou sure you're ready?", speaker: "Grimjaw" },
+      { text: "You want through? Prove\nyou can handle yourself.", speaker: "Grimjaw" },
+      { text: `Catch ${ZONES[currentZone].requiredBugs} bugs. Then we talk.`, speaker: "Grimjaw" },
+    ],
+    dialogueAfter: [], // dynamically set based on score
+  });
 }
 
 function startDialogue(npc) {
+  // Gatekeeper has dynamic dialogue based on score
+  if (npc.isGatekeeper && npc.talked) {
+    const needed = ZONES[currentZone].requiredBugs;
+    if (score >= needed && !gateOpen) {
+      npc.dialogueAfter = [
+        { text: `${score} bugs. Not bad.`, speaker: "Grimjaw" },
+        {
+          text: "The Marsh awaits.\nYou sure about this?",
+          speaker: "Grimjaw",
+          choices: [
+            { text: "Open the gate.", response: "...Don't say I didn't warn you.", onSelect: 'openGate' },
+            { text: "Not yet.", response: "Smart. Get stronger first." },
+          ]
+        },
+      ];
+    } else if (gateOpen) {
+      npc.dialogueAfter = [
+        { text: "Gate's open. Go on through.\n...or don't. Your funeral.", speaker: "Grimjaw" },
+      ];
+    } else {
+      const remaining = needed - score;
+      npc.dialogueAfter = [
+        { text: `You got ${score} bugs.\nNeed ${remaining} more.`, speaker: "Grimjaw" },
+        { text: "Come back when you're ready.", speaker: "Grimjaw" },
+      ];
+    }
+  }
   const lines = npc.talked ? npc.dialogueAfter : npc.dialogue;
   dialogue.active = true;
   dialogue.npc = npc;
@@ -495,6 +657,17 @@ function advanceDialogue() {
   // If showing choices, select current choice
   if (dialogue.choices) {
     const choice = dialogue.choices[dialogue.choiceIndex];
+    // Handle special actions
+    if (choice.onSelect === 'openGate') {
+      gateOpen = true;
+      screenShake = 0.3;
+      // Gate opening ripples
+      const gk = npcs.find(n => n.isGatekeeper);
+      if (gk) {
+        for (let i = 0; i < 3; i++) ripples.push({ x: WORLD_W - 80, y: WORLD_H/2, radius: i*15, maxRadius: 80+i*30, alpha: 0.6, width: 2 });
+      }
+      sfx(80, 200, 0.5, 0.15);
+    }
     // Show response as next line
     dialogue.lines.splice(dialogue.lineIndex + 1, 0, {
       text: choice.response,
@@ -1194,6 +1367,35 @@ function update(dt) {
   camera.vx = cx.velocity; camera.vy = cy.velocity;
 
   screenPulse *= 0.92;
+
+  // ── Zone transition ──
+  if (zoneTransition.active) {
+    if (zoneTransition.phase === 'fadeOut') {
+      zoneTransition.alpha += dt * 1.5;
+      if (zoneTransition.alpha >= 1) {
+        zoneTransition.alpha = 1;
+        zoneTransition.phase = 'switch';
+        loadZone(zoneTransition.targetZone);
+      }
+    } else if (zoneTransition.phase === 'switch') {
+      zoneTransition.phase = 'fadeIn';
+    } else if (zoneTransition.phase === 'fadeIn') {
+      zoneTransition.alpha -= dt * 1.2;
+      if (zoneTransition.alpha <= 0) {
+        zoneTransition.alpha = 0;
+        zoneTransition.active = false;
+        zoneTransition.phase = 'none';
+      }
+    }
+  }
+
+  // Check if frog walks through open gate
+  if (gateOpen && !zoneTransition.active && frog.x > WORLD_W - 60) {
+    zoneTransition.active = true;
+    zoneTransition.phase = 'fadeOut';
+    zoneTransition.alpha = 0;
+    zoneTransition.targetZone = currentZone + 1;
+  }
   screenShake *= 0.90;
   updateMusic(dt);
 }
@@ -1364,6 +1566,123 @@ function draw() {
     ctx.restore();
   });
 
+  // ── Path and Gate ──
+  const pathX = WORLD_W - 120;
+  const pathY = WORLD_H / 2;
+  const pathW = 100;
+  const pathH = 160;
+
+  // Path ground (lighter area leading right)
+  const pathGrad = ctx.createLinearGradient(pathX - 80, pathY, pathX + pathW, pathY);
+  pathGrad.addColorStop(0, 'rgba(20,35,20,0)');
+  pathGrad.addColorStop(0.3, 'rgba(20,35,20,0.4)');
+  pathGrad.addColorStop(1, 'rgba(25,40,25,0.5)');
+  ctx.fillStyle = pathGrad;
+  ctx.beginPath();
+  ctx.moveTo(pathX - 60, pathY - pathH/3);
+  ctx.lineTo(WORLD_W, pathY - pathH/2.5);
+  ctx.lineTo(WORLD_W, pathY + pathH/2.5);
+  ctx.lineTo(pathX - 60, pathY + pathH/3);
+  ctx.closePath();
+  ctx.fill();
+
+  // Path edge stones
+  for (let i = 0; i < 8; i++) {
+    const sx = pathX - 40 + i * 22;
+    const stoneAlpha = 0.15 + Math.sin(i * 1.3) * 0.05;
+    ctx.fillStyle = `rgba(60,80,60,${stoneAlpha})`;
+    ctx.beginPath();
+    ctx.ellipse(sx, pathY - pathH/3 - 5 + Math.sin(i*2)*3, 6+Math.random()*4, 3+Math.random()*2, i*0.2, 0, Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(sx + 5, pathY + pathH/3 + 5 + Math.sin(i*2.5)*3, 6+Math.random()*4, 3+Math.random()*2, i*0.2, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // Gate posts
+  const gateX = WORLD_W - 80;
+  const gateTopY = pathY - 55;
+  const gateBotY = pathY + 55;
+
+  // Left post
+  ctx.fillStyle = '#2a3a25';
+  ctx.fillRect(gateX - 6, gateTopY - 20, 12, 40);
+  ctx.fillRect(gateX - 6, gateBotY - 20, 12, 40);
+  // Post tops
+  ctx.fillStyle = '#3a4a35';
+  ctx.beginPath(); ctx.arc(gateX, gateTopY - 20, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(gateX, gateBotY + 20, 8, 0, Math.PI * 2); ctx.fill();
+  // Post glow
+  const postGlowColor = gateOpen ? 'rgba(74,222,128,0.15)' : 'rgba(239,68,68,0.1)';
+  const pg1 = ctx.createRadialGradient(gateX, gateTopY - 20, 0, gateX, gateTopY - 20, 15);
+  pg1.addColorStop(0, postGlowColor); pg1.addColorStop(1, 'transparent');
+  ctx.fillStyle = pg1;
+  ctx.beginPath(); ctx.arc(gateX, gateTopY - 20, 15, 0, Math.PI * 2); ctx.fill();
+  const pg2 = ctx.createRadialGradient(gateX, gateBotY + 20, 0, gateX, gateBotY + 20, 15);
+  pg2.addColorStop(0, postGlowColor); pg2.addColorStop(1, 'transparent');
+  ctx.fillStyle = pg2;
+  ctx.beginPath(); ctx.arc(gateX, gateBotY + 20, 15, 0, Math.PI * 2); ctx.fill();
+
+  // Gate barrier (if closed)
+  if (!gateOpen) {
+    // Horizontal bars
+    ctx.strokeStyle = 'rgba(180,60,60,0.3)';
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 5; i++) {
+      const barY = gateTopY + i * 22 + 5;
+      ctx.beginPath();
+      ctx.moveTo(gateX - 4, barY);
+      ctx.lineTo(gateX + 4, barY);
+      ctx.stroke();
+    }
+    // Energy field
+    ctx.fillStyle = `rgba(239,68,68,${0.03 + Math.sin(globalTime * 3) * 0.015})`;
+    ctx.fillRect(gateX - 3, gateTopY, 6, gateBotY - gateTopY);
+    // Particles floating in field
+    for (let i = 0; i < 4; i++) {
+      const py = gateTopY + ((globalTime * 30 + i * 30) % (gateBotY - gateTopY));
+      ctx.fillStyle = `rgba(239,68,68,${0.3 + Math.sin(globalTime * 4 + i) * 0.2})`;
+      ctx.beginPath(); ctx.arc(gateX + Math.sin(globalTime * 2 + i) * 2, py, 1.5, 0, Math.PI * 2); ctx.fill();
+    }
+  } else {
+    // Open gate — green glow
+    ctx.fillStyle = `rgba(74,222,128,${0.02 + Math.sin(globalTime * 2) * 0.01})`;
+    ctx.fillRect(gateX - 8, gateTopY, 16, gateBotY - gateTopY);
+    // Arrow hint pointing right
+    const arrowAlpha = 0.2 + Math.sin(globalTime * 3) * 0.1;
+    const arrowX = gateX + 20 + Math.sin(globalTime * 3) * 5;
+    ctx.fillStyle = `rgba(74,222,128,${arrowAlpha})`;
+    ctx.beginPath();
+    ctx.moveTo(arrowX, pathY - 8);
+    ctx.lineTo(arrowX + 10, pathY);
+    ctx.lineTo(arrowX, pathY + 8);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // "ZONE 2" text above gate when open
+  if (gateOpen) {
+    ctx.fillStyle = `rgba(134,239,172,${0.3 + Math.sin(globalTime * 2) * 0.1})`;
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(currentZone === 1 ? 'THE MARSH' : 'THE UNDERGROWTH', gateX, gateTopY - 30);
+    ctx.fillText('>>>', gateX, gateTopY - 18);
+    ctx.textAlign = 'start';
+  }
+
+  // Bug counter near gate when not open
+  if (!gateOpen) {
+    const needed = ZONES[currentZone].requiredBugs;
+    const dx = frog.x - gateX, dy = frog.y - pathY;
+    if (Math.sqrt(dx*dx+dy*dy) < 200) {
+      ctx.fillStyle = 'rgba(134,239,172,0.35)';
+      ctx.font = '10px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${Math.min(score, needed)}/${needed} bugs`, gateX, gateTopY - 30);
+      ctx.textAlign = 'start';
+    }
+  }
+
   // NPCs
   npcs.forEach(npc => {
     const bob = Math.sin(globalTime * 1.5 + npc.bobPhase) * 2;
@@ -1471,6 +1790,46 @@ function draw() {
       ctx.fillStyle = '#9ca3af';
       ctx.beginPath(); ctx.ellipse(-8, 8, 4, 3, -0.3, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.ellipse(8, 8, 4, 3, 0.3, 0, Math.PI * 2); ctx.fill();
+    } else if (npc.type === 'gatekeeper') {
+      // Big bulky toad guard
+      const bg = ctx.createRadialGradient(0, 0, 2, 0, 2, 18);
+      bg.addColorStop(0, '#5a6370');
+      bg.addColorStop(0.5, '#4a5568');
+      bg.addColorStop(1, '#2d3748');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.ellipse(0, 0, 16, 14, 0, 0, Math.PI * 2); ctx.fill();
+      // Belly
+      ctx.fillStyle = '#718096';
+      ctx.beginPath(); ctx.ellipse(0, 4, 10, 8, 0, 0, Math.PI * 2); ctx.fill();
+      // Warts
+      ctx.fillStyle = 'rgba(45,55,72,0.6)';
+      ctx.beginPath(); ctx.arc(-7, -5, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(8, -3, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-3, -8, 1.8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(5, 2, 2.2, 0, Math.PI * 2); ctx.fill();
+      // Eyes — stern, yellow
+      ctx.fillStyle = '#2d3748';
+      ctx.beginPath(); ctx.ellipse(-7, -12, 7, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(7, -12, 7, 6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath(); ctx.ellipse(-7, -12, 5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(7, -12, 5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+      // Slit pupils
+      ctx.fillStyle = '#1a202c';
+      ctx.beginPath(); ctx.ellipse(-7, -12, 1.5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(7, -12, 1.5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+      // Heavy brow
+      ctx.fillStyle = '#2d3748';
+      ctx.beginPath(); ctx.ellipse(-7, -15, 6, 2, -0.1, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(7, -15, 6, 2, 0.1, Math.PI, Math.PI * 2); ctx.fill();
+      // Frown
+      ctx.strokeStyle = '#2d3748';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, -2, 6, 0.4, Math.PI - 0.4); ctx.stroke();
+      // Arms crossed
+      ctx.fillStyle = '#4a5568';
+      ctx.beginPath(); ctx.ellipse(-12, 2, 5, 3, -0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(12, 2, 5, 3, 0.4, 0, Math.PI * 2); ctx.fill();
     }
 
     // Interaction prompt
@@ -1851,10 +2210,29 @@ function draw() {
     ctx.fillText('TALK', ibX, ibY + 4);
     ctx.textAlign = 'start';
   }
+
+  // ── Zone transition overlay ──
+  if (zoneTransition.active) {
+    ctx.fillStyle = `rgba(0,0,0,${zoneTransition.alpha})`;
+    ctx.fillRect(0, 0, W, H);
+    if (zoneTransition.alpha > 0.5) {
+      const textAlpha = (zoneTransition.alpha - 0.5) * 2;
+      ctx.fillStyle = `rgba(134,239,172,${textAlpha * 0.8})`;
+      ctx.font = '24px Courier New';
+      ctx.textAlign = 'center';
+      const zoneName = ZONES[zoneTransition.targetZone] ? ZONES[zoneTransition.targetZone].name : 'Unknown';
+      ctx.fillText(zoneName, W/2, H/2 - 10);
+      ctx.font = '11px Courier New';
+      ctx.fillStyle = `rgba(134,239,172,${textAlpha * 0.4})`;
+      ctx.fillText(`Zone ${zoneTransition.targetZone}`, W/2, H/2 + 20);
+      ctx.textAlign = 'start';
+    }
+  }
 }
 
 function drawWater() {
-  ctx.fillStyle='#060e08';
+  const zone = ZONES[currentZone];
+  ctx.fillStyle = zone.bgColor;
   ctx.fillRect(camera.x-10,camera.y-10,W+20,H+20);
   const cellSize=20;
   const startX=Math.floor(camera.x/cellSize)*cellSize;
@@ -1866,10 +2244,15 @@ function drawWater() {
       const w3=Math.sin((x+y)*0.005+globalTime*0.3)*0.5;
       const wave=(w1+w2+w3)/3;
       const bright=5+wave*4+screenPulse*10;
-      ctx.fillStyle=`rgb(${Math.floor(bright*0.15)},${Math.floor(bright)},${Math.floor(bright*0.3)})`;
+      const wb = zone.waterBase;
+      const r = Math.floor(wb[0] + bright*0.15);
+      const g = Math.floor(wb[1] + bright*(currentZone===1?1:0.5));
+      const b = Math.floor(wb[2] + bright*(currentZone===1?0.3:0.8));
+      ctx.fillStyle=`rgb(${r},${g},${b})`;
       ctx.fillRect(x,y,2,2);
+      const wh = zone.waterHighlight;
       if (wave>0.25) {
-        ctx.fillStyle=`rgba(134,239,172,${(wave-0.25)*0.03})`;
+        ctx.fillStyle=`rgba(${wh[0]},${wh[1]},${wh[2]},${(wave-0.25)*0.03})`;
         ctx.fillRect(x+1,y,1,1);
       }
     }
