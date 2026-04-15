@@ -306,10 +306,10 @@ const ZONES = {
     requiredBugs: 3,
   },
   2: {
-    name: 'The Marsh',
-    waterBase: [10,10,14], waterHighlight: [120,180,220],
-    fogColor: [100,120,160],
-    bgColor: '#080810',
+    name: 'The Bog',
+    waterBase: [8,4,16], waterHighlight: [180,80,220],
+    fogColor: [160,80,200],
+    bgColor: '#0a0412',
     requiredBugs: 8,
   },
 };
@@ -333,18 +333,21 @@ function loadZone(zoneNum) {
   initWorldEntities();
   // Update UI
   document.getElementById('title-ui').innerHTML = 'SWAMP<br>' + zone.name;
-  // Zone 2 specific music — cantina groove
+  // Zone 2 specific music — frog rave
   if (currentZone === 2 && musicStarted) {
     const t = audioCtx.currentTime;
-    layers.sub.osc.frequency.setTargetAtTime(50, t, 0.5);
-    layers.sub.osc.type = 'triangle'; // warmer bass
-    layers.pad.osc.frequency.setTargetAtTime(130, t, 0.5);
-    layers.pad.osc.type = 'sawtooth'; // grittier pad
-    layers.pad2.osc.frequency.setTargetAtTime(131, t, 0.5);
-    layers.pad.filter.frequency.setTargetAtTime(500, t, 0.3);
-    layers.pad.gain.gain.setTargetAtTime(0.06, t, 0.3);
-    layers.pluck.gain.gain.setTargetAtTime(0.04, t, 0.3); // subtle pluck always on
-    masterGain.gain.setTargetAtTime(0.28, t, 0.5);
+    layers.sub.osc.frequency.setTargetAtTime(55, t, 0.3);
+    layers.sub.osc.type = 'sawtooth'; // gritty rave bass
+    layers.sub.gain.gain.setTargetAtTime(0.4, t, 0.3);
+    layers.pad.osc.frequency.setTargetAtTime(146.83, t, 0.3);
+    layers.pad.osc.type = 'sawtooth';
+    layers.pad2.osc.frequency.setTargetAtTime(148, t, 0.3);
+    layers.pad.filter.frequency.setTargetAtTime(700, t, 0.3);
+    layers.pad.gain.gain.setTargetAtTime(0.12, t, 0.3);
+    layers.pluck.gain.gain.setTargetAtTime(0.08, t, 0.3);
+    masterGain.gain.setTargetAtTime(0.75, t, 0.3);
+    // Boost intensity baseline so rave always has energy
+    intensityTarget = Math.max(intensityTarget, 0.3);
   }
 }
 
@@ -2425,88 +2428,208 @@ function drawWater() {
     ctx.beginPath(); ctx.arc(cx,cy,size,0,Math.PI*2); ctx.fill();
   }
 
-  // ── Zone 2: Cantina decorations ──
+  // ── Zone 2: THE BOG — Frog Rave ──
   if (currentZone === 2) {
-    // Bar counter
-    const barX = WORLD_W/2 - 150, barY = WORLD_H/2 - 110;
-    const barW = 300, barH = 20;
-    ctx.fillStyle = '#1a1520';
-    ctx.fillRect(barX, barY, barW, barH);
-    ctx.fillStyle = '#2a2030';
-    ctx.fillRect(barX, barY, barW, 3);
-    // Bar stools (log stumps)
-    for (let i = 0; i < 5; i++) {
-      const sx = barX + 30 + i * 60;
-      ctx.fillStyle = '#2a2018';
-      ctx.beginPath(); ctx.ellipse(sx, barY + 35, 10, 6, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#3a3025';
-      ctx.beginPath(); ctx.ellipse(sx, barY + 33, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+    const cx = WORLD_W/2, cy = WORLD_H/2;
+    const beatPulse = Math.pow(Math.max(0, Math.sin(globalTime * (BPM/60) * Math.PI)), 4);
+
+    // ── Pulsing floor grid ──
+    ctx.globalAlpha = 0.04 + beatPulse * 0.03;
+    const gridSize = 40;
+    const gridStartX = Math.floor(camera.x/gridSize)*gridSize;
+    const gridStartY = Math.floor(camera.y/gridSize)*gridSize;
+    for (let gx = gridStartX; gx < camera.x + W + gridSize; gx += gridSize) {
+      for (let gy = gridStartY; gy < camera.y + H + gridSize; gy += gridSize) {
+        const dist = Math.sqrt(Math.pow(gx-cx,2)+Math.pow(gy-cy,2));
+        const wave = Math.sin(dist * 0.02 - globalTime * 3) * 0.5 + 0.5;
+        const hue = (dist * 0.1 + globalTime * 40) % 360;
+        ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+        ctx.globalAlpha = (0.02 + wave * 0.03) * (1 + beatPulse * 2);
+        ctx.fillRect(gx, gy, gridSize - 2, gridSize - 2);
+      }
     }
-    // Bottles on bar
-    const bottleColors = ['rgba(74,222,128,','rgba(244,114,182,','rgba(251,191,36,','rgba(125,211,252,','rgba(192,132,252,'];
-    for (let i = 0; i < 5; i++) {
-      const bx = barX + 20 + i * 55 + Math.sin(i*3)*10;
-      ctx.fillStyle = bottleColors[i] + '0.4)';
-      ctx.fillRect(bx - 2, barY - 12, 4, 12);
-      ctx.beginPath(); ctx.arc(bx, barY - 12, 3, 0, Math.PI * 2); ctx.fill();
-      // Glow
-      const bg = ctx.createRadialGradient(bx, barY - 6, 0, bx, barY - 6, 15);
-      bg.addColorStop(0, bottleColors[i] + '0.12)');
-      bg.addColorStop(1, 'transparent');
-      ctx.fillStyle = bg;
-      ctx.beginPath(); ctx.arc(bx, barY - 6, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // ── Spinning laser beams from center ──
+    for (let i = 0; i < 6; i++) {
+      const laserAngle = globalTime * 0.8 + (i / 6) * Math.PI * 2;
+      const laserLen = 400 + Math.sin(globalTime * 2 + i) * 100;
+      const lx = cx + Math.cos(laserAngle) * laserLen;
+      const ly = cy + Math.sin(laserAngle) * laserLen;
+      const hue = (i * 60 + globalTime * 30) % 360;
+      ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${0.06 + beatPulse * 0.04})`;
+      ctx.lineWidth = 1.5 + beatPulse * 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 100);
+      ctx.lineTo(lx, ly);
+      ctx.stroke();
     }
 
-    // Mushroom stage (top right area)
-    const stageX = WORLD_W/2 + 250, stageY = WORLD_H/2 - 230;
-    // Stage platform
-    ctx.fillStyle = '#1a1025';
-    ctx.beginPath(); ctx.ellipse(stageX, stageY + 20, 60, 15, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#251535';
-    ctx.beginPath(); ctx.ellipse(stageX, stageY + 18, 55, 12, 0, 0, Math.PI * 2); ctx.fill();
-    // Stage mushroom lights
-    for (let i = 0; i < 3; i++) {
-      const mx = stageX - 40 + i * 40;
-      const my = stageY - 10;
-      const pulseColor = ['#f472b6','#4ade80','#7dd3fc'][i];
-      const pulse = Math.sin(globalTime * (2 + i * 0.7) + i * 2) * 0.5 + 0.5;
-      // Stem
-      ctx.fillStyle = '#2a2035';
-      ctx.fillRect(mx - 2, my, 4, 20);
+    // ── DJ booth / stage (center-top) ──
+    const stageX = cx, stageY = cy - 180;
+    // Stage platform — elevated, glowing edges
+    ctx.fillStyle = '#12081e';
+    ctx.beginPath(); ctx.ellipse(stageX, stageY + 15, 90, 25, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a0e2a';
+    ctx.beginPath(); ctx.ellipse(stageX, stageY + 12, 85, 20, 0, 0, Math.PI * 2); ctx.fill();
+    // Stage edge glow
+    ctx.strokeStyle = `rgba(244,114,182,${0.2 + beatPulse * 0.3})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(stageX, stageY + 12, 85, 20, 0, 0, Math.PI * 2); ctx.stroke();
+
+    // Speaker stacks (left and right of stage)
+    for (const side of [-1, 1]) {
+      const spkX = stageX + side * 100;
+      const spkY = stageY + 5;
+      // Speaker box
+      ctx.fillStyle = '#0a0510';
+      ctx.fillRect(spkX - 12, spkY - 25, 24, 35);
+      ctx.strokeStyle = `rgba(192,132,252,${0.15 + beatPulse * 0.2})`;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(spkX - 12, spkY - 25, 24, 35);
+      // Speaker cone (pulses with beat)
+      const coneR = 6 + beatPulse * 3;
+      ctx.fillStyle = `rgba(192,132,252,${0.1 + beatPulse * 0.15})`;
+      ctx.beginPath(); ctx.arc(spkX, spkY - 10, coneR + 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1a1025';
+      ctx.beginPath(); ctx.arc(spkX, spkY - 10, coneR, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = `rgba(192,132,252,${0.2 + beatPulse * 0.3})`;
+      ctx.beginPath(); ctx.arc(spkX, spkY - 10, 2, 0, Math.PI * 2); ctx.fill();
+      // Bass waves emanating from speakers
+      for (let w = 0; w < 3; w++) {
+        const waveR = (globalTime * 60 + w * 25) % 80;
+        const waveA = Math.max(0, 1 - waveR / 80) * 0.08 * (1 + beatPulse);
+        ctx.strokeStyle = `rgba(192,132,252,${waveA})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(spkX, spkY - 10, waveR, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+
+    // ── Giant mushroom lights (rave lights) ──
+    const raveLights = [
+      { x: cx - 250, y: cy - 100, hueBase: 0 },
+      { x: cx + 300, y: cy - 50, hueBase: 120 },
+      { x: cx - 180, y: cy + 200, hueBase: 240 },
+      { x: cx + 200, y: cy + 250, hueBase: 60 },
+      { x: cx, y: cy + 150, hueBase: 300 },
+      { x: cx + 400, y: cy + 100, hueBase: 180 },
+    ];
+    raveLights.forEach((rl, i) => {
+      const hue = (rl.hueBase + globalTime * 20) % 360;
+      const pulse = Math.sin(globalTime * (1.5 + i * 0.3) + i * 1.5) * 0.5 + 0.5;
+      const glowR = 40 + pulse * 30 + beatPulse * 20;
+      // Mushroom stem
+      ctx.fillStyle = `hsla(${hue}, 30%, 15%, 0.6)`;
+      ctx.fillRect(rl.x - 3, rl.y, 6, 30);
+      // Cap
+      ctx.fillStyle = `hsla(${hue}, 60%, 40%, ${0.3 + pulse * 0.2})`;
+      ctx.beginPath(); ctx.ellipse(rl.x, rl.y, 15 + pulse * 3, 8 + pulse * 2, 0, Math.PI, Math.PI * 2); ctx.fill();
+      // Light cone going down
+      ctx.fillStyle = `hsla(${hue}, 70%, 50%, ${0.015 + pulse * 0.02 + beatPulse * 0.02})`;
+      ctx.beginPath();
+      ctx.moveTo(rl.x - 12, rl.y);
+      ctx.lineTo(rl.x - 50, rl.y + 120);
+      ctx.lineTo(rl.x + 50, rl.y + 120);
+      ctx.lineTo(rl.x + 12, rl.y);
+      ctx.closePath();
+      ctx.fill();
       // Cap glow
-      const mg = ctx.createRadialGradient(mx, my, 0, mx, my, 20 + pulse * 10);
-      mg.addColorStop(0, pulseColor + '30');
-      mg.addColorStop(0.5, pulseColor + '10');
+      const mg = ctx.createRadialGradient(rl.x, rl.y, 0, rl.x, rl.y, glowR);
+      mg.addColorStop(0, `hsla(${hue}, 80%, 60%, ${0.08 + beatPulse * 0.06})`);
+      mg.addColorStop(0.5, `hsla(${hue}, 70%, 50%, ${0.02 + beatPulse * 0.02})`);
       mg.addColorStop(1, 'transparent');
       ctx.fillStyle = mg;
-      ctx.beginPath(); ctx.arc(mx, my, 20 + pulse * 10, 0, Math.PI * 2); ctx.fill();
-      // Cap
-      ctx.fillStyle = pulseColor + '60';
-      ctx.beginPath(); ctx.ellipse(mx, my, 8, 5, 0, Math.PI, Math.PI * 2); ctx.fill();
-    }
-
-    // Ambient colored light pools throughout
-    const lightColors = [
-      { x: WORLD_W/2, y: WORLD_H/2, color: [120,80,200], size: 120 },
-      { x: WORLD_W/2 + 250, y: WORLD_H/2 - 200, color: [244,114,182], size: 100 },
-      { x: WORLD_W/2 - 300, y: WORLD_H/2 + 100, color: [220,50,70], size: 80 },
-      { x: WORLD_W/2 - 100, y: WORLD_H/2 - 60, color: [120,180,255], size: 70 },
-    ];
-    lightColors.forEach(l => {
-      const pulse = 0.015 + Math.sin(globalTime * 1.5 + l.x * 0.01) * 0.008;
-      const lg = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.size);
-      lg.addColorStop(0, `rgba(${l.color[0]},${l.color[1]},${l.color[2]},${pulse})`);
-      lg.addColorStop(1, 'transparent');
-      ctx.fillStyle = lg;
-      ctx.beginPath(); ctx.arc(l.x, l.y, l.size, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(rl.x, rl.y, glowR, 0, Math.PI * 2); ctx.fill();
     });
 
-    // Sketchy corner shadow (dealer area)
-    const sg = ctx.createRadialGradient(WORLD_W/2 - 300, WORLD_H/2 + 100, 0, WORLD_W/2 - 300, WORLD_H/2 + 100, 100);
-    sg.addColorStop(0, 'rgba(0,0,0,0.15)');
-    sg.addColorStop(1, 'transparent');
-    ctx.fillStyle = sg;
-    ctx.beginPath(); ctx.arc(WORLD_W/2 - 300, WORLD_H/2 + 100, 100, 0, Math.PI * 2); ctx.fill();
+    // ── Bar counter (back wall) ──
+    const barX = cx - 180, barY = cy - 100;
+    const barW = 360;
+    ctx.fillStyle = '#12081e';
+    ctx.fillRect(barX, barY, barW, 18);
+    ctx.strokeStyle = `rgba(192,132,252,${0.15 + beatPulse * 0.1})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, 18);
+    // Neon strip on bar edge
+    ctx.strokeStyle = `rgba(244,114,182,${0.3 + beatPulse * 0.3})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(barX, barY); ctx.lineTo(barX + barW, barY); ctx.stroke();
+    // Bar stools
+    for (let i = 0; i < 6; i++) {
+      const sx = barX + 30 + i * 58;
+      ctx.fillStyle = '#1a0e20';
+      ctx.beginPath(); ctx.ellipse(sx, barY + 32, 9, 5, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // Glowing bottles
+    const bottleColors = ['rgba(74,222,128,','rgba(244,114,182,','rgba(251,191,36,','rgba(125,211,252,','rgba(192,132,252,','rgba(244,63,94,'];
+    for (let i = 0; i < 6; i++) {
+      const bx = barX + 25 + i * 55;
+      const bPulse = Math.sin(globalTime * 2 + i * 1.2) * 0.5 + 0.5;
+      ctx.fillStyle = bottleColors[i] + (0.3 + bPulse * 0.2) + ')';
+      ctx.fillRect(bx - 2, barY - 14, 4, 14);
+      ctx.beginPath(); ctx.arc(bx, barY - 14, 3, 0, Math.PI * 2); ctx.fill();
+      const bg = ctx.createRadialGradient(bx, barY - 7, 0, bx, barY - 7, 18);
+      bg.addColorStop(0, bottleColors[i] + (0.06 + bPulse * 0.06) + ')');
+      bg.addColorStop(1, 'transparent');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(bx, barY - 7, 18, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ── Dance floor (center) — pulsing tiles ──
+    const floorX = cx - 100, floorY = cy + 20;
+    const tileSize = 25;
+    for (let tx = 0; tx < 8; tx++) {
+      for (let ty = 0; ty < 5; ty++) {
+        const tileX = floorX + tx * tileSize;
+        const tileY = floorY + ty * tileSize;
+        const tilePulse = Math.sin(globalTime * 3 + tx * 0.8 + ty * 0.6) * 0.5 + 0.5;
+        const tileHue = (tx * 30 + ty * 45 + globalTime * 50) % 360;
+        ctx.fillStyle = `hsla(${tileHue}, 60%, 40%, ${0.04 + tilePulse * 0.06 + beatPulse * 0.05})`;
+        ctx.fillRect(tileX + 1, tileY + 1, tileSize - 2, tileSize - 2);
+        ctx.strokeStyle = `hsla(${tileHue}, 50%, 50%, ${0.06 + tilePulse * 0.04})`;
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(tileX + 1, tileY + 1, tileSize - 2, tileSize - 2);
+      }
+    }
+
+    // ── Floating particles (rave dust) ──
+    for (let i = 0; i < 40; i++) {
+      const px = ((Math.sin(globalTime * 0.3 + i * 3.7) + 1) / 2) * WORLD_W;
+      const py = ((Math.cos(globalTime * 0.25 + i * 2.3) + 1) / 2) * WORLD_H;
+      const hue = (i * 37 + globalTime * 20) % 360;
+      const sparkle = Math.sin(globalTime * 4 + i * 2) * 0.5 + 0.5;
+      ctx.fillStyle = `hsla(${hue}, 80%, 70%, ${sparkle * 0.12})`;
+      ctx.beginPath(); ctx.arc(px, py, 1 + sparkle * 1.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ── Neon signs ──
+    // "THE BOG" sign
+    ctx.fillStyle = `rgba(244,114,182,${0.15 + beatPulse * 0.15})`;
+    ctx.font = 'bold 16px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('THE BOG', cx, cy - 260);
+    // Glow behind text
+    const signG = ctx.createRadialGradient(cx, cy - 265, 0, cx, cy - 265, 60);
+    signG.addColorStop(0, `rgba(244,114,182,${0.03 + beatPulse * 0.03})`);
+    signG.addColorStop(1, 'transparent');
+    ctx.fillStyle = signG;
+    ctx.beginPath(); ctx.arc(cx, cy - 265, 60, 0, Math.PI * 2); ctx.fill();
+    ctx.textAlign = 'start';
+
+    // ── Sketchy corner (darker, no lights) ──
+    const darkX = cx - 350, darkY = cy + 100;
+    const dg = ctx.createRadialGradient(darkX, darkY, 0, darkX, darkY, 120);
+    dg.addColorStop(0, 'rgba(0,0,0,0.25)');
+    dg.addColorStop(1, 'transparent');
+    ctx.fillStyle = dg;
+    ctx.beginPath(); ctx.arc(darkX, darkY, 120, 0, Math.PI * 2); ctx.fill();
+
+    // ── VIP area glow (right side) ──
+    const vipG = ctx.createRadialGradient(cx + 350, cy, 0, cx + 350, cy, 80);
+    vipG.addColorStop(0, `rgba(251,191,36,${0.02 + beatPulse * 0.02})`);
+    vipG.addColorStop(1, 'transparent');
+    ctx.fillStyle = vipG;
+    ctx.beginPath(); ctx.arc(cx + 350, cy, 80, 0, Math.PI * 2); ctx.fill();
   }
 }
 
