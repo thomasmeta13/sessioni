@@ -115,7 +115,7 @@ let onBeat = false;
 function initAudio() {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   masterGain = audioCtx.createGain();
-  masterGain.gain.value = 0.25;
+  masterGain.gain.value = 0.7;
   masterGain.connect(audioCtx.destination);
   // Reverb
   const conv = audioCtx.createConvolver();
@@ -123,7 +123,7 @@ function initAudio() {
   const imp = audioCtx.createBuffer(2, len, rate);
   for (let ch = 0; ch < 2; ch++) { const d = imp.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/len,2.5); }
   conv.buffer = imp;
-  const rvG = audioCtx.createGain(); rvG.gain.value = 0.15;
+  const rvG = audioCtx.createGain(); rvG.gain.value = 0.3;
   conv.connect(rvG); rvG.connect(masterGain);
   // Sub bass
   const sub = audioCtx.createOscillator(); sub.type='sine'; sub.frequency.value=45;
@@ -132,13 +132,13 @@ function initAudio() {
   layers.sub = {osc:sub,gain:subG};
   // Pad
   const pad = audioCtx.createOscillator(); pad.type='triangle'; pad.frequency.value=110;
-  const padG = audioCtx.createGain(); padG.gain.value=0.1;
+  const padG = audioCtx.createGain(); padG.gain.value=0.18;
   const padF = audioCtx.createBiquadFilter(); padF.type='lowpass'; padF.frequency.value=400;
   pad.connect(padF); padF.connect(padG); padG.connect(masterGain); padF.connect(conv); pad.start();
   layers.pad = {osc:pad,gain:padG,filter:padF};
   // Pad 2
   const pad2 = audioCtx.createOscillator(); pad2.type='triangle'; pad2.frequency.value=110.5;
-  const pad2G = audioCtx.createGain(); pad2G.gain.value=0.06;
+  const pad2G = audioCtx.createGain(); pad2G.gain.value=0.12;
   pad2.connect(pad2G); pad2G.connect(masterGain); pad2.start();
   layers.pad2 = {osc:pad2,gain:pad2G};
   // Pluck
@@ -169,8 +169,8 @@ function updateMusic(dt) {
     onBeat = true;
     const t = audioCtx.currentTime;
     layers.sub.osc.frequency.setTargetAtTime(bassNotes[beatCount%bassNotes.length], t, 0.08);
-    layers.sub.gain.gain.setValueAtTime(0.35, t);
-    layers.sub.gain.gain.setTargetAtTime(0.25, t+0.1, 0.2);
+    layers.sub.gain.gain.setValueAtTime(0.5, t);
+    layers.sub.gain.gain.setTargetAtTime(0.35, t+0.1, 0.2);
     if (beatCount%4===0) {
       const pn = padNotes[(beatCount/4)%padNotes.length];
       layers.pad.osc.frequency.setTargetAtTime(pn, t, 0.3);
@@ -179,7 +179,7 @@ function updateMusic(dt) {
     const pln = pluckNotes[beatCount%pluckNotes.length];
     layers.pluck.osc.frequency.setTargetAtTime(pln, t, 0.01);
     if (intensity>0.2) {
-      layers.pluck.gain.gain.setValueAtTime(intensity*0.12, t);
+      layers.pluck.gain.gain.setValueAtTime(intensity*0.2, t);
       layers.pluck.gain.gain.setTargetAtTime(0, t+0.05, 0.08);
     }
     if (intensity>0.5 && beatCount%2===1) {
@@ -871,7 +871,7 @@ function shootTongue(targetX, targetY) {
   frog.targetScaleY = 1.25;
   frog.mouthOpen = 1;
   frog.pupilDilate = 0.6;
-  sfx(500, 150, 0.08, 0.08);
+  sfx(500, 150, 0.08, 0.2);
 }
 
 function triggerFlop() {
@@ -1132,8 +1132,8 @@ function killBug(bug) {
     ripples.push({ x:bug.x, y:bug.y, radius:0, maxRadius:40, alpha:0.4, width:1.5 });
     // Rising pitch catch sound
     const freq = 350 + Math.min(combo,12)*50;
-    sfx(freq, freq*2, 0.1, 0.1);
-    sfx(freq*1.5, freq*3, 0.08, 0.05);
+    sfx(freq, freq*2, 0.1, 0.25);
+    sfx(freq*1.5, freq*3, 0.08, 0.12);
     document.getElementById('score').textContent = 'BUGS: '+score;
     setTimeout(spawnBug, 1500+Math.random()*2500);
   }
