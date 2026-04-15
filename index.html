@@ -549,16 +549,23 @@ let mouseX=W/2, mouseY=H/2, mouseWorld={x:0,y:0};
 
 // Touch state
 const touch = {
-  // Joystick (left side)
-  joyId: null, joyStartX: 0, joyStartY: 0, joyX: 0, joyY: 0,
-  joyDx: 0, joyDy: 0, joyActive: false,
+  // Joystick (left side) — dynamic positioning
+  joyId: null,
+  joyBaseX: 0, joyBaseY: 0,     // base circle center (where you first touched)
+  joyKnobX: 0, joyKnobY: 0,     // current knob position
+  joyDx: 0, joyDy: 0,           // normalized -1 to 1
+  joyForce: 0,                   // 0 to 1 analog force
+  joyActive: false,
+  joyFadeOut: 0,                 // fade out alpha after release
+  joyLastBaseX: 0, joyLastBaseY: 0, // for fade out position
   // Attack (right side tap)
   atkId: null,
   // Flop button
   flopId: null,
 };
-const JOY_RADIUS = 50;
-const JOY_DEAD = 8;
+const JOY_RADIUS = 55;
+const JOY_DEAD = 10;
+const JOY_FOLLOW_THRESHOLD = JOY_RADIUS * 1.3; // base follows thumb if too far
 
 function shootTongue(targetX, targetY) {
   if (!gameRunning || tongue.active) return;
@@ -635,13 +642,42 @@ if (isMobile) {
   document.getElementById('controls-desktop').style.display = 'none';
   document.getElementById('controls-mobile').style.display = 'block';
 
+  function updateJoystick(tx, ty) {
+    let dx = tx - touch.joyBaseX;
+    let dy = ty - touch.joyBaseY;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    // Follow: if thumb drifts beyond threshold, base slides toward thumb
+    if (dist > JOY_FOLLOW_THRESHOLD) {
+      const overflow = dist - JOY_RADIUS;
+      touch.joyBaseX += (dx/dist) * overflow;
+      touch.joyBaseY += (dy/dist) * overflow;
+      dx = tx - touch.joyBaseX;
+      dy = tx - touch.joyBaseX;
+      // Recalculate after follow
+      dx = tx - touch.joyBaseX;
+      dy = ty - touch.joyBaseY;
+    }
+    const newDist = Math.sqrt(dx*dx+dy*dy);
+    if (newDist > JOY_DEAD) {
+      const clamped = Math.min(newDist, JOY_RADIUS);
+      const norm = (clamped - JOY_DEAD) / (JOY_RADIUS - JOY_DEAD);
+      touch.joyDx = (dx/newDist) * norm;
+      touch.joyDy = (dy/newDist) * norm;
+      touch.joyForce = norm;
+      touch.joyKnobX = touch.joyBaseX + (dx/newDist) * clamped;
+      touch.joyKnobY = touch.joyBaseY + (dy/newDist) * clamped;
+    } else {
+      touch.joyDx = 0; touch.joyDy = 0; touch.joyForce = 0;
+      touch.joyKnobX = touch.joyBaseX;
+      touch.joyKnobY = touch.joyBaseY;
+    }
+  }
+
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
     for (const t of e.changedTouches) {
       const x = t.clientX, y = t.clientY;
-      // Dialogue tap
       if (dialogue.active) {
-        // Choice selection - top/bottom half of dialogue box
         if (dialogue.choices && y > H - 180) {
           const choiceY = y - (H - 170);
           dialogue.choiceIndex = choiceY < 60 ? 0 : Math.min(Math.floor(choiceY / 30), dialogue.choices.length - 1);
@@ -649,46 +685,32 @@ if (isMobile) {
         advanceDialogue();
         continue;
       }
-
-      // Interact button (bottom-left, above joystick area)
       if (x < 120 && y > H - 180 && y < H - 100) {
         const npc = getNearestNPC();
         if (npc) startDialogue(npc);
         continue;
       }
-
-      // Flop button (bottom-right corner)
       if (x > W - 100 && y > H - 100) {
         touch.flopId = t.identifier;
         triggerFlop();
         continue;
       }
-      // Left half = joystick (fixed pad at bottom-left)
+      // Left ~45% = joystick (dynamic — appears where you touch)
       if (x < W * 0.45 && touch.joyId === null) {
         touch.joyId = t.identifier;
-        touch.joyStartX = 80; // Fixed pad center
-        touch.joyStartY = H - 100;
-        touch.joyX = x;
-        touch.joyY = y;
+        touch.joyBaseX = x;
+        touch.joyBaseY = y;
+        touch.joyKnobX = x;
+        touch.joyKnobY = y;
+        touch.joyDx = 0; touch.joyDy = 0; touch.joyForce = 0;
         touch.joyActive = true;
-        // Compute initial offset from pad center
-        let dx = x - touch.joyStartX;
-        let dy = y - touch.joyStartY;
-        const dist = Math.sqrt(dx*dx+dy*dy);
-        if (dist > JOY_DEAD) {
-          const clamped = Math.min(dist, JOY_RADIUS);
-          touch.joyDx = (dx/dist) * (clamped/JOY_RADIUS);
-          touch.joyDy = (dy/dist) * (clamped/JOY_RADIUS);
-        }
+        touch.joyFadeOut = 0;
       }
-      // Right half = aim + tongue
+      // Right side = aim + tongue
       else if (x >= W * 0.4 && touch.atkId === null) {
         touch.atkId = t.identifier;
-        mouseX = x;
-        mouseY = y;
-        const wx = x + camera.x;
-        const wy = y + camera.y;
-        shootTongue(wx, wy);
+        mouseX = x; mouseY = y;
+        shootTongue(x + camera.x, y + camera.y);
       }
     }
   }, { passive: false });
@@ -696,49 +718,31 @@ if (isMobile) {
   canvas.addEventListener('touchmove', e => {
     e.preventDefault();
     for (const t of e.changedTouches) {
-      if (t.identifier === touch.joyId) {
-        touch.joyX = t.clientX;
-        touch.joyY = t.clientY;
-        // Always relative to fixed pad center
-        let dx = touch.joyX - 80;
-        let dy = touch.joyY - (H - 100);
-        const dist = Math.sqrt(dx*dx+dy*dy);
-        if (dist > JOY_DEAD) {
-          const clamped = Math.min(dist, JOY_RADIUS);
-          touch.joyDx = (dx/dist) * (clamped/JOY_RADIUS);
-          touch.joyDy = (dy/dist) * (clamped/JOY_RADIUS);
-        } else {
-          touch.joyDx = 0;
-          touch.joyDy = 0;
-        }
-      }
-      if (t.identifier === touch.atkId) {
-        mouseX = t.clientX;
-        mouseY = t.clientY;
-      }
+      if (t.identifier === touch.joyId) updateJoystick(t.clientX, t.clientY);
+      if (t.identifier === touch.atkId) { mouseX = t.clientX; mouseY = t.clientY; }
     }
   }, { passive: false });
 
   canvas.addEventListener('touchend', e => {
     for (const t of e.changedTouches) {
       if (t.identifier === touch.joyId) {
-        touch.joyId = null;
-        touch.joyDx = 0;
-        touch.joyDy = 0;
-        touch.joyActive = false;
+        touch.joyLastBaseX = touch.joyBaseX; touch.joyLastBaseY = touch.joyBaseY;
+        touch.joyFadeOut = 1;
+        touch.joyId = null; touch.joyDx = 0; touch.joyDy = 0;
+        touch.joyForce = 0; touch.joyActive = false;
       }
-      if (t.identifier === touch.atkId) {
-        touch.atkId = null;
-      }
-      if (t.identifier === touch.flopId) {
-        touch.flopId = null;
-      }
+      if (t.identifier === touch.atkId) touch.atkId = null;
+      if (t.identifier === touch.flopId) touch.flopId = null;
     }
   });
 
   canvas.addEventListener('touchcancel', e => {
     for (const t of e.changedTouches) {
-      if (t.identifier === touch.joyId) { touch.joyId=null; touch.joyDx=0; touch.joyDy=0; touch.joyActive=false; }
+      if (t.identifier === touch.joyId) {
+        touch.joyLastBaseX = touch.joyBaseX; touch.joyLastBaseY = touch.joyBaseY;
+        touch.joyFadeOut = 1;
+        touch.joyId=null; touch.joyDx=0; touch.joyDy=0; touch.joyForce=0; touch.joyActive=false;
+      }
       if (t.identifier === touch.atkId) touch.atkId=null;
       if (t.identifier === touch.flopId) touch.flopId=null;
     }
@@ -877,8 +881,8 @@ function update(dt) {
   if (dialogue.active) {
     mx = 0; my = 0; // Block movement during dialogue
   } else if (isMobile) {
-    mx = touch.joyDx;
-    my = touch.joyDy;
+    mx = touch.joyDx * touch.joyForce;
+    my = touch.joyDy * touch.joyForce;
   } else {
     if (keys['w']||keys['arrowup']) my-=1;
     if (keys['s']||keys['arrowdown']) my+=1;
@@ -908,8 +912,9 @@ function update(dt) {
 
   frog.vx += mx*speed*dt;
   frog.vy += my*speed*dt;
-  frog.vx *= 0.87;
-  frog.vy *= 0.87;
+  const friction = isMobile ? 0.83 : 0.87;
+  frog.vx *= friction;
+  frog.vy *= friction;
   frog.x += frog.vx;
   frog.y += frog.vy;
   frog.x = Math.max(30, Math.min(WORLD_W-30, frog.x));
@@ -1609,72 +1614,68 @@ function draw() {
 
   // ── Mobile UI ──
   if (isMobile && gameRunning) {
-    // Fixed joystick pad (always visible, bottom-left)
-    const padX = 80, padY = H - 100;
-    const outerR = JOY_RADIUS + 10;
+    // Fade out timer
+    if (touch.joyFadeOut > 0) touch.joyFadeOut = Math.max(0, touch.joyFadeOut - 0.05);
 
-    // Outer base circle
-    ctx.fillStyle = 'rgba(134,239,172,0.04)';
-    ctx.beginPath(); ctx.arc(padX, padY, outerR, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(134,239,172,0.12)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(padX, padY, outerR, 0, Math.PI * 2); ctx.stroke();
+    // Dynamic joystick — only visible when touching or fading
+    const joyVisible = touch.joyActive || touch.joyFadeOut > 0;
+    if (joyVisible) {
+      const baseX = touch.joyActive ? touch.joyBaseX : touch.joyLastBaseX;
+      const baseY = touch.joyActive ? touch.joyBaseY : touch.joyLastBaseY;
+      const alpha = touch.joyActive ? 1 : touch.joyFadeOut;
 
-    // Directional notches (N/S/E/W ticks)
-    ctx.strokeStyle = 'rgba(134,239,172,0.1)';
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < 4; i++) {
-      const a = (i / 4) * Math.PI * 2 - Math.PI / 2;
-      ctx.beginPath();
-      ctx.moveTo(padX + Math.cos(a) * (outerR - 6), padY + Math.sin(a) * (outerR - 6));
-      ctx.lineTo(padX + Math.cos(a) * (outerR + 2), padY + Math.sin(a) * (outerR + 2));
-      ctx.stroke();
-    }
+      // Outer base ring
+      ctx.fillStyle = `rgba(134,239,172,${0.03 * alpha})`;
+      ctx.beginPath(); ctx.arc(baseX, baseY, JOY_RADIUS, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(134,239,172,${0.15 * alpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(baseX, baseY, JOY_RADIUS, 0, Math.PI * 2); ctx.stroke();
 
-    // Inner ring
-    ctx.strokeStyle = 'rgba(134,239,172,0.07)';
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.arc(padX, padY, 20, 0, Math.PI * 2); ctx.stroke();
-
-    // Knob position
-    let knobX, knobY;
-    if (touch.joyActive) {
-      knobX = padX + touch.joyDx * JOY_RADIUS;
-      knobY = padY + touch.joyDy * JOY_RADIUS;
-      // Update joystick start to always be the fixed pad position
-      touch.joyStartX = padX;
-      touch.joyStartY = padY;
-    } else {
-      knobX = padX;
-      knobY = padY;
-    }
-
-    // Direction line from center to knob
-    if (touch.joyActive && (Math.abs(touch.joyDx) > 0.05 || Math.abs(touch.joyDy) > 0.05)) {
-      ctx.strokeStyle = 'rgba(134,239,172,0.1)';
+      // Subtle cross-hair lines inside base
+      ctx.strokeStyle = `rgba(134,239,172,${0.06 * alpha})`;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(padX, padY);
-      ctx.lineTo(knobX, knobY);
+      ctx.moveTo(baseX - JOY_RADIUS * 0.6, baseY);
+      ctx.lineTo(baseX + JOY_RADIUS * 0.6, baseY);
+      ctx.moveTo(baseX, baseY - JOY_RADIUS * 0.6);
+      ctx.lineTo(baseX, baseY + JOY_RADIUS * 0.6);
       ctx.stroke();
+
+      // Direction line
+      const knobX = touch.joyActive ? touch.joyKnobX : baseX;
+      const knobY = touch.joyActive ? touch.joyKnobY : baseY;
+      if (touch.joyForce > 0.05 && touch.joyActive) {
+        ctx.strokeStyle = `rgba(134,239,172,${0.08 * alpha})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(baseX, baseY); ctx.lineTo(knobX, knobY); ctx.stroke();
+      }
+
+      // Knob
+      const knobR = 18 + touch.joyForce * 4;
+      const knobAlpha = (0.2 + touch.joyForce * 0.4) * alpha;
+      const jg = ctx.createRadialGradient(knobX, knobY, 0, knobX, knobY, knobR);
+      jg.addColorStop(0, `rgba(134,239,172,${knobAlpha})`);
+      jg.addColorStop(0.6, `rgba(134,239,172,${knobAlpha * 0.4})`);
+      jg.addColorStop(1, `rgba(134,239,172,${knobAlpha * 0.05})`);
+      ctx.fillStyle = jg;
+      ctx.beginPath(); ctx.arc(knobX, knobY, knobR, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(134,239,172,${knobAlpha * 0.7})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(knobX, knobY, knobR, 0, Math.PI * 2); ctx.stroke();
+      // Center dot
+      ctx.fillStyle = `rgba(134,239,172,${knobAlpha * 0.5})`;
+      ctx.beginPath(); ctx.arc(knobX, knobY, 2.5, 0, Math.PI * 2); ctx.fill();
     }
 
-    // Knob
-    const knobActive = touch.joyActive && (Math.abs(touch.joyDx) > 0.05 || Math.abs(touch.joyDy) > 0.05);
-    const knobR = knobActive ? 20 : 16;
-    const knobAlpha = knobActive ? 0.5 : 0.2;
-    const jg = ctx.createRadialGradient(knobX, knobY, 0, knobX, knobY, knobR);
-    jg.addColorStop(0, `rgba(134,239,172,${knobAlpha})`);
-    jg.addColorStop(0.7, `rgba(134,239,172,${knobAlpha * 0.5})`);
-    jg.addColorStop(1, `rgba(134,239,172,${knobAlpha * 0.1})`);
-    ctx.fillStyle = jg;
-    ctx.beginPath(); ctx.arc(knobX, knobY, knobR, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = `rgba(134,239,172,${knobAlpha * 0.8})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(knobX, knobY, knobR, 0, Math.PI * 2); ctx.stroke();
-    // Knob inner dot
-    ctx.fillStyle = `rgba(134,239,172,${knobAlpha * 0.6})`;
-    ctx.beginPath(); ctx.arc(knobX, knobY, 3, 0, Math.PI * 2); ctx.fill();
+    // "Touch left side to move" hint (only before first touch)
+    if (!touch.joyActive && touch.joyFadeOut <= 0 && globalTime < 5) {
+      const hintAlpha = Math.max(0, 1 - globalTime / 4) * (0.3 + Math.sin(globalTime * 2) * 0.1);
+      ctx.fillStyle = `rgba(134,239,172,${hintAlpha})`;
+      ctx.font = '11px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('touch here to move', W * 0.22, H * 0.85);
+      ctx.textAlign = 'start';
+    }
 
     // Flop button (bottom-right)
     const flopBtnX = W - 55, flopBtnY = H - 55;
