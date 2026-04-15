@@ -663,14 +663,23 @@ if (isMobile) {
         triggerFlop();
         continue;
       }
-      // Left half = joystick
-      if (x < W * 0.4 && touch.joyId === null) {
+      // Left half = joystick (fixed pad at bottom-left)
+      if (x < W * 0.45 && touch.joyId === null) {
         touch.joyId = t.identifier;
-        touch.joyStartX = x;
-        touch.joyStartY = y;
+        touch.joyStartX = 80; // Fixed pad center
+        touch.joyStartY = H - 100;
         touch.joyX = x;
         touch.joyY = y;
         touch.joyActive = true;
+        // Compute initial offset from pad center
+        let dx = x - touch.joyStartX;
+        let dy = y - touch.joyStartY;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if (dist > JOY_DEAD) {
+          const clamped = Math.min(dist, JOY_RADIUS);
+          touch.joyDx = (dx/dist) * (clamped/JOY_RADIUS);
+          touch.joyDy = (dy/dist) * (clamped/JOY_RADIUS);
+        }
       }
       // Right half = aim + tongue
       else if (x >= W * 0.4 && touch.atkId === null) {
@@ -690,8 +699,9 @@ if (isMobile) {
       if (t.identifier === touch.joyId) {
         touch.joyX = t.clientX;
         touch.joyY = t.clientY;
-        let dx = touch.joyX - touch.joyStartX;
-        let dy = touch.joyY - touch.joyStartY;
+        // Always relative to fixed pad center
+        let dx = touch.joyX - 80;
+        let dy = touch.joyY - (H - 100);
         const dist = Math.sqrt(dx*dx+dy*dy);
         if (dist > JOY_DEAD) {
           const clamped = Math.min(dist, JOY_RADIUS);
@@ -862,7 +872,7 @@ function update(dt) {
   }
 
   // ── Frog movement (hop-based) ──
-  const speed = 240;
+  const speed = isMobile ? 140 : 240;
   let mx=0, my=0;
   if (dialogue.active) {
     mx = 0; my = 0; // Block movement during dialogue
@@ -1171,8 +1181,9 @@ function update(dt) {
 
   // ── Camera (smooth damp) ──
   const camTarget = { x:frog.x-W/2, y:frog.y-H/2 };
-  const cx = smoothDamp(camera.x, camTarget.x, camera.vx, 0.25, dt);
-  const cy = smoothDamp(camera.y, camTarget.y, camera.vy, 0.25, dt);
+  const camSmooth = isMobile ? 0.06 : 0.25; // Much tighter on mobile
+  const cx = smoothDamp(camera.x, camTarget.x, camera.vx, camSmooth, dt);
+  const cy = smoothDamp(camera.y, camTarget.y, camera.vy, camSmooth, dt);
   camera.x = Math.max(0, Math.min(WORLD_W-W, cx.value));
   camera.y = Math.max(0, Math.min(WORLD_H-H, cy.value));
   camera.vx = cx.velocity; camera.vy = cy.velocity;
@@ -1598,42 +1609,91 @@ function draw() {
 
   // ── Mobile UI ──
   if (isMobile && gameRunning) {
-    // Virtual joystick
-    if (touch.joyActive) {
-      // Outer ring
-      ctx.strokeStyle='rgba(134,239,172,0.15)';
-      ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(touch.joyStartX,touch.joyStartY,JOY_RADIUS,0,Math.PI*2); ctx.stroke();
-      // Inner knob
-      const knobX = touch.joyStartX + touch.joyDx * JOY_RADIUS;
-      const knobY = touch.joyStartY + touch.joyDy * JOY_RADIUS;
-      const jg = ctx.createRadialGradient(knobX,knobY,0,knobX,knobY,18);
-      jg.addColorStop(0,'rgba(134,239,172,0.35)');
-      jg.addColorStop(1,'rgba(134,239,172,0.08)');
-      ctx.fillStyle=jg;
-      ctx.beginPath(); ctx.arc(knobX,knobY,18,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle='rgba(134,239,172,0.3)';
-      ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(knobX,knobY,18,0,Math.PI*2); ctx.stroke();
+    // Fixed joystick pad (always visible, bottom-left)
+    const padX = 80, padY = H - 100;
+    const outerR = JOY_RADIUS + 10;
+
+    // Outer base circle
+    ctx.fillStyle = 'rgba(134,239,172,0.04)';
+    ctx.beginPath(); ctx.arc(padX, padY, outerR, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(134,239,172,0.12)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(padX, padY, outerR, 0, Math.PI * 2); ctx.stroke();
+
+    // Directional notches (N/S/E/W ticks)
+    ctx.strokeStyle = 'rgba(134,239,172,0.1)';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 4; i++) {
+      const a = (i / 4) * Math.PI * 2 - Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(padX + Math.cos(a) * (outerR - 6), padY + Math.sin(a) * (outerR - 6));
+      ctx.lineTo(padX + Math.cos(a) * (outerR + 2), padY + Math.sin(a) * (outerR + 2));
+      ctx.stroke();
     }
+
+    // Inner ring
+    ctx.strokeStyle = 'rgba(134,239,172,0.07)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(padX, padY, 20, 0, Math.PI * 2); ctx.stroke();
+
+    // Knob position
+    let knobX, knobY;
+    if (touch.joyActive) {
+      knobX = padX + touch.joyDx * JOY_RADIUS;
+      knobY = padY + touch.joyDy * JOY_RADIUS;
+      // Update joystick start to always be the fixed pad position
+      touch.joyStartX = padX;
+      touch.joyStartY = padY;
+    } else {
+      knobX = padX;
+      knobY = padY;
+    }
+
+    // Direction line from center to knob
+    if (touch.joyActive && (Math.abs(touch.joyDx) > 0.05 || Math.abs(touch.joyDy) > 0.05)) {
+      ctx.strokeStyle = 'rgba(134,239,172,0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padX, padY);
+      ctx.lineTo(knobX, knobY);
+      ctx.stroke();
+    }
+
+    // Knob
+    const knobActive = touch.joyActive && (Math.abs(touch.joyDx) > 0.05 || Math.abs(touch.joyDy) > 0.05);
+    const knobR = knobActive ? 20 : 16;
+    const knobAlpha = knobActive ? 0.5 : 0.2;
+    const jg = ctx.createRadialGradient(knobX, knobY, 0, knobX, knobY, knobR);
+    jg.addColorStop(0, `rgba(134,239,172,${knobAlpha})`);
+    jg.addColorStop(0.7, `rgba(134,239,172,${knobAlpha * 0.5})`);
+    jg.addColorStop(1, `rgba(134,239,172,${knobAlpha * 0.1})`);
+    ctx.fillStyle = jg;
+    ctx.beginPath(); ctx.arc(knobX, knobY, knobR, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(134,239,172,${knobAlpha * 0.8})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(knobX, knobY, knobR, 0, Math.PI * 2); ctx.stroke();
+    // Knob inner dot
+    ctx.fillStyle = `rgba(134,239,172,${knobAlpha * 0.6})`;
+    ctx.beginPath(); ctx.arc(knobX, knobY, 3, 0, Math.PI * 2); ctx.fill();
 
     // Flop button (bottom-right)
     const flopBtnX = W - 55, flopBtnY = H - 55;
     const flopAlpha = frog.isFlopping ? 0.5 : 0.2;
-    ctx.strokeStyle=`rgba(134,239,172,${flopAlpha})`;
-    ctx.lineWidth=2;
-    ctx.beginPath(); ctx.arc(flopBtnX,flopBtnY,35,0,Math.PI*2); ctx.stroke();
-    const fg = ctx.createRadialGradient(flopBtnX,flopBtnY,0,flopBtnX,flopBtnY,35);
-    fg.addColorStop(0,`rgba(134,239,172,${flopAlpha*0.4})`);
-    fg.addColorStop(1,'rgba(134,239,172,0)');
-    ctx.fillStyle=fg;
-    ctx.beginPath(); ctx.arc(flopBtnX,flopBtnY,35,0,Math.PI*2); ctx.fill();
-    // Label
-    ctx.fillStyle=`rgba(134,239,172,${flopAlpha+0.1})`;
-    ctx.font='10px Courier New';
-    ctx.textAlign='center';
-    ctx.fillText('FLOP',flopBtnX,flopBtnY+4);
-    ctx.textAlign='start';
+    ctx.fillStyle = 'rgba(134,239,172,0.04)';
+    ctx.beginPath(); ctx.arc(flopBtnX, flopBtnY, 38, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(134,239,172,${flopAlpha})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(flopBtnX, flopBtnY, 35, 0, Math.PI * 2); ctx.stroke();
+    const fg = ctx.createRadialGradient(flopBtnX, flopBtnY, 0, flopBtnX, flopBtnY, 35);
+    fg.addColorStop(0, `rgba(134,239,172,${flopAlpha * 0.5})`);
+    fg.addColorStop(1, 'rgba(134,239,172,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.arc(flopBtnX, flopBtnY, 35, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `rgba(134,239,172,${flopAlpha + 0.1})`;
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('FLOP', flopBtnX, flopBtnY + 4);
+    ctx.textAlign = 'start';
   }
 
   // Hide crosshair on mobile
