@@ -621,7 +621,7 @@ function initNPCs() {
           text: "50 bugs for the\npremium sticky.",
           speaker: "???",
           choices: [
-            { text: "I don't have 50 bugs.", response: "Then why are you\nwasting my time?\n\n...Come back when\nyou're serious." },
+            { text: "Deal. [50 bugs]", response: "Wise choice.\n\n*hands you something\nthat glows and pulses*\n\nDon't fight it.\nJust... let it happen.", onSelect: 'trip' },
             { text: "That sounds illegal.", response: "It's only illegal if\nthere's a government.\nThis is a swamp.\nWe have vibes, not laws." },
             { text: "Who are you?", response: "Nobody.\nEverybody.\nDepends on who's asking\nand what you're buying." },
           ]
@@ -774,6 +774,18 @@ function advanceDialogue() {
   if (dialogue.choices) {
     const choice = dialogue.choices[dialogue.choiceIndex];
     // Handle special actions
+    if (choice.onSelect === 'trip') {
+      if (score >= 50) {
+        score -= 50;
+        document.getElementById('score').textContent = 'BUGS: ' + score;
+        dialogue.active = false;
+        startTrip();
+      } else {
+        // Not enough bugs — replace response
+        choice.response = `You only got ${score} bugs.\nCome back with 50.\n\n*fades back into shadow*`;
+        choice.onSelect = null;
+      }
+    }
     if (choice.onSelect === 'enterZone') {
       // Trigger the zone transition
       dialogue.active = false;
@@ -2851,13 +2863,395 @@ function drawFrog() {
   ctx.restore();
 }
 
+// ─── TRIP MODE (DOOM-STYLE RAYCASTER) ───
+let tripActive = false;
+let tripTime = 0;
+let tripFadeIn = 0;
+const tripDuration = 30; // 30 seconds of trip
+
+const TRIP_MAP_SIZE = 16;
+const tripMap = [
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,2,0,0,0,0,2,0,0,0,0,1,
+  1,0,0,3,0,0,0,0,0,0,0,0,3,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,2,0,0,0,0,3,0,0,0,0,0,2,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,3,0,0,0,3,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,2,0,0,0,0,3,0,0,0,0,2,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,0,0,3,0,0,0,0,0,0,0,0,3,0,0,1,
+  1,0,0,0,0,2,0,0,0,0,2,0,0,0,0,1,
+  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
+  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+];
+
+const tripPlayer = { x: 8, y: 8, angle: 0, fov: Math.PI * 0.6 };
+let tripEnemies = [];
+let tripTongue = { active: false, timer: 0 };
+let tripKills = 0;
+let tripHue = 0;
+
+function startTrip() {
+  tripActive = true;
+  tripTime = 0;
+  tripFadeIn = 1;
+  tripKills = 0;
+  tripPlayer.x = 8; tripPlayer.y = 8; tripPlayer.angle = 0;
+  // Spawn enemies
+  tripEnemies = [];
+  for (let i = 0; i < 8; i++) {
+    let ex, ey;
+    do {
+      ex = 2 + Math.random() * 12;
+      ey = 2 + Math.random() * 12;
+    } while (tripMap[Math.floor(ey) * TRIP_MAP_SIZE + Math.floor(ex)] !== 0);
+    tripEnemies.push({
+      x: ex, y: ey, alive: true, size: 0.4,
+      hp: 2, hurtTimer: 0,
+      moveTimer: Math.random() * 2,
+      type: Math.random() < 0.5 ? 'beetle' : 'moth',
+    });
+  }
+  // Distort music
+  if (musicStarted) {
+    const t = audioCtx.currentTime;
+    layers.sub.osc.type = 'square';
+    layers.sub.osc.frequency.setTargetAtTime(35, t, 0.2);
+    layers.sub.gain.gain.setTargetAtTime(0.5, t, 0.2);
+    layers.pad.osc.type = 'sawtooth';
+    layers.pad.osc.frequency.setTargetAtTime(80, t, 0.2);
+    layers.pad.filter.frequency.setTargetAtTime(1200, t, 0.2);
+    layers.pluck.gain.gain.setTargetAtTime(0.15, t, 0.1);
+    masterGain.gain.setTargetAtTime(0.85, t, 0.2);
+    intensityTarget = 0.8;
+  }
+}
+
+function endTrip() {
+  tripActive = false;
+  // Restore music
+  if (musicStarted) {
+    const t = audioCtx.currentTime;
+    layers.sub.osc.type = 'sawtooth';
+    layers.sub.osc.frequency.setTargetAtTime(55, t, 0.5);
+    layers.pad.osc.frequency.setTargetAtTime(146.83, t, 0.5);
+    layers.pad.filter.frequency.setTargetAtTime(700, t, 0.3);
+    masterGain.gain.setTargetAtTime(0.75, t, 0.5);
+  }
+}
+
+function updateTrip(dt) {
+  tripTime += dt;
+  tripFadeIn = Math.max(0, tripFadeIn - dt * 1.5);
+  tripHue = (tripHue + dt * 30) % 360;
+
+  // Trip ends after duration or all enemies dead
+  if (tripTime > tripDuration || tripEnemies.every(e => !e.alive)) {
+    tripFadeIn += dt * 2;
+    if (tripFadeIn >= 1) { endTrip(); return; }
+  }
+
+  // Player movement
+  const moveSpeed = 3 * dt;
+  const rotSpeed = 2.5 * dt;
+  let pmx = 0, pmy = 0;
+
+  if (isMobile) {
+    // Use joystick for movement
+    pmx = touch.joyDy * touch.joyForce; // forward/back (joystick Y = forward)
+    const rot = touch.joyDx * touch.joyForce;
+    tripPlayer.angle += rot * rotSpeed * 3;
+  } else {
+    if (keys['w'] || keys['arrowup']) pmx = 1;
+    if (keys['s'] || keys['arrowdown']) pmx = -1;
+    if (keys['a'] || keys['arrowleft']) tripPlayer.angle -= rotSpeed;
+    if (keys['d'] || keys['arrowright']) tripPlayer.angle += rotSpeed;
+  }
+
+  const nx = tripPlayer.x + Math.cos(tripPlayer.angle) * pmx * moveSpeed;
+  const ny = tripPlayer.y + Math.sin(tripPlayer.angle) * pmx * moveSpeed;
+  // Collision
+  if (tripMap[Math.floor(tripPlayer.y) * TRIP_MAP_SIZE + Math.floor(nx)] === 0) tripPlayer.x = nx;
+  if (tripMap[Math.floor(ny) * TRIP_MAP_SIZE + Math.floor(tripPlayer.x)] === 0) tripPlayer.y = ny;
+
+  // Tongue attack
+  if (tripTongue.active) {
+    tripTongue.timer -= dt;
+    if (tripTongue.timer <= 0) tripTongue.active = false;
+  }
+
+  // Enemies
+  tripEnemies.forEach(e => {
+    if (!e.alive) return;
+    e.hurtTimer = Math.max(0, e.hurtTimer - dt);
+    e.moveTimer -= dt;
+    if (e.moveTimer <= 0) {
+      e.moveTimer = 1 + Math.random() * 2;
+      // Move toward player slightly
+      const dx = tripPlayer.x - e.x, dy = tripPlayer.y - e.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if (dist > 1.5) {
+        const nx2 = e.x + (dx/dist) * 0.3;
+        const ny2 = e.y + (dy/dist) * 0.3;
+        if (tripMap[Math.floor(ny2) * TRIP_MAP_SIZE + Math.floor(nx2)] === 0) {
+          e.x = nx2; e.y = ny2;
+        }
+      }
+    }
+  });
+
+  updateMusic(dt);
+}
+
+function tripShoot() {
+  if (tripTongue.active) return;
+  tripTongue.active = true;
+  tripTongue.timer = 0.2;
+  sfx(500, 150, 0.1, 0.25);
+  screenShake = 0.15;
+
+  // Check if any enemy is in crosshair (center of screen, within angle)
+  tripEnemies.forEach(e => {
+    if (!e.alive) return;
+    const dx = e.x - tripPlayer.x, dy = e.y - tripPlayer.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    const angleToEnemy = Math.atan2(dy, dx);
+    let angleDiff = angleToEnemy - tripPlayer.angle;
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    if (Math.abs(angleDiff) < 0.2 && dist < 8) {
+      e.hp--;
+      e.hurtTimer = 0.2;
+      sfx(300 + Math.random()*200, 100, 0.15, 0.2);
+      screenShake = 0.2;
+      if (e.hp <= 0) {
+        e.alive = false;
+        tripKills++;
+        sfx(200, 600, 0.2, 0.2);
+        screenShake = 0.3;
+      }
+    }
+  });
+}
+
+function drawTrip() {
+  const sw = W, sh = H;
+  const numRays = Math.min(sw, 400); // Performance limit
+  const sliceW = sw / numRays;
+  const halfH = sh / 2;
+
+  // Trippy sky and floor
+  const skyHue = (tripHue + 180) % 360;
+  const floorHue = tripHue;
+  // Sky gradient
+  const skyG = ctx.createLinearGradient(0, 0, 0, halfH);
+  skyG.addColorStop(0, `hsla(${skyHue}, 60%, 5%, 1)`);
+  skyG.addColorStop(1, `hsla(${skyHue}, 80%, 12%, 1)`);
+  ctx.fillStyle = skyG;
+  ctx.fillRect(0, 0, sw, halfH);
+  // Floor gradient
+  const flrG = ctx.createLinearGradient(0, halfH, 0, sh);
+  flrG.addColorStop(0, `hsla(${floorHue}, 70%, 10%, 1)`);
+  flrG.addColorStop(1, `hsla(${floorHue}, 50%, 3%, 1)`);
+  ctx.fillStyle = flrG;
+  ctx.fillRect(0, halfH, sw, halfH);
+
+  // Cast rays
+  const wallHits = [];
+  for (let i = 0; i < numRays; i++) {
+    const rayAngle = tripPlayer.angle - tripPlayer.fov/2 + (i/numRays) * tripPlayer.fov;
+    const cos = Math.cos(rayAngle), sin = Math.sin(rayAngle);
+    let rx = tripPlayer.x, ry = tripPlayer.y;
+    let hitWall = 0, dist = 0;
+
+    // DDA-style stepping
+    for (let step = 0; step < 200; step++) {
+      rx += cos * 0.02;
+      ry += sin * 0.02;
+      dist += 0.02;
+      const mx = Math.floor(rx), my = Math.floor(ry);
+      if (mx < 0 || mx >= TRIP_MAP_SIZE || my < 0 || my >= TRIP_MAP_SIZE) { hitWall = 1; break; }
+      const cell = tripMap[my * TRIP_MAP_SIZE + mx];
+      if (cell > 0) { hitWall = cell; break; }
+    }
+
+    // Fix fisheye
+    const corrected = dist * Math.cos(rayAngle - tripPlayer.angle);
+    const wallH = Math.min(sh, sh / corrected);
+    const wallTop = halfH - wallH / 2;
+
+    // Wall color based on type + distance + trip effect
+    const darkness = Math.max(0.1, 1 - corrected / 10);
+    let wallHue;
+    if (hitWall === 1) wallHue = (tripHue + corrected * 20) % 360;
+    else if (hitWall === 2) wallHue = (tripHue + 120 + Math.sin(tripTime * 3 + i * 0.1) * 30) % 360;
+    else wallHue = (tripHue + 240 + Math.cos(tripTime * 2) * 40) % 360;
+
+    const wallSat = 60 + Math.sin(tripTime * 2 + i * 0.05) * 20;
+    const wallLight = 15 + darkness * 35 + Math.sin(tripTime * 4 + corrected) * 5;
+
+    ctx.fillStyle = `hsl(${wallHue}, ${wallSat}%, ${wallLight}%)`;
+    ctx.fillRect(i * sliceW, wallTop, sliceW + 1, wallH);
+
+    // Wall edge lines
+    if (i > 0 && Math.abs(wallH - (wallHits[i-1]||wallH)) > 10) {
+      ctx.strokeStyle = `hsla(${wallHue}, 90%, 60%, 0.3)`;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(i * sliceW, wallTop); ctx.lineTo(i * sliceW, wallTop + wallH); ctx.stroke();
+    }
+    wallHits.push(wallH);
+  }
+
+  // Draw enemies (sprite-style)
+  // Sort by distance (far first)
+  const sortedEnemies = tripEnemies.filter(e => e.alive).map(e => {
+    const dx = e.x - tripPlayer.x, dy = e.y - tripPlayer.y;
+    return { ...e, dist: Math.sqrt(dx*dx+dy*dy), angle: Math.atan2(dy, dx) };
+  }).sort((a,b) => b.dist - a.dist);
+
+  sortedEnemies.forEach(e => {
+    let angleDiff = e.angle - tripPlayer.angle;
+    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    if (Math.abs(angleDiff) > tripPlayer.fov * 0.6) return; // Off screen
+
+    const screenX = sw/2 + (angleDiff / tripPlayer.fov) * sw;
+    const spriteH = Math.min(sh, (sh / e.dist) * 0.6);
+    const spriteW = spriteH * 0.6;
+    const spriteY = halfH - spriteH / 2;
+
+    const eHue = e.type === 'beetle' ? (tripHue + 60) % 360 : (tripHue + 280) % 360;
+    const alpha = e.hurtTimer > 0 ? 0.5 + Math.sin(tripTime * 30) * 0.5 : 1;
+    ctx.globalAlpha = alpha;
+
+    // Enemy body
+    ctx.fillStyle = `hsl(${eHue}, 70%, 40%)`;
+    ctx.beginPath(); ctx.ellipse(screenX, spriteY + spriteH * 0.5, spriteW/2, spriteH * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    // Eyes (glowing)
+    ctx.fillStyle = `hsl(${eHue}, 90%, 70%)`;
+    ctx.beginPath(); ctx.arc(screenX - spriteW * 0.2, spriteY + spriteH * 0.35, spriteW * 0.12, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(screenX + spriteW * 0.2, spriteY + spriteH * 0.35, spriteW * 0.12, 0, Math.PI * 2); ctx.fill();
+    // Pupils
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(screenX - spriteW * 0.2, spriteY + spriteH * 0.35, spriteW * 0.05, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(screenX + spriteW * 0.2, spriteY + spriteH * 0.35, spriteW * 0.05, 0, Math.PI * 2); ctx.fill();
+    // Glow
+    const eg = ctx.createRadialGradient(screenX, spriteY + spriteH/2, 0, screenX, spriteY + spriteH/2, spriteW);
+    eg.addColorStop(0, `hsla(${eHue}, 80%, 50%, 0.1)`);
+    eg.addColorStop(1, 'transparent');
+    ctx.fillStyle = eg;
+    ctx.beginPath(); ctx.arc(screenX, spriteY + spriteH/2, spriteW, 0, Math.PI * 2); ctx.fill();
+
+    ctx.globalAlpha = 1;
+  });
+
+  // Tongue attack effect
+  if (tripTongue.active) {
+    const tongueLen = (1 - tripTongue.timer / 0.2);
+    ctx.strokeStyle = `rgba(239,68,68,${0.6 + Math.sin(tripTime*20)*0.2})`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(sw/2, sh * 0.7);
+    ctx.lineTo(sw/2 + Math.sin(tripTime*15)*10, sh * 0.7 - tongueLen * sh * 0.5);
+    ctx.stroke();
+    // Tip
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath(); ctx.arc(sw/2 + Math.sin(tripTime*15)*10, sh * 0.7 - tongueLen * sh * 0.5, 6, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Crosshair
+  const chAlpha = 0.4 + Math.sin(tripTime * 3) * 0.1;
+  ctx.strokeStyle = `rgba(134,239,172,${chAlpha})`;
+  ctx.lineWidth = 2;
+  const chSize = 12;
+  ctx.beginPath();
+  ctx.moveTo(sw/2 - chSize, sh/2); ctx.lineTo(sw/2 - 4, sh/2);
+  ctx.moveTo(sw/2 + 4, sh/2); ctx.lineTo(sw/2 + chSize, sh/2);
+  ctx.moveTo(sw/2, sh/2 - chSize); ctx.lineTo(sw/2, sh/2 - 4);
+  ctx.moveTo(sw/2, sh/2 + 4); ctx.lineTo(sw/2, sh/2 + chSize);
+  ctx.stroke();
+  ctx.fillStyle = `rgba(134,239,172,${chAlpha})`;
+  ctx.beginPath(); ctx.arc(sw/2, sh/2, 2, 0, Math.PI * 2); ctx.fill();
+
+  // Chromatic aberration / scan lines
+  ctx.fillStyle = `rgba(${tripHue % 255}, 0, ${(tripHue + 128) % 255}, 0.015)`;
+  ctx.fillRect(0, 0, sw, sh);
+  for (let sy = 0; sy < sh; sy += 3) {
+    ctx.fillStyle = `rgba(0,0,0,${0.05 + Math.sin(sy * 0.5 + tripTime * 5) * 0.02})`;
+    ctx.fillRect(0, sy, sw, 1);
+  }
+
+  // Vignette (darker)
+  const vg = ctx.createRadialGradient(sw/2, sh/2, sw*0.2, sw/2, sh/2, sw*0.6);
+  vg.addColorStop(0, 'transparent');
+  vg.addColorStop(1, 'rgba(0,0,0,0.8)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, sw, sh);
+
+  // Screen shake
+  if (screenShake > 0.01) {
+    ctx.fillStyle = `rgba(255,100,100,${screenShake * 0.1})`;
+    ctx.fillRect(0, 0, sw, sh);
+  }
+
+  // HUD
+  ctx.fillStyle = `hsla(${tripHue}, 80%, 60%, 0.7)`;
+  ctx.font = '12px Courier New';
+  ctx.fillText(`KILLS: ${tripKills}/${tripEnemies.length}`, 20, 30);
+  const timeLeft = Math.max(0, Math.ceil(tripDuration - tripTime));
+  ctx.fillText(`TRIP: ${timeLeft}s`, 20, 48);
+
+  // Mobile: shoot button (right side)
+  if (isMobile) {
+    const shootX = W - 60, shootY = H - 80;
+    ctx.strokeStyle = 'rgba(239,68,68,0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(shootX, shootY, 35, 0, Math.PI * 2); ctx.stroke();
+    const sg2 = ctx.createRadialGradient(shootX, shootY, 0, shootX, shootY, 35);
+    sg2.addColorStop(0, 'rgba(239,68,68,0.15)');
+    sg2.addColorStop(1, 'rgba(239,68,68,0)');
+    ctx.fillStyle = sg2;
+    ctx.beginPath(); ctx.arc(shootX, shootY, 35, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(239,68,68,0.5)';
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('TONGUE', shootX, shootY + 4);
+    ctx.textAlign = 'start';
+  }
+
+  // Fade in/out
+  if (tripFadeIn > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${tripFadeIn})`;
+    ctx.fillRect(0, 0, sw, sh);
+    if (tripFadeIn > 0.5 && tripTime < 2) {
+      ctx.fillStyle = `rgba(239,68,68,${(tripFadeIn - 0.5) * 1.5})`;
+      ctx.font = '20px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText('D O N\'T   F I G H T   I T', sw/2, sh/2);
+      ctx.textAlign = 'start';
+    }
+  }
+}
+
 // ─── LOOP ───
 let lastTime=0;
 function loop(timestamp) {
   const dt=Math.min((timestamp-lastTime)/1000,0.05);
   lastTime=timestamp;
-  update(dt);
-  draw();
+
+  if (tripActive) {
+    updateTrip(dt);
+    drawTrip();
+  } else {
+    update(dt);
+    draw();
+  }
+
+  screenShake *= 0.9;
   requestAnimationFrame(loop);
 }
 
@@ -2867,6 +3261,23 @@ function startGame() {
   initAudio();
   initWorld();
 }
+
+// Trip mode input handlers
+window.addEventListener('mousedown', e => {
+  if (tripActive) tripShoot();
+});
+window.addEventListener('keydown', e => {
+  if (tripActive && (e.code === 'Space' || e.key.toLowerCase() === 'e')) tripShoot();
+});
+// Mobile shoot button for trip
+canvas.addEventListener('touchstart', e => {
+  if (!tripActive) return;
+  for (const t of e.changedTouches) {
+    const x = t.clientX, y = t.clientY;
+    // Right side = shoot
+    if (x > W * 0.5) { tripShoot(); }
+  }
+}, { passive: true });
 
 requestAnimationFrame(loop);
 </script>
