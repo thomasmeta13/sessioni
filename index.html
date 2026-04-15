@@ -114,6 +114,22 @@ let onBeat = false;
 
 function initAudio() {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  // Force resume on mobile — iOS/Chrome require this
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  // Also resume on any future touch/click (iOS sometimes re-suspends)
+  const unlockAudio = () => {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    // Play a silent buffer to fully unlock on iOS
+    const silentBuf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+    const src = audioCtx.createBufferSource();
+    src.buffer = silentBuf;
+    src.connect(audioCtx.destination);
+    src.start(0);
+  };
+  document.addEventListener('touchstart', unlockAudio, { once: false });
+  document.addEventListener('touchend', unlockAudio, { once: false });
+  document.addEventListener('click', unlockAudio, { once: false });
+  unlockAudio();
   masterGain = audioCtx.createGain();
   masterGain.gain.value = 0.7;
   masterGain.connect(audioCtx.destination);
