@@ -61,7 +61,7 @@
   <div class="sub">Zone 1 — The Surface Pond</div>
   <div class="prompt">[ click to begin ]</div>
   <div class="controls" id="controls-desktop">
-    <span>WASD</span> move &nbsp;&nbsp; <span>MOUSE</span> aim &nbsp;&nbsp; <span>CLICK</span> tongue &nbsp;&nbsp; <span>SPACE</span> belly flop
+    <span>WASD</span> move &nbsp;&nbsp; <span>MOUSE</span> aim &nbsp;&nbsp; <span>CLICK</span> tongue &nbsp;&nbsp; <span>SPACE</span> belly flop &nbsp;&nbsp; <span>E</span> talk
   </div>
   <div class="controls" id="controls-mobile" style="display:none">
     <span>LEFT</span> drag to move &nbsp;&nbsp; <span>RIGHT</span> tap to tongue &nbsp;&nbsp; <span>FLOP</span> button bottom-right
@@ -276,6 +276,7 @@ let fireflies=[], reeds=[], bubbles=[], cattails=[];
 let waterPlants=[], clouds=[], splashDrops=[];
 
 function initWorld() {
+  initNPCs();
   for (let c=0;c<7;c++) {
     const cx=200+Math.random()*(WORLD_W-400), cy=200+Math.random()*(WORLD_H-400);
     for (let i=0;i<3+Math.floor(Math.random()*4);i++) {
@@ -354,6 +355,193 @@ function spawnBug() {
   });
 }
 
+// ─── NPCs ───
+const npcs = [];
+const dialogue = {
+  active: false,
+  npc: null,
+  lines: [],
+  lineIndex: 0,
+  charIndex: 0,
+  charTimer: 0,
+  charSpeed: 0.03,
+  choices: null,
+  choiceIndex: 0,
+  waitingForInput: false,
+  fullLineShown: false,
+  onComplete: null,
+};
+
+function initNPCs() {
+  npcs.push({
+    x: WORLD_W/2 + 200, y: WORLD_H/2 - 100,
+    type: 'oldfrog',
+    name: 'Elder Croak',
+    size: 22,
+    color: '#6b8e23',
+    eyeColor: '#daa520',
+    bobPhase: Math.random()*Math.PI*2,
+    dir: -1,
+    talked: false,
+    dialogue: [
+      { text: "Well well... a young tadpole\nventures into the pond.", speaker: "Elder Croak" },
+      { text: "The water used to be clear here.\nNow something dark stirs below.", speaker: "Elder Croak" },
+      { text: "I've been watching the corruption\nspread for days...", speaker: "Elder Croak" },
+      {
+        text: "Will you help us, little one?",
+        speaker: "Elder Croak",
+        choices: [
+          { text: "I'll do what I can.", response: "Brave words. Use your tongue\nwisely — the bugs carry the\ncorruption in them." },
+          { text: "What's in it for me?", response: "Ha! A pragmatist. Fair enough.\nClear the bugs and the pond\nrewards its own." },
+          { text: "I'm just passing through.", response: "No one just passes through\nthe swamp, child. The swamp\nchooses who stays." },
+        ]
+      },
+    ],
+    dialogueAfter: [
+      { text: "The corruption grows stronger\nthe deeper you go.", speaker: "Elder Croak" },
+      { text: "Be careful out there, tadpole.", speaker: "Elder Croak" },
+    ],
+  });
+
+  npcs.push({
+    x: WORLD_W/2 - 350, y: WORLD_H/2 + 200,
+    type: 'mushroom',
+    name: 'Sporeling',
+    size: 16,
+    color: '#c084fc',
+    eyeColor: '#e9d5ff',
+    bobPhase: Math.random()*Math.PI*2,
+    dir: 1,
+    talked: false,
+    dialogue: [
+      { text: "...", speaker: "Sporeling" },
+      { text: "You can... hear me?", speaker: "Sporeling" },
+      { text: "Most creatures just walk past.\nThey think I'm just a mushroom.", speaker: "Sporeling" },
+      {
+        text: "I know secrets about this place.\nWant to hear one?",
+        speaker: "Sporeling",
+        choices: [
+          { text: "Tell me.", response: "The beetles... they're not really\nbeetles. They're pieces of\nwhatever lives in the depths.\nLittle golden eyes, watching." },
+          { text: "Maybe later.", response: "I'll be here. I'm always here.\nI'm a mushroom." },
+        ]
+      },
+    ],
+    dialogueAfter: [
+      { text: "The spores remember everything.\nEven things that haven't\nhappened yet.", speaker: "Sporeling" },
+    ],
+  });
+
+  npcs.push({
+    x: WORLD_W/2 + 100, y: WORLD_H/2 + 350,
+    type: 'turtle',
+    name: 'Shellsworth',
+    size: 24,
+    color: '#6b7280',
+    eyeColor: '#1f2937',
+    bobPhase: Math.random()*Math.PI*2,
+    dir: -1,
+    talked: false,
+    dialogue: [
+      { text: ".....................", speaker: "Shellsworth" },
+      { text: "Oh. Hello.", speaker: "Shellsworth" },
+      { text: "Sorry. I think slowly.\nBut I think deeply.", speaker: "Shellsworth" },
+      { text: "I've been sitting on this\nrock for... how long has\nit been?", speaker: "Shellsworth" },
+      {
+        text: "Do you know what day it is?",
+        speaker: "Shellsworth",
+        choices: [
+          { text: "Tuesday, I think.", response: "Tuesday. Hm.\nI sat down on a Monday.\n...Which Monday though." },
+          { text: "Does it matter?", response: "...You know what?\nNo. No it doesn't.\nThank you. That helps." },
+        ]
+      },
+    ],
+    dialogueAfter: [
+      { text: ".............................\n.........still thinking.", speaker: "Shellsworth" },
+    ],
+  });
+}
+
+function startDialogue(npc) {
+  const lines = npc.talked ? npc.dialogueAfter : npc.dialogue;
+  dialogue.active = true;
+  dialogue.npc = npc;
+  dialogue.lines = lines;
+  dialogue.lineIndex = 0;
+  dialogue.charIndex = 0;
+  dialogue.charTimer = 0;
+  dialogue.choices = null;
+  dialogue.choiceIndex = 0;
+  dialogue.waitingForInput = false;
+  dialogue.fullLineShown = false;
+}
+
+function advanceDialogue() {
+  if (!dialogue.active) return;
+
+  const line = dialogue.lines[dialogue.lineIndex];
+
+  // If text is still typing, show full line
+  if (!dialogue.fullLineShown) {
+    dialogue.charIndex = line.text.length;
+    dialogue.fullLineShown = true;
+    // If this line has choices, show them now
+    if (line.choices) {
+      dialogue.choices = line.choices;
+      dialogue.choiceIndex = 0;
+    }
+    return;
+  }
+
+  // If showing choices, select current choice
+  if (dialogue.choices) {
+    const choice = dialogue.choices[dialogue.choiceIndex];
+    // Show response as next line
+    dialogue.lines.splice(dialogue.lineIndex + 1, 0, {
+      text: choice.response,
+      speaker: dialogue.npc.name,
+    });
+    dialogue.choices = null;
+    dialogue.lineIndex++;
+    dialogue.charIndex = 0;
+    dialogue.charTimer = 0;
+    dialogue.fullLineShown = false;
+    return;
+  }
+
+  // Next line
+  dialogue.lineIndex++;
+  if (dialogue.lineIndex >= dialogue.lines.length) {
+    // End dialogue
+    dialogue.active = false;
+    dialogue.npc.talked = true;
+    return;
+  }
+  dialogue.charIndex = 0;
+  dialogue.charTimer = 0;
+  dialogue.fullLineShown = false;
+}
+
+function dialogueChoiceUp() {
+  if (dialogue.choices) {
+    dialogue.choiceIndex = (dialogue.choiceIndex - 1 + dialogue.choices.length) % dialogue.choices.length;
+  }
+}
+function dialogueChoiceDown() {
+  if (dialogue.choices) {
+    dialogue.choiceIndex = (dialogue.choiceIndex + 1) % dialogue.choices.length;
+  }
+}
+
+function getNearestNPC() {
+  let nearest = null, nearestDist = 60;
+  npcs.forEach(npc => {
+    const dx = frog.x - npc.x, dy = frog.y - npc.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist < nearestDist) { nearest = npc; nearestDist = dist; }
+  });
+  return nearest;
+}
+
 // ─── INPUT ───
 const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const keys={};
@@ -407,15 +595,39 @@ function triggerFlop() {
 }
 
 // Desktop
-window.addEventListener('keydown', e => { keys[e.key.toLowerCase()]=true; if(e.code==='Space') e.preventDefault(); });
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.code === 'Space') e.preventDefault();
+
+  if (!gameRunning) return;
+
+  // Dialogue controls
+  if (dialogue.active) {
+    if (e.code === 'Space' || e.code === 'Enter' || e.key.toLowerCase() === 'e') {
+      e.preventDefault();
+      advanceDialogue();
+      return;
+    }
+    if (e.code === 'ArrowUp' || e.key.toLowerCase() === 'w') { dialogueChoiceUp(); return; }
+    if (e.code === 'ArrowDown' || e.key.toLowerCase() === 's') { dialogueChoiceDown(); return; }
+    return; // Block all other input during dialogue
+  }
+
+  // Interact with NPC
+  if (e.key.toLowerCase() === 'e') {
+    const npc = getNearestNPC();
+    if (npc) startDialogue(npc);
+    return;
+  }
+
+  if (e.code === 'Space') triggerFlop();
+});
 window.addEventListener('keyup', e => keys[e.key.toLowerCase()]=false);
 window.addEventListener('mousemove', e => { mouseX=e.clientX; mouseY=e.clientY; });
 window.addEventListener('mousedown', e => {
   if (!gameRunning) return;
+  if (dialogue.active) { advanceDialogue(); return; }
   shootTongue(mouseWorld.x, mouseWorld.y);
-});
-window.addEventListener('keydown', e => {
-  if (e.code === 'Space' && gameRunning) triggerFlop();
 });
 
 // Mobile touch
@@ -427,6 +639,24 @@ if (isMobile) {
     e.preventDefault();
     for (const t of e.changedTouches) {
       const x = t.clientX, y = t.clientY;
+      // Dialogue tap
+      if (dialogue.active) {
+        // Choice selection - top/bottom half of dialogue box
+        if (dialogue.choices && y > H - 180) {
+          const choiceY = y - (H - 170);
+          dialogue.choiceIndex = choiceY < 60 ? 0 : Math.min(Math.floor(choiceY / 30), dialogue.choices.length - 1);
+        }
+        advanceDialogue();
+        continue;
+      }
+
+      // Interact button (bottom-left, above joystick area)
+      if (x < 120 && y > H - 180 && y < H - 100) {
+        const npc = getNearestNPC();
+        if (npc) startDialogue(npc);
+        continue;
+      }
+
       // Flop button (bottom-right corner)
       if (x > W - 100 && y > H - 100) {
         touch.flopId = t.identifier;
@@ -612,10 +842,31 @@ function update(dt) {
   mouseWorld.x = mouseX+camera.x;
   mouseWorld.y = mouseY+camera.y;
 
+  // ── Dialogue update ──
+  if (dialogue.active) {
+    const line = dialogue.lines[dialogue.lineIndex];
+    if (line && dialogue.charIndex < line.text.length) {
+      dialogue.charTimer += dt;
+      while (dialogue.charTimer >= dialogue.charSpeed && dialogue.charIndex < line.text.length) {
+        dialogue.charTimer -= dialogue.charSpeed;
+        dialogue.charIndex++;
+      }
+      if (dialogue.charIndex >= line.text.length) {
+        dialogue.fullLineShown = true;
+        if (line.choices) {
+          dialogue.choices = line.choices;
+          dialogue.choiceIndex = 0;
+        }
+      }
+    }
+  }
+
   // ── Frog movement (hop-based) ──
   const speed = 240;
   let mx=0, my=0;
-  if (isMobile) {
+  if (dialogue.active) {
+    mx = 0; my = 0; // Block movement during dialogue
+  } else if (isMobile) {
     mx = touch.joyDx;
     my = touch.joyDy;
   } else {
@@ -1097,6 +1348,139 @@ function draw() {
     ctx.restore();
   });
 
+  // NPCs
+  npcs.forEach(npc => {
+    const bob = Math.sin(globalTime * 1.5 + npc.bobPhase) * 2;
+    ctx.save();
+    ctx.translate(npc.x, npc.y + bob);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,12,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, npc.size * 0.7, npc.size * 0.8, 4, 0, 0, Math.PI * 2); ctx.fill();
+
+    if (npc.type === 'oldfrog') {
+      // Old frog - bigger, darker, wrinkled
+      const bg = ctx.createRadialGradient(0, -2, 2, 0, 2, npc.size);
+      bg.addColorStop(0, '#7a9a30');
+      bg.addColorStop(0.5, '#5a7a20');
+      bg.addColorStop(1, '#3a5a10');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.ellipse(0, 0, npc.size * 0.7, npc.size * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+      // Belly
+      ctx.fillStyle = '#8a9a60';
+      ctx.beginPath(); ctx.ellipse(0, 3, npc.size * 0.4, npc.size * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+      // Warts/bumps
+      ctx.fillStyle = 'rgba(50,70,20,0.5)';
+      ctx.beginPath(); ctx.arc(-6, -5, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(8, -3, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-4, 2, 1.8, 0, Math.PI * 2); ctx.fill();
+      // Eyes (heavy lids, wise)
+      ctx.fillStyle = '#4a6a15';
+      ctx.beginPath(); ctx.ellipse(-6, -10, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(6, -10, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f0e68c';
+      ctx.beginPath(); ctx.ellipse(-6, -10, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(6, -10, 4, 3, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2a3a08';
+      ctx.beginPath(); ctx.ellipse(-6, -10, 2, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(6, -10, 2, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+      // Heavy eyelids
+      ctx.fillStyle = '#3a5a10';
+      ctx.beginPath(); ctx.ellipse(-6, -12, 5, 2.5, 0, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(6, -12, 5, 2.5, 0, Math.PI, Math.PI * 2); ctx.fill();
+      // Mouth - slight frown
+      ctx.strokeStyle = '#3a5a10';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, -2, 5, 0.3, Math.PI - 0.3); ctx.stroke();
+    } else if (npc.type === 'mushroom') {
+      // Mushroom creature
+      // Stem
+      ctx.fillStyle = '#ddd6fe';
+      ctx.fillRect(-4, -2, 8, 12);
+      // Cap
+      const cg = ctx.createRadialGradient(0, -6, 0, 0, -6, 14);
+      cg.addColorStop(0, '#c084fc');
+      cg.addColorStop(1, '#7c3aed');
+      ctx.fillStyle = cg;
+      ctx.beginPath(); ctx.ellipse(0, -6, 14, 10, 0, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -6, 14, 4, 0, 0, Math.PI); ctx.fill();
+      // Spots on cap
+      ctx.fillStyle = 'rgba(233,213,255,0.5)';
+      ctx.beginPath(); ctx.arc(-5, -10, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(4, -12, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(7, -7, 1.5, 0, Math.PI * 2); ctx.fill();
+      // Eyes (on stem)
+      ctx.fillStyle = '#1a1a2e';
+      ctx.beginPath(); ctx.ellipse(-3, 2, 2, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(3, 2, 2, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#e9d5ff';
+      ctx.beginPath(); ctx.arc(-3.5, 1, 0.8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(2.5, 1, 0.8, 0, Math.PI * 2); ctx.fill();
+      // Subtle glow
+      const gg = ctx.createRadialGradient(0, -4, 0, 0, -4, 20);
+      gg.addColorStop(0, 'rgba(192,132,252,0.08)');
+      gg.addColorStop(1, 'transparent');
+      ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.arc(0, -4, 20, 0, Math.PI * 2); ctx.fill();
+    } else if (npc.type === 'turtle') {
+      // Turtle
+      // Shell
+      const sg = ctx.createRadialGradient(0, -2, 0, 0, -2, 16);
+      sg.addColorStop(0, '#6b7280');
+      sg.addColorStop(1, '#374151');
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.ellipse(0, -2, 16, 12, 0, 0, Math.PI * 2); ctx.fill();
+      // Shell pattern
+      ctx.strokeStyle = 'rgba(55,65,81,0.6)';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath(); ctx.ellipse(0, -2, 10, 7, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, -2, 5, 3, 0, 0, Math.PI * 2); ctx.stroke();
+      // Lines
+      for (let i = 0; i < 6; i++) {
+        const a = (i/6)*Math.PI*2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a)*5, -2+Math.sin(a)*3);
+        ctx.lineTo(Math.cos(a)*10, -2+Math.sin(a)*7);
+        ctx.stroke();
+      }
+      // Head poking out
+      ctx.fillStyle = '#9ca3af';
+      ctx.beginPath(); ctx.ellipse(-14, -2, 6, 5, 0, 0, Math.PI * 2); ctx.fill();
+      // Eyes
+      ctx.fillStyle = '#f3f4f6';
+      ctx.beginPath(); ctx.arc(-16, -4, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#1f2937';
+      ctx.beginPath(); ctx.arc(-16.5, -4, 1.2, 0, Math.PI * 2); ctx.fill();
+      // Legs
+      ctx.fillStyle = '#9ca3af';
+      ctx.beginPath(); ctx.ellipse(-8, 8, 4, 3, -0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(8, 8, 4, 3, 0.3, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Interaction prompt
+    const dx = frog.x - npc.x, dy = frog.y - npc.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist < 60 && !dialogue.active) {
+      const promptAlpha = 0.5 + Math.sin(globalTime * 3) * 0.3;
+      ctx.fillStyle = `rgba(134,239,172,${promptAlpha})`;
+      ctx.font = '10px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText(isMobile ? 'TAP to talk' : '[E] Talk', 0, -npc.size - 12);
+      ctx.textAlign = 'start';
+    }
+
+    // Name tag when close
+    if (dist < 80) {
+      ctx.fillStyle = 'rgba(134,239,172,0.4)';
+      ctx.font = '9px Courier New';
+      ctx.textAlign = 'center';
+      ctx.fillText(npc.name, 0, npc.size * 0.7 + 14);
+      ctx.textAlign = 'start';
+    }
+
+    ctx.restore();
+  });
+
   // Tongue
   if (tongue.active) {
     const p=Math.max(0,tongue.progress);
@@ -1266,6 +1650,145 @@ function draw() {
     ctx.stroke();
     ctx.fillStyle=`rgba(134,239,172,${0.5+screenPulse})`;
     ctx.beginPath(); ctx.arc(mouseX,mouseY,1.5,0,Math.PI*2); ctx.fill();
+  }
+
+  // ── Dialogue Box ──
+  if (dialogue.active && dialogue.lines[dialogue.lineIndex]) {
+    const line = dialogue.lines[dialogue.lineIndex];
+    const boxW = Math.min(W - 40, 500);
+    const boxH = dialogue.choices && dialogue.fullLineShown ? 160 + dialogue.choices.length * 28 : 130;
+    const boxX = (W - boxW) / 2;
+    const boxY = H - boxH - 20;
+
+    // Box background
+    ctx.fillStyle = 'rgba(5,15,8,0.92)';
+    ctx.strokeStyle = 'rgba(134,239,172,0.4)';
+    ctx.lineWidth = 2;
+    // Rounded rect
+    const r = 8;
+    ctx.beginPath();
+    ctx.moveTo(boxX+r, boxY);
+    ctx.lineTo(boxX+boxW-r, boxY);
+    ctx.quadraticCurveTo(boxX+boxW, boxY, boxX+boxW, boxY+r);
+    ctx.lineTo(boxX+boxW, boxY+boxH-r);
+    ctx.quadraticCurveTo(boxX+boxW, boxY+boxH, boxX+boxW-r, boxY+boxH);
+    ctx.lineTo(boxX+r, boxY+boxH);
+    ctx.quadraticCurveTo(boxX, boxY+boxH, boxX, boxY+boxH-r);
+    ctx.lineTo(boxX, boxY+r);
+    ctx.quadraticCurveTo(boxX, boxY, boxX+r, boxY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Inner glow line at top
+    ctx.strokeStyle = 'rgba(134,239,172,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(boxX+20, boxY+1);
+    ctx.lineTo(boxX+boxW-20, boxY+1);
+    ctx.stroke();
+
+    // Speaker name
+    if (line.speaker) {
+      // Name box
+      const nameW = ctx.measureText ? line.speaker.length * 8 + 20 : 100;
+      ctx.fillStyle = 'rgba(5,15,8,0.95)';
+      ctx.strokeStyle = 'rgba(134,239,172,0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(boxX+12+r, boxY-22);
+      ctx.lineTo(boxX+12+nameW-r, boxY-22);
+      ctx.quadraticCurveTo(boxX+12+nameW, boxY-22, boxX+12+nameW, boxY-22+r);
+      ctx.lineTo(boxX+12+nameW, boxY);
+      ctx.lineTo(boxX+12, boxY);
+      ctx.lineTo(boxX+12, boxY-22+r);
+      ctx.quadraticCurveTo(boxX+12, boxY-22, boxX+12+r, boxY-22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#86efac';
+      ctx.font = '12px Courier New';
+      ctx.fillText(line.speaker, boxX + 22, boxY - 7);
+    }
+
+    // Text (typewriter effect)
+    const displayText = line.text.substring(0, Math.floor(dialogue.charIndex));
+    const textLines = displayText.split('\n');
+    ctx.fillStyle = '#c8e6c9';
+    ctx.font = '13px Courier New';
+    textLines.forEach((tl, i) => {
+      ctx.fillText(tl, boxX + 20, boxY + 30 + i * 20);
+    });
+
+    // Blinking cursor at end of text
+    if (!dialogue.fullLineShown && Math.sin(globalTime * 6) > 0) {
+      const lastLine = textLines[textLines.length - 1] || '';
+      const cursorX = boxX + 20 + lastLine.length * 7.8;
+      const cursorY = boxY + 18 + (textLines.length - 1) * 20;
+      ctx.fillStyle = '#86efac';
+      ctx.fillRect(cursorX, cursorY, 7, 14);
+    }
+
+    // Choices
+    if (dialogue.choices && dialogue.fullLineShown) {
+      const choiceStartY = boxY + 30 + (line.text.split('\n').length) * 20 + 10;
+      dialogue.choices.forEach((choice, i) => {
+        const isSelected = i === dialogue.choiceIndex;
+        const cy = choiceStartY + i * 28;
+
+        if (isSelected) {
+          // Selection highlight
+          ctx.fillStyle = 'rgba(134,239,172,0.08)';
+          ctx.fillRect(boxX + 14, cy - 4, boxW - 28, 24);
+          ctx.fillStyle = '#86efac';
+          ctx.fillText('>', boxX + 20, cy + 12);
+        }
+
+        ctx.fillStyle = isSelected ? '#86efac' : '#5a8a60';
+        ctx.font = isSelected ? 'bold 13px Courier New' : '13px Courier New';
+        ctx.fillText(choice.text, boxX + 36, cy + 12);
+      });
+    }
+
+    // Continue prompt (bottom-right of box)
+    if (dialogue.fullLineShown && !dialogue.choices) {
+      const promptAlpha = 0.3 + Math.sin(globalTime * 4) * 0.3;
+      ctx.fillStyle = `rgba(134,239,172,${promptAlpha})`;
+      ctx.font = '10px Courier New';
+      ctx.textAlign = 'right';
+      ctx.fillText(isMobile ? 'tap to continue' : 'SPACE / CLICK', boxX + boxW - 16, boxY + boxH - 12);
+      ctx.textAlign = 'start';
+    }
+
+    // Down arrow for continue
+    if (dialogue.fullLineShown && !dialogue.choices) {
+      const arrowY = boxY + boxH - 18 + Math.sin(globalTime * 4) * 3;
+      ctx.fillStyle = `rgba(134,239,172,${0.4 + Math.sin(globalTime * 4) * 0.2})`;
+      ctx.beginPath();
+      ctx.moveTo(boxX + boxW / 2 - 5, arrowY);
+      ctx.lineTo(boxX + boxW / 2 + 5, arrowY);
+      ctx.lineTo(boxX + boxW / 2, arrowY + 5);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // Mobile interact button (when near NPC and not in dialogue)
+  if (isMobile && gameRunning && !dialogue.active && getNearestNPC()) {
+    const ibX = 60, ibY = H - 140;
+    ctx.strokeStyle = 'rgba(134,239,172,0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(ibX, ibY, 28, 0, Math.PI * 2); ctx.stroke();
+    const ig = ctx.createRadialGradient(ibX, ibY, 0, ibX, ibY, 28);
+    ig.addColorStop(0, 'rgba(134,239,172,0.15)');
+    ig.addColorStop(1, 'rgba(134,239,172,0)');
+    ctx.fillStyle = ig;
+    ctx.beginPath(); ctx.arc(ibX, ibY, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(134,239,172,0.5)';
+    ctx.font = '10px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('TALK', ibX, ibY + 4);
+    ctx.textAlign = 'start';
   }
 }
 
