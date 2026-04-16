@@ -2936,23 +2936,93 @@ const tripMap = (function(){
   return m;
 })();
 
-const tripPlayer = { x:4, y:4, angle:0, fov:Math.PI*0.65, bobPhase:0, hp:100 };
+// Camera uses direction + plane vectors (lodev-style) for proper strafing
+const tripCam = {
+  x:4, y:4,
+  dirX:-1, dirY:0,    // direction vector
+  planeX:0, planeY:0.66, // camera plane (FOV ~66deg)
+  bobPhase:0, hp:100,
+};
+// Velocity-based movement with acceleration
+const tripVel = { forward:0, strafe:0, turn:0 };
+const TRIP_ACCEL=10, TRIP_DECEL=8, TRIP_MAX_SPEED=4, TRIP_TURN_SPEED=2.5;
+
 let tripEnemies = [];
 const tripTongue = { active:false, timer:0, cooldown:0 };
 let tripKills = 0;
 let tripHue = 0;
 let tripFlash = 0;
-// Dual stick touch for DOOM mode
 const tripTouch = {
   moveId:null, moveSX:0, moveSY:0, moveDx:0, moveDy:0,
   lookId:null, lookSX:0, lookSY:0, lookDx:0, lookDy:0,
 };
-// Z-buffer for sprite clipping
 let zBuf = [];
+
+// Procedural textures (no image assets needed)
+const TEX_SIZE = 64;
+const textures = [];
+function generateTextures() {
+  // Texture 0: Brick wall
+  const brick = new Uint8Array(TEX_SIZE * TEX_SIZE * 3);
+  for (let y = 0; y < TEX_SIZE; y++) {
+    for (let x = 0; x < TEX_SIZE; x++) {
+      const i = (y * TEX_SIZE + x) * 3;
+      const bH = TEX_SIZE / 4, bW = TEX_SIZE / 2;
+      const row = Math.floor(y / bH);
+      const bx = (x + (row % 2) * (bW / 2)) % bW;
+      const by = y % bH;
+      const mortar = bx < 1 || by < 1;
+      const noise = (Math.random() * 16 - 8) | 0;
+      if (mortar) { brick[i] = 40; brick[i+1] = 35; brick[i+2] = 45; }
+      else { brick[i] = 80 + noise; brick[i+1] = 30 + noise; brick[i+2] = 50 + noise; }
+    }
+  }
+  textures.push(brick);
+  // Texture 1: Stone blocks
+  const stone = new Uint8Array(TEX_SIZE * TEX_SIZE * 3);
+  for (let y = 0; y < TEX_SIZE; y++) {
+    for (let x = 0; x < TEX_SIZE; x++) {
+      const i = (y * TEX_SIZE + x) * 3;
+      const grid = (x % 16 < 1 || y % 16 < 1) ? 1 : 0;
+      const noise = (Math.random() * 12 - 6) | 0;
+      if (grid) { stone[i] = 25; stone[i+1] = 30; stone[i+2] = 35; }
+      else { stone[i] = 55 + noise; stone[i+1] = 60 + noise; stone[i+2] = 70 + noise; }
+    }
+  }
+  textures.push(stone);
+  // Texture 2: Organic / vine wall
+  const vine = new Uint8Array(TEX_SIZE * TEX_SIZE * 3);
+  for (let y = 0; y < TEX_SIZE; y++) {
+    for (let x = 0; x < TEX_SIZE; x++) {
+      const i = (y * TEX_SIZE + x) * 3;
+      const v = Math.sin(x * 0.3) * Math.cos(y * 0.2) * 30;
+      vine[i] = 20 + v; vine[i+1] = 50 + v + (Math.random() * 10); vine[i+2] = 25 + v;
+    }
+  }
+  textures.push(vine);
+}
+generateTextures();
+
+// Rotate camera direction + plane
+function tripRotate(angle) {
+  const c = Math.cos(angle), s = Math.sin(angle);
+  const dx = tripCam.dirX, dy = tripCam.dirY;
+  tripCam.dirX = dx * c - dy * s;
+  tripCam.dirY = dx * s + dy * c;
+  const px = tripCam.planeX, py = tripCam.planeY;
+  tripCam.planeX = px * c - py * s;
+  tripCam.planeY = px * s + py * c;
+}
+
+// AI states
+const AI = { IDLE:0, CHASE:1, ATTACK:2, PAIN:3 };
 
 function startTrip() {
   tripActive=true; tripTime=0; tripFadeIn=1; tripKills=0; tripFlash=0;
-  tripPlayer.x=4; tripPlayer.y=4; tripPlayer.angle=0; tripPlayer.hp=100; tripPlayer.bobPhase=0;
+  tripCam.x=4; tripCam.y=4; tripCam.dirX=1; tripCam.dirY=0;
+  tripCam.planeX=0; tripCam.planeY=0.66;
+  tripCam.hp=100; tripCam.bobPhase=0;
+  tripVel.forward=0; tripVel.strafe=0; tripVel.turn=0;
   tripTongue.active=false; tripTongue.cooldown=0;
   tripEnemies=[];
   for(let i=0;i<12;i++) {
@@ -2966,6 +3036,7 @@ function startTrip() {
       hurtTimer:0, moveTimer:Math.random()*2, type,
       moveSpeed: type==='fly'?3:type==='moth'?2:type==='toad'?0.8:1.5,
       attackTimer: 2+Math.random()*3, deathTimer:0,
+      state: AI.IDLE, lostTimer:0,
     });
   }
   if(musicStarted) {
@@ -3011,81 +3082,117 @@ function endTrip() {
 function updateTrip(dt) {
   tripTime+=dt;
   tripFadeIn=Math.max(0,tripFadeIn-dt*1.5);
-  tripHue=(tripHue+dt*25)%360;
+  tripHue=(tripHue+dt*20)%360;
   tripFlash=Math.max(0,tripFlash-dt*4);
 
-  // End conditions
   const allDead=tripEnemies.every(e=>!e.alive);
-  if(tripTime>tripDuration || allDead || tripPlayer.hp<=0) {
+  if(tripTime>tripDuration || allDead || tripCam.hp<=0) {
     tripFadeIn+=dt*2;
     if(tripFadeIn>=1){endTrip();return;}
   }
 
-  // ── Movement ──
-  const moveSpd=4*dt;
-  const rotSpd=3*dt;
-  let fwd=0, strafe=0, rot=0;
-
+  // ── Input ──
+  let inputFwd=0, inputStrafe=0, inputTurn=0;
   if(isMobile) {
-    fwd = -tripTouch.moveDy; // up = forward
-    strafe = tripTouch.moveDx;
-    rot = tripTouch.lookDx * 3;
+    inputFwd = -tripTouch.moveDy;
+    inputStrafe = tripTouch.moveDx;
+    inputTurn = tripTouch.lookDx;
   } else {
-    if(keys['w']||keys['arrowup']) fwd=1;
-    if(keys['s']||keys['arrowdown']) fwd=-1;
-    if(keys['a']) strafe=-1;
-    if(keys['d']) strafe=1;
-    if(keys['arrowleft']) rot=-1;
-    if(keys['arrowright']) rot=1;
+    if(keys['w']||keys['arrowup']) inputFwd=1;
+    if(keys['s']||keys['arrowdown']) inputFwd=-1;
+    if(keys['a']) inputStrafe=-1;
+    if(keys['d']) inputStrafe=1;
+    if(keys['arrowleft']) inputTurn=-1;
+    if(keys['arrowright']) inputTurn=1;
   }
 
-  tripPlayer.angle += rot*rotSpd;
-  const cosA=Math.cos(tripPlayer.angle), sinA=Math.sin(tripPlayer.angle);
+  // ── Acceleration-based movement ──
   // Forward/back
-  let nx=tripPlayer.x + cosA*fwd*moveSpd + (-sinA)*strafe*moveSpd;
-  let ny=tripPlayer.y + sinA*fwd*moveSpd + cosA*strafe*moveSpd;
-  // Collision with margin
-  const margin=0.2;
-  if(tripMap[Math.floor(tripPlayer.y)*MS+Math.floor(nx+margin)]===0 &&
-     tripMap[Math.floor(tripPlayer.y)*MS+Math.floor(nx-margin)]===0) tripPlayer.x=nx;
-  if(tripMap[Math.floor(ny+margin)*MS+Math.floor(tripPlayer.x)]===0 &&
-     tripMap[Math.floor(ny-margin)*MS+Math.floor(tripPlayer.x)]===0) tripPlayer.y=ny;
+  if(inputFwd!==0) {
+    tripVel.forward+=inputFwd*TRIP_ACCEL*dt;
+    tripVel.forward=Math.max(-TRIP_MAX_SPEED,Math.min(TRIP_MAX_SPEED,tripVel.forward));
+  } else {
+    const s=Math.sign(tripVel.forward);
+    tripVel.forward-=s*TRIP_DECEL*dt;
+    if(Math.sign(tripVel.forward)!==s) tripVel.forward=0;
+  }
+  // Strafe
+  if(inputStrafe!==0) {
+    tripVel.strafe+=inputStrafe*TRIP_ACCEL*dt;
+    tripVel.strafe=Math.max(-TRIP_MAX_SPEED,Math.min(TRIP_MAX_SPEED,tripVel.strafe));
+  } else {
+    const s=Math.sign(tripVel.strafe);
+    tripVel.strafe-=s*TRIP_DECEL*dt;
+    if(Math.sign(tripVel.strafe)!==s) tripVel.strafe=0;
+  }
+
+  // Turn (rotation via vector math)
+  const turnAmt = inputTurn * TRIP_TURN_SPEED * dt * (isMobile ? 2.5 : 1);
+  if(turnAmt) tripRotate(turnAmt);
+
+  // Apply velocity using direction + plane vectors (proper strafing)
+  const moveX = tripCam.dirX * tripVel.forward * dt + tripCam.planeX * tripVel.strafe * dt;
+  const moveY = tripCam.dirY * tripVel.forward * dt + tripCam.planeY * tripVel.strafe * dt;
+
+  // Collision with radius (wall-sliding)
+  const R=0.25;
+  const nx=tripCam.x+moveX, ny=tripCam.y+moveY;
+  if(tripMap[Math.floor(tripCam.y)*MS+Math.floor(nx+R*Math.sign(moveX))]===0) tripCam.x=nx;
+  if(tripMap[Math.floor(ny+R*Math.sign(moveY))*MS+Math.floor(tripCam.x)]===0) tripCam.y=ny;
 
   // Head bob
-  if(Math.abs(fwd)>0.1||Math.abs(strafe)>0.1) tripPlayer.bobPhase+=dt*10;
+  if(Math.abs(tripVel.forward)>0.3||Math.abs(tripVel.strafe)>0.3) tripCam.bobPhase+=dt*8;
 
   // ── Tongue ──
   tripTongue.cooldown=Math.max(0,tripTongue.cooldown-dt);
-  if(tripTongue.active) {
-    tripTongue.timer-=dt;
-    if(tripTongue.timer<=0) tripTongue.active=false;
-  }
+  if(tripTongue.active) { tripTongue.timer-=dt; if(tripTongue.timer<=0) tripTongue.active=false; }
 
-  // ── Enemies ──
+  // ── Enemy AI (state machine) ──
   tripEnemies.forEach(e => {
     if(!e.alive) { e.deathTimer=Math.min(1,e.deathTimer+dt*3); return; }
     e.hurtTimer=Math.max(0,e.hurtTimer-dt);
-    e.moveTimer-=dt;
-    e.attackTimer-=dt;
-    const dx=tripPlayer.x-e.x, dy=tripPlayer.y-e.y;
+    const dx=tripCam.x-e.x, dy=tripCam.y-e.y;
     const dist=Math.sqrt(dx*dx+dy*dy);
-    // Move toward player
-    if(e.moveTimer<=0) {
-      e.moveTimer=0.5+Math.random()*1;
-      if(dist>1) {
-        const step=e.moveSpeed*0.15;
-        const enx=e.x+(dx/dist)*step;
-        const eny=e.y+(dy/dist)*step;
-        if(tripMap[Math.floor(eny)*MS+Math.floor(enx)]===0) { e.x=enx; e.y=eny; }
-      }
+
+    if(e.state===AI.PAIN) {
+      e.hurtTimer-=dt;
+      if(e.hurtTimer<=0) e.state=AI.CHASE;
+      return;
     }
-    // Attack player when close
-    if(dist<1.2 && e.attackTimer<=0) {
-      e.attackTimer=1.5+Math.random()*2;
-      tripPlayer.hp-=8;
-      tripFlash=1;
-      screenShake=0.25;
-      sfx(150,80,0.15,0.2);
+
+    if(e.state===AI.IDLE) {
+      if(dist<8) e.state=AI.CHASE;
+    }
+
+    if(e.state===AI.CHASE) {
+      e.moveTimer-=dt;
+      if(e.moveTimer<=0) {
+        e.moveTimer=0.3+Math.random()*0.5;
+        if(dist>1.2) {
+          const step=e.moveSpeed*dt*2;
+          const enx=e.x+(dx/dist)*step;
+          const eny=e.y+(dy/dist)*step;
+          // Wall-slide collision for enemies too
+          if(tripMap[Math.floor(e.y)*MS+Math.floor(enx)]===0) e.x=enx;
+          if(tripMap[Math.floor(eny)*MS+Math.floor(e.x)]===0) e.y=eny;
+        }
+      }
+      if(dist<1.5) { e.state=AI.ATTACK; e.attackTimer=0.5; }
+      if(dist>12) e.state=AI.IDLE;
+    }
+
+    if(e.state===AI.ATTACK) {
+      e.attackTimer-=dt;
+      if(e.attackTimer<=0) {
+        if(dist<2) {
+          tripCam.hp-=10;
+          tripFlash=1;
+          screenShake=0.3;
+          sfx(120,60,0.2,0.25);
+        }
+        e.attackTimer=1+Math.random()*1.5;
+        if(dist>2) e.state=AI.CHASE;
+      }
     }
   });
 
@@ -3102,16 +3209,18 @@ function tripShoot() {
 
   // Hit detection — check enemies near crosshair
   let hitAny=false;
+  const camAngle=Math.atan2(tripCam.dirY,tripCam.dirX);
   tripEnemies.forEach(e => {
     if(!e.alive) return;
-    const dx=e.x-tripPlayer.x, dy=e.y-tripPlayer.y;
+    const dx=e.x-tripCam.x, dy=e.y-tripCam.y;
     const dist=Math.sqrt(dx*dx+dy*dy);
-    let ad=Math.atan2(dy,dx)-tripPlayer.angle;
+    let ad=Math.atan2(dy,dx)-camAngle;
     while(ad>Math.PI) ad-=Math.PI*2;
     while(ad<-Math.PI) ad+=Math.PI*2;
     if(Math.abs(ad)<0.25 && dist<10) {
       e.hp--;
       e.hurtTimer=0.25;
+      e.state=AI.PAIN;
       hitAny=true;
       sfx(250+Math.random()*200,100,0.12,0.25);
       screenShake=0.2;
@@ -3135,9 +3244,10 @@ function drawTrip() {
   const numRays=Math.min(Math.floor(sw/2),320);
   const sliceW=sw/numRays;
   const halfH=sh/2;
-  const bob=Math.sin(tripPlayer.bobPhase)*4;
+  const bob=Math.sin(tripCam.bobPhase)*4;
   const bobH=halfH+bob;
   zBuf=new Array(numRays);
+  const camAngle=Math.atan2(tripCam.dirY,tripCam.dirX);
 
   // ── Sky ──
   const skyG=ctx.createLinearGradient(0,0,0,bobH);
@@ -3163,18 +3273,19 @@ function drawTrip() {
     }
   }
 
-  // ── Cast rays (proper DDA) ──
+  // ── Cast rays (DDA with camera plane — lodev style) ──
   for(let i=0;i<numRays;i++) {
-    const rayAngle=tripPlayer.angle-tripPlayer.fov/2+(i/numRays)*tripPlayer.fov;
-    const rayDirX=Math.cos(rayAngle), rayDirY=Math.sin(rayAngle);
-    let mapX=Math.floor(tripPlayer.x), mapY=Math.floor(tripPlayer.y);
+    const cameraX = 2*i/numRays - 1; // -1 to 1
+    const rayDirX = tripCam.dirX + tripCam.planeX * cameraX;
+    const rayDirY = tripCam.dirY + tripCam.planeY * cameraX;
+    let mapX=Math.floor(tripCam.x), mapY=Math.floor(tripCam.y);
     const ddX=Math.abs(1/rayDirX), ddY=Math.abs(1/rayDirY);
     let stepX, stepY, sideDistX, sideDistY;
 
-    if(rayDirX<0) { stepX=-1; sideDistX=(tripPlayer.x-mapX)*ddX; }
-    else { stepX=1; sideDistX=(mapX+1-tripPlayer.x)*ddX; }
-    if(rayDirY<0) { stepY=-1; sideDistY=(tripPlayer.y-mapY)*ddY; }
-    else { stepY=1; sideDistY=(mapY+1-tripPlayer.y)*ddY; }
+    if(rayDirX<0) { stepX=-1; sideDistX=(tripCam.x-mapX)*ddX; }
+    else { stepX=1; sideDistX=(mapX+1-tripCam.x)*ddX; }
+    if(rayDirY<0) { stepY=-1; sideDistY=(tripCam.y-mapY)*ddY; }
+    else { stepY=1; sideDistY=(mapY+1-tripCam.y)*ddY; }
 
     let hit=0, side=0, dist=0;
     for(let s=0;s<64;s++) {
@@ -3185,67 +3296,83 @@ function drawTrip() {
       if(cell>0) { hit=cell; break; }
     }
 
-    if(side===0) dist=(mapX-tripPlayer.x+(1-stepX)/2)/rayDirX;
-    else dist=(mapY-tripPlayer.y+(1-stepY)/2)/rayDirY;
+    // Perpendicular distance (no fisheye with plane vectors)
+    if(side===0) dist=(mapX-tripCam.x+(1-stepX)/2)/rayDirX;
+    else dist=(mapY-tripCam.y+(1-stepY)/2)/rayDirY;
     dist=Math.max(0.1,dist);
     zBuf[i]=dist;
 
     const wallH=sh/dist;
     const wallTop=bobH-wallH/2;
 
-    // Wall shading
-    const darkness=Math.max(0.08,1-dist/12);
-    const sideShade=side?0.7:1;
-    let hue, sat, lit;
-    if(hit===1) { hue=(tripHue+dist*15)%360; sat=50; lit=12+darkness*30; }
-    else if(hit===2) { hue=(tripHue+120+Math.sin(tripTime*2+i*0.05)*20)%360; sat=65; lit=15+darkness*35; }
-    else { hue=(tripHue+240)%360; sat=55; lit=10+darkness*25; }
-    lit*=sideShade;
+    // ── Textured wall rendering ──
+    // Calculate exact hit position for texture X coordinate
+    let wallX; // fractional position along the wall
+    if(side===0) wallX=tripCam.y+dist*rayDirY;
+    else wallX=tripCam.x+dist*rayDirX;
+    wallX-=Math.floor(wallX); // 0-1
 
-    ctx.fillStyle=`hsl(${hue},${sat}%,${lit}%)`;
-    ctx.fillRect(i*sliceW,wallTop,sliceW+1,wallH);
+    const texIdx=Math.min(hit-1,textures.length-1);
+    const tex=textures[texIdx];
+    const texX=Math.floor(wallX*TEX_SIZE);
 
-    // Wall texture lines (horizontal bricks)
-    if(wallH>20 && dist<8) {
-      ctx.strokeStyle=`hsla(${hue},${sat}%,${lit+8}%,${darkness*0.2})`;
-      ctx.lineWidth=0.5;
-      const brickH=wallH/8;
-      for(let b=0;b<8;b++) {
-        const by=wallTop+b*brickH;
-        if(by>0&&by<sh) {
-          ctx.beginPath();ctx.moveTo(i*sliceW,by);ctx.lineTo(i*sliceW+sliceW,by);ctx.stroke();
-        }
-      }
+    const darkness=Math.max(0.15,1-dist/10);
+    const sideShade=side?0.6:1;
+    const light=darkness*sideShade;
+
+    // Draw textured column
+    const drawStart=Math.max(0,Math.floor(wallTop));
+    const drawEnd=Math.min(sh,Math.floor(wallTop+wallH));
+    const step=TEX_SIZE/wallH;
+    let texPos=(drawStart-wallTop)*step;
+
+    for(let y=drawStart;y<drawEnd;y++) {
+      const texY=Math.floor(texPos)&(TEX_SIZE-1);
+      texPos+=step;
+      const ti=(texY*TEX_SIZE+texX)*3;
+      // Apply trippy hue shift
+      const hShift=tripHue*0.7;
+      let r=tex[ti]*light, g=tex[ti+1]*light, b=tex[ti+2]*light;
+      // Rotate colors for trip effect
+      const cr=r*Math.cos(hShift*0.017)+g*Math.sin(hShift*0.017);
+      const cg=g*Math.cos(hShift*0.017)-r*Math.sin(hShift*0.017)*0.5;
+      const cb=b+Math.sin(hShift*0.01+dist)*30*light;
+      ctx.fillStyle=`rgb(${Math.max(0,cr)|0},${Math.max(0,cg)|0},${Math.max(0,Math.min(255,cb))|0})`;
+      ctx.fillRect(i*sliceW,y,sliceW+1,1);
     }
 
-    // Top/bottom edge glow
-    ctx.fillStyle=`hsla(${hue},80%,60%,${darkness*0.06})`;
-    ctx.fillRect(i*sliceW,wallTop-1,sliceW+1,2);
-    ctx.fillRect(i*sliceW,wallTop+wallH-1,sliceW+1,2);
+    // Edge glow
+    ctx.fillStyle=`rgba(${120+tripHue%80},60,${180-tripHue%60},${light*0.08})`;
+    ctx.fillRect(i*sliceW,drawStart,sliceW+1,1);
+    ctx.fillRect(i*sliceW,drawEnd-1,sliceW+1,1);
   }
 
-  // ── Enemies (billboard sprites) ──
+  // ── Enemies (billboard sprites — inverse determinant projection) ──
   const sorted=tripEnemies.map(e=>{
-    const dx=e.x-tripPlayer.x, dy=e.y-tripPlayer.y;
-    return{...e, dist:Math.sqrt(dx*dx+dy*dy), angle:Math.atan2(dy,dx)};
+    const dx=e.x-tripCam.x, dy=e.y-tripCam.y;
+    return{...e, dist:Math.sqrt(dx*dx+dy*dy), angle:Math.atan2(dy,dx), dx, dy};
   }).sort((a,b)=>b.dist-a.dist);
 
   sorted.forEach(e=>{
     if(e.deathTimer>=1) return;
-    let ad=e.angle-tripPlayer.angle;
+    // Inverse camera matrix transform (lodev-style)
+    const invDet=1/(tripCam.planeX*tripCam.dirY-tripCam.dirX*tripCam.planeY);
+    const transformX=invDet*(tripCam.dirY*e.dx-tripCam.dirX*e.dy);
+    const transformY=invDet*(-tripCam.planeY*e.dx+tripCam.planeX*e.dy);
+    if(transformY<=0.1) return; // Behind camera
+    let ad=e.angle-camAngle;
     while(ad>Math.PI) ad-=Math.PI*2;
     while(ad<-Math.PI) ad+=Math.PI*2;
-    if(Math.abs(ad)>tripPlayer.fov*0.7) return;
 
-    const screenX=sw/2+(ad/tripPlayer.fov)*sw;
+    const screenX=Math.floor((sw/2)*(1+transformX/transformY));
     const spriteScale = e.alive ? 1 : Math.max(0,1-e.deathTimer);
-    let spriteH=(sh/e.dist)*0.55*spriteScale;
+    let spriteH=Math.abs(Math.floor(sh/transformY))*0.55*spriteScale;
     let spriteW=spriteH*0.5;
     const spriteY=bobH-spriteH/2 + (e.alive?0:e.deathTimer*spriteH*0.3);
 
-    // Z-clip: only draw columns not behind walls
+    // Z-clip: check center column against z-buffer
     const rayIdx=Math.floor((screenX/sw)*numRays);
-    if(rayIdx>=0&&rayIdx<numRays&&e.dist>zBuf[rayIdx]+0.3) return;
+    if(rayIdx>=0&&rayIdx<numRays&&transformY>zBuf[rayIdx]) return;
 
     const eHues={beetle:60,moth:280,toad:120,fly:0};
     const eHue=(tripHue+(eHues[e.type]||0))%360;
@@ -3389,14 +3516,14 @@ function drawTrip() {
   const hbW=120, hbH=8, hbX=20, hbY=sh-30;
   ctx.fillStyle='rgba(0,0,0,0.4)';
   ctx.fillRect(hbX-1,hbY-1,hbW+2,hbH+2);
-  const hpPct=Math.max(0,tripPlayer.hp/100);
+  const hpPct=Math.max(0,tripCam.hp/100);
   const hpHue=hpPct>0.5?120:hpPct>0.25?40:0;
   ctx.fillStyle=`hsl(${hpHue},70%,45%)`;
   ctx.fillRect(hbX,hbY,hbW*hpPct,hbH);
   // HP text
   ctx.fillStyle='rgba(255,255,255,0.6)';
   ctx.font='10px Courier New';
-  ctx.fillText(`HP ${Math.ceil(tripPlayer.hp)}`,hbX,hbY-4);
+  ctx.fillText(`HP ${Math.ceil(tripCam.hp)}`,hbX,hbY-4);
 
   // Kill counter
   ctx.fillStyle=`hsla(${tripHue},80%,60%,0.7)`;
