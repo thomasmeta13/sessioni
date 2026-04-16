@@ -2863,144 +2863,178 @@ function drawFrog() {
   ctx.restore();
 }
 
-// ─── TRIP MODE (DOOM-STYLE RAYCASTER) ───
+// ─── DOOM MODE (FIRST-PERSON RAYCASTER) ───
 let tripActive = false;
 let tripTime = 0;
 let tripFadeIn = 0;
-const tripDuration = 30; // 30 seconds of trip
+const tripDuration = 90; // 90 seconds — a full song
 
-const TRIP_MAP_SIZE = 16;
-const tripMap = [
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,0,0,2,0,0,0,0,2,0,0,0,0,1,
-  1,0,0,3,0,0,0,0,0,0,0,0,3,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,2,0,0,0,0,3,0,0,0,0,0,2,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,0,0,3,0,0,0,3,0,0,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,2,0,0,0,0,3,0,0,0,0,2,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,0,0,3,0,0,0,0,0,0,0,0,3,0,0,1,
-  1,0,0,0,0,2,0,0,0,0,2,0,0,0,0,1,
-  1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-];
+const MS = 24; // map size
+const tripMap = (function(){
+  // Generate a more interesting map
+  const m = new Array(MS*MS).fill(0);
+  // Outer walls
+  for(let i=0;i<MS;i++) { m[i]=1; m[(MS-1)*MS+i]=1; m[i*MS]=1; m[i*MS+MS-1]=1; }
+  // Inner structures — rooms and corridors
+  // Central arena
+  for(let i=8;i<16;i++) { m[6*MS+i]=2; m[17*MS+i]=2; }
+  for(let i=6;i<18;i++) { m[i*MS+8]=2; m[i*MS+15]=2; }
+  // Openings in central arena
+  m[6*MS+11]=0; m[6*MS+12]=0; m[17*MS+11]=0; m[17*MS+12]=0;
+  m[11*MS+8]=0; m[12*MS+8]=0; m[11*MS+15]=0; m[12*MS+15]=0;
+  // Side rooms
+  for(let i=2;i<6;i++) { m[3*MS+i]=3; m[7*MS+i]=3; }
+  for(let i=3;i<8;i++) { m[i*MS+2]=3; m[i*MS+5]=3; }
+  m[5*MS+2]=0; m[5*MS+5]=0; // doors
+  // Pillars scattered
+  m[10*MS+11]=3; m[10*MS+12]=3; m[13*MS+11]=3; m[13*MS+12]=3;
+  // Corridors
+  for(let i=18;i<22;i++) { m[4*MS+i]=2; m[8*MS+i]=2; }
+  for(let i=4;i<9;i++) m[i*MS+18]=2;
+  m[6*MS+18]=0; // opening
+  // More rooms
+  for(let i=18;i<22;i++) { m[14*MS+i]=3; m[20*MS+i]=3; }
+  for(let i=14;i<21;i++) { m[i*MS+18]=3; m[i*MS+21]=3; }
+  m[17*MS+18]=0; m[17*MS+21]=0;
+  return m;
+})();
 
-const tripPlayer = { x: 8, y: 8, angle: 0, fov: Math.PI * 0.6 };
+const tripPlayer = { x:4, y:4, angle:0, fov:Math.PI*0.65, bobPhase:0, hp:100 };
 let tripEnemies = [];
-let tripTongue = { active: false, timer: 0 };
+const tripTongue = { active:false, timer:0, cooldown:0 };
 let tripKills = 0;
 let tripHue = 0;
+let tripFlash = 0;
+// Dual stick touch for DOOM mode
+const tripTouch = {
+  moveId:null, moveSX:0, moveSY:0, moveDx:0, moveDy:0,
+  lookId:null, lookSX:0, lookSY:0, lookDx:0, lookDy:0,
+};
+// Z-buffer for sprite clipping
+let zBuf = [];
 
 function startTrip() {
-  tripActive = true;
-  tripTime = 0;
-  tripFadeIn = 1;
-  tripKills = 0;
-  tripPlayer.x = 8; tripPlayer.y = 8; tripPlayer.angle = 0;
-  // Spawn enemies
-  tripEnemies = [];
-  for (let i = 0; i < 8; i++) {
-    let ex, ey;
-    do {
-      ex = 2 + Math.random() * 12;
-      ey = 2 + Math.random() * 12;
-    } while (tripMap[Math.floor(ey) * TRIP_MAP_SIZE + Math.floor(ex)] !== 0);
+  tripActive=true; tripTime=0; tripFadeIn=1; tripKills=0; tripFlash=0;
+  tripPlayer.x=4; tripPlayer.y=4; tripPlayer.angle=0; tripPlayer.hp=100; tripPlayer.bobPhase=0;
+  tripTongue.active=false; tripTongue.cooldown=0;
+  tripEnemies=[];
+  for(let i=0;i<12;i++) {
+    let ex,ey,attempts=0;
+    do { ex=2+Math.random()*(MS-4); ey=2+Math.random()*(MS-4); attempts++; }
+    while(tripMap[Math.floor(ey)*MS+Math.floor(ex)]!==0 && attempts<50);
+    const types=['beetle','moth','toad','fly'];
+    const type=types[Math.floor(Math.random()*types.length)];
     tripEnemies.push({
-      x: ex, y: ey, alive: true, size: 0.4,
-      hp: 2, hurtTimer: 0,
-      moveTimer: Math.random() * 2,
-      type: Math.random() < 0.5 ? 'beetle' : 'moth',
+      x:ex, y:ey, alive:true, hp:type==='toad'?4:type==='beetle'?3:2,
+      hurtTimer:0, moveTimer:Math.random()*2, type,
+      moveSpeed: type==='fly'?3:type==='moth'?2:type==='toad'?0.8:1.5,
+      attackTimer: 2+Math.random()*3, deathTimer:0,
     });
   }
-  // Distort music
-  if (musicStarted) {
-    const t = audioCtx.currentTime;
-    layers.sub.osc.type = 'square';
-    layers.sub.osc.frequency.setTargetAtTime(35, t, 0.2);
-    layers.sub.gain.gain.setTargetAtTime(0.5, t, 0.2);
-    layers.pad.osc.type = 'sawtooth';
-    layers.pad.osc.frequency.setTargetAtTime(80, t, 0.2);
-    layers.pad.filter.frequency.setTargetAtTime(1200, t, 0.2);
-    layers.pluck.gain.gain.setTargetAtTime(0.15, t, 0.1);
-    masterGain.gain.setTargetAtTime(0.85, t, 0.2);
-    intensityTarget = 0.8;
+  if(musicStarted) {
+    const t=audioCtx.currentTime;
+    layers.sub.osc.type='square';
+    layers.sub.osc.frequency.setTargetAtTime(35,t,0.2);
+    layers.sub.gain.gain.setTargetAtTime(0.5,t,0.2);
+    layers.pad.osc.type='sawtooth';
+    layers.pad.osc.frequency.setTargetAtTime(80,t,0.2);
+    layers.pad.filter.frequency.setTargetAtTime(1200,t,0.2);
+    layers.pluck.gain.gain.setTargetAtTime(0.15,t,0.1);
+    masterGain.gain.setTargetAtTime(0.85,t,0.2);
+    intensityTarget=0.8;
   }
 }
 
 function endTrip() {
-  tripActive = false;
-  // Restore music
-  if (musicStarted) {
-    const t = audioCtx.currentTime;
-    layers.sub.osc.type = 'sawtooth';
-    layers.sub.osc.frequency.setTargetAtTime(55, t, 0.5);
-    layers.pad.osc.frequency.setTargetAtTime(146.83, t, 0.5);
-    layers.pad.filter.frequency.setTargetAtTime(700, t, 0.3);
-    masterGain.gain.setTargetAtTime(0.75, t, 0.5);
+  tripActive=false;
+  if(musicStarted) {
+    const t=audioCtx.currentTime;
+    layers.sub.osc.type='sawtooth';
+    layers.sub.osc.frequency.setTargetAtTime(55,t,0.5);
+    layers.pad.osc.frequency.setTargetAtTime(146.83,t,0.5);
+    layers.pad.filter.frequency.setTargetAtTime(700,t,0.3);
+    masterGain.gain.setTargetAtTime(0.75,t,0.5);
   }
 }
 
 function updateTrip(dt) {
-  tripTime += dt;
-  tripFadeIn = Math.max(0, tripFadeIn - dt * 1.5);
-  tripHue = (tripHue + dt * 30) % 360;
+  tripTime+=dt;
+  tripFadeIn=Math.max(0,tripFadeIn-dt*1.5);
+  tripHue=(tripHue+dt*25)%360;
+  tripFlash=Math.max(0,tripFlash-dt*4);
 
-  // Trip ends after duration or all enemies dead
-  if (tripTime > tripDuration || tripEnemies.every(e => !e.alive)) {
-    tripFadeIn += dt * 2;
-    if (tripFadeIn >= 1) { endTrip(); return; }
+  // End conditions
+  const allDead=tripEnemies.every(e=>!e.alive);
+  if(tripTime>tripDuration || allDead || tripPlayer.hp<=0) {
+    tripFadeIn+=dt*2;
+    if(tripFadeIn>=1){endTrip();return;}
   }
 
-  // Player movement
-  const moveSpeed = 3 * dt;
-  const rotSpeed = 2.5 * dt;
-  let pmx = 0, pmy = 0;
+  // ── Movement ──
+  const moveSpd=4*dt;
+  const rotSpd=3*dt;
+  let fwd=0, strafe=0, rot=0;
 
-  if (isMobile) {
-    // Use joystick for movement
-    pmx = touch.joyDy * touch.joyForce; // forward/back (joystick Y = forward)
-    const rot = touch.joyDx * touch.joyForce;
-    tripPlayer.angle += rot * rotSpeed * 3;
+  if(isMobile) {
+    fwd = -tripTouch.moveDy; // up = forward
+    strafe = tripTouch.moveDx;
+    rot = tripTouch.lookDx * 3;
   } else {
-    if (keys['w'] || keys['arrowup']) pmx = 1;
-    if (keys['s'] || keys['arrowdown']) pmx = -1;
-    if (keys['a'] || keys['arrowleft']) tripPlayer.angle -= rotSpeed;
-    if (keys['d'] || keys['arrowright']) tripPlayer.angle += rotSpeed;
+    if(keys['w']||keys['arrowup']) fwd=1;
+    if(keys['s']||keys['arrowdown']) fwd=-1;
+    if(keys['a']) strafe=-1;
+    if(keys['d']) strafe=1;
+    if(keys['arrowleft']) rot=-1;
+    if(keys['arrowright']) rot=1;
   }
 
-  const nx = tripPlayer.x + Math.cos(tripPlayer.angle) * pmx * moveSpeed;
-  const ny = tripPlayer.y + Math.sin(tripPlayer.angle) * pmx * moveSpeed;
-  // Collision
-  if (tripMap[Math.floor(tripPlayer.y) * TRIP_MAP_SIZE + Math.floor(nx)] === 0) tripPlayer.x = nx;
-  if (tripMap[Math.floor(ny) * TRIP_MAP_SIZE + Math.floor(tripPlayer.x)] === 0) tripPlayer.y = ny;
+  tripPlayer.angle += rot*rotSpd;
+  const cosA=Math.cos(tripPlayer.angle), sinA=Math.sin(tripPlayer.angle);
+  // Forward/back
+  let nx=tripPlayer.x + cosA*fwd*moveSpd + (-sinA)*strafe*moveSpd;
+  let ny=tripPlayer.y + sinA*fwd*moveSpd + cosA*strafe*moveSpd;
+  // Collision with margin
+  const margin=0.2;
+  if(tripMap[Math.floor(tripPlayer.y)*MS+Math.floor(nx+margin)]===0 &&
+     tripMap[Math.floor(tripPlayer.y)*MS+Math.floor(nx-margin)]===0) tripPlayer.x=nx;
+  if(tripMap[Math.floor(ny+margin)*MS+Math.floor(tripPlayer.x)]===0 &&
+     tripMap[Math.floor(ny-margin)*MS+Math.floor(tripPlayer.x)]===0) tripPlayer.y=ny;
 
-  // Tongue attack
-  if (tripTongue.active) {
-    tripTongue.timer -= dt;
-    if (tripTongue.timer <= 0) tripTongue.active = false;
+  // Head bob
+  if(Math.abs(fwd)>0.1||Math.abs(strafe)>0.1) tripPlayer.bobPhase+=dt*10;
+
+  // ── Tongue ──
+  tripTongue.cooldown=Math.max(0,tripTongue.cooldown-dt);
+  if(tripTongue.active) {
+    tripTongue.timer-=dt;
+    if(tripTongue.timer<=0) tripTongue.active=false;
   }
 
-  // Enemies
+  // ── Enemies ──
   tripEnemies.forEach(e => {
-    if (!e.alive) return;
-    e.hurtTimer = Math.max(0, e.hurtTimer - dt);
-    e.moveTimer -= dt;
-    if (e.moveTimer <= 0) {
-      e.moveTimer = 1 + Math.random() * 2;
-      // Move toward player slightly
-      const dx = tripPlayer.x - e.x, dy = tripPlayer.y - e.y;
-      const dist = Math.sqrt(dx*dx+dy*dy);
-      if (dist > 1.5) {
-        const nx2 = e.x + (dx/dist) * 0.3;
-        const ny2 = e.y + (dy/dist) * 0.3;
-        if (tripMap[Math.floor(ny2) * TRIP_MAP_SIZE + Math.floor(nx2)] === 0) {
-          e.x = nx2; e.y = ny2;
-        }
+    if(!e.alive) { e.deathTimer=Math.min(1,e.deathTimer+dt*3); return; }
+    e.hurtTimer=Math.max(0,e.hurtTimer-dt);
+    e.moveTimer-=dt;
+    e.attackTimer-=dt;
+    const dx=tripPlayer.x-e.x, dy=tripPlayer.y-e.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    // Move toward player
+    if(e.moveTimer<=0) {
+      e.moveTimer=0.5+Math.random()*1;
+      if(dist>1) {
+        const step=e.moveSpeed*0.15;
+        const enx=e.x+(dx/dist)*step;
+        const eny=e.y+(dy/dist)*step;
+        if(tripMap[Math.floor(eny)*MS+Math.floor(enx)]===0) { e.x=enx; e.y=eny; }
       }
+    }
+    // Attack player when close
+    if(dist<1.2 && e.attackTimer<=0) {
+      e.attackTimer=1.5+Math.random()*2;
+      tripPlayer.hp-=8;
+      tripFlash=1;
+      screenShake=0.25;
+      sfx(150,80,0.15,0.2);
     }
   });
 
@@ -3008,231 +3042,365 @@ function updateTrip(dt) {
 }
 
 function tripShoot() {
-  if (tripTongue.active) return;
-  tripTongue.active = true;
-  tripTongue.timer = 0.2;
-  sfx(500, 150, 0.1, 0.25);
-  screenShake = 0.15;
+  if(tripTongue.active||tripTongue.cooldown>0) return;
+  tripTongue.active=true;
+  tripTongue.timer=0.25;
+  tripTongue.cooldown=0.35;
+  sfx(500,150,0.1,0.3);
+  screenShake=0.1;
 
-  // Check if any enemy is in crosshair (center of screen, within angle)
+  // Hit detection — check enemies near crosshair
+  let hitAny=false;
   tripEnemies.forEach(e => {
-    if (!e.alive) return;
-    const dx = e.x - tripPlayer.x, dy = e.y - tripPlayer.y;
-    const dist = Math.sqrt(dx*dx+dy*dy);
-    const angleToEnemy = Math.atan2(dy, dx);
-    let angleDiff = angleToEnemy - tripPlayer.angle;
-    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-    if (Math.abs(angleDiff) < 0.2 && dist < 8) {
+    if(!e.alive) return;
+    const dx=e.x-tripPlayer.x, dy=e.y-tripPlayer.y;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    let ad=Math.atan2(dy,dx)-tripPlayer.angle;
+    while(ad>Math.PI) ad-=Math.PI*2;
+    while(ad<-Math.PI) ad+=Math.PI*2;
+    if(Math.abs(ad)<0.25 && dist<10) {
       e.hp--;
-      e.hurtTimer = 0.2;
-      sfx(300 + Math.random()*200, 100, 0.15, 0.2);
-      screenShake = 0.2;
-      if (e.hp <= 0) {
-        e.alive = false;
+      e.hurtTimer=0.25;
+      hitAny=true;
+      sfx(250+Math.random()*200,100,0.12,0.25);
+      screenShake=0.2;
+      if(e.hp<=0) {
+        e.alive=false;
         tripKills++;
-        sfx(200, 600, 0.2, 0.2);
-        screenShake = 0.3;
+        score+=2; // Bonus bugs for kills
+        sfx(150,500,0.25,0.25);
+        sfx(100,300,0.3,0.15);
+        screenShake=0.35;
+        tripFlash=0.5;
+        intensityTarget=Math.min(1,intensityTarget+0.15);
       }
     }
   });
+  if(!hitAny) sfx(200,100,0.05,0.1); // whiff
 }
 
 function drawTrip() {
-  const sw = W, sh = H;
-  const numRays = Math.min(sw, 400); // Performance limit
-  const sliceW = sw / numRays;
-  const halfH = sh / 2;
+  const sw=W, sh=H;
+  const numRays=Math.min(Math.floor(sw/2),320);
+  const sliceW=sw/numRays;
+  const halfH=sh/2;
+  const bob=Math.sin(tripPlayer.bobPhase)*4;
+  const bobH=halfH+bob;
+  zBuf=new Array(numRays);
 
-  // Trippy sky and floor
-  const skyHue = (tripHue + 180) % 360;
-  const floorHue = tripHue;
-  // Sky gradient
-  const skyG = ctx.createLinearGradient(0, 0, 0, halfH);
-  skyG.addColorStop(0, `hsla(${skyHue}, 60%, 5%, 1)`);
-  skyG.addColorStop(1, `hsla(${skyHue}, 80%, 12%, 1)`);
-  ctx.fillStyle = skyG;
-  ctx.fillRect(0, 0, sw, halfH);
-  // Floor gradient
-  const flrG = ctx.createLinearGradient(0, halfH, 0, sh);
-  flrG.addColorStop(0, `hsla(${floorHue}, 70%, 10%, 1)`);
-  flrG.addColorStop(1, `hsla(${floorHue}, 50%, 3%, 1)`);
-  ctx.fillStyle = flrG;
-  ctx.fillRect(0, halfH, sw, halfH);
+  // ── Sky ──
+  const skyG=ctx.createLinearGradient(0,0,0,bobH);
+  skyG.addColorStop(0,`hsl(${(tripHue+180)%360},40%,3%)`);
+  skyG.addColorStop(1,`hsl(${(tripHue+200)%360},60%,8%)`);
+  ctx.fillStyle=skyG;
+  ctx.fillRect(0,0,sw,bobH);
 
-  // Cast rays
-  const wallHits = [];
-  for (let i = 0; i < numRays; i++) {
-    const rayAngle = tripPlayer.angle - tripPlayer.fov/2 + (i/numRays) * tripPlayer.fov;
-    const cos = Math.cos(rayAngle), sin = Math.sin(rayAngle);
-    let rx = tripPlayer.x, ry = tripPlayer.y;
-    let hitWall = 0, dist = 0;
+  // ── Floor ──
+  const flG=ctx.createLinearGradient(0,bobH,0,sh);
+  flG.addColorStop(0,`hsl(${tripHue},50%,6%)`);
+  flG.addColorStop(1,`hsl(${tripHue},40%,2%)`);
+  ctx.fillStyle=flG;
+  ctx.fillRect(0,bobH,sw,sh-bobH);
 
-    // DDA-style stepping
-    for (let step = 0; step < 200; step++) {
-      rx += cos * 0.02;
-      ry += sin * 0.02;
-      dist += 0.02;
-      const mx = Math.floor(rx), my = Math.floor(ry);
-      if (mx < 0 || mx >= TRIP_MAP_SIZE || my < 0 || my >= TRIP_MAP_SIZE) { hitWall = 1; break; }
-      const cell = tripMap[my * TRIP_MAP_SIZE + mx];
-      if (cell > 0) { hitWall = cell; break; }
+  // ── Floor detail (distance stripes) ──
+  for(let fy=bobH+10;fy<sh;fy+=8) {
+    const floorDist=(sh-bobH)/(fy-bobH+1);
+    const stripe=(Math.floor(floorDist*3+tripTime*2))%2;
+    if(stripe) {
+      ctx.fillStyle=`hsla(${(tripHue+floorDist*15)%360},30%,8%,0.15)`;
+      ctx.fillRect(0,fy,sw,4);
     }
-
-    // Fix fisheye
-    const corrected = dist * Math.cos(rayAngle - tripPlayer.angle);
-    const wallH = Math.min(sh, sh / corrected);
-    const wallTop = halfH - wallH / 2;
-
-    // Wall color based on type + distance + trip effect
-    const darkness = Math.max(0.1, 1 - corrected / 10);
-    let wallHue;
-    if (hitWall === 1) wallHue = (tripHue + corrected * 20) % 360;
-    else if (hitWall === 2) wallHue = (tripHue + 120 + Math.sin(tripTime * 3 + i * 0.1) * 30) % 360;
-    else wallHue = (tripHue + 240 + Math.cos(tripTime * 2) * 40) % 360;
-
-    const wallSat = 60 + Math.sin(tripTime * 2 + i * 0.05) * 20;
-    const wallLight = 15 + darkness * 35 + Math.sin(tripTime * 4 + corrected) * 5;
-
-    ctx.fillStyle = `hsl(${wallHue}, ${wallSat}%, ${wallLight}%)`;
-    ctx.fillRect(i * sliceW, wallTop, sliceW + 1, wallH);
-
-    // Wall edge lines
-    if (i > 0 && Math.abs(wallH - (wallHits[i-1]||wallH)) > 10) {
-      ctx.strokeStyle = `hsla(${wallHue}, 90%, 60%, 0.3)`;
-      ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(i * sliceW, wallTop); ctx.lineTo(i * sliceW, wallTop + wallH); ctx.stroke();
-    }
-    wallHits.push(wallH);
   }
 
-  // Draw enemies (sprite-style)
-  // Sort by distance (far first)
-  const sortedEnemies = tripEnemies.filter(e => e.alive).map(e => {
-    const dx = e.x - tripPlayer.x, dy = e.y - tripPlayer.y;
-    return { ...e, dist: Math.sqrt(dx*dx+dy*dy), angle: Math.atan2(dy, dx) };
-  }).sort((a,b) => b.dist - a.dist);
+  // ── Cast rays (proper DDA) ──
+  for(let i=0;i<numRays;i++) {
+    const rayAngle=tripPlayer.angle-tripPlayer.fov/2+(i/numRays)*tripPlayer.fov;
+    const rayDirX=Math.cos(rayAngle), rayDirY=Math.sin(rayAngle);
+    let mapX=Math.floor(tripPlayer.x), mapY=Math.floor(tripPlayer.y);
+    const ddX=Math.abs(1/rayDirX), ddY=Math.abs(1/rayDirY);
+    let stepX, stepY, sideDistX, sideDistY;
 
-  sortedEnemies.forEach(e => {
-    let angleDiff = e.angle - tripPlayer.angle;
-    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-    if (Math.abs(angleDiff) > tripPlayer.fov * 0.6) return; // Off screen
+    if(rayDirX<0) { stepX=-1; sideDistX=(tripPlayer.x-mapX)*ddX; }
+    else { stepX=1; sideDistX=(mapX+1-tripPlayer.x)*ddX; }
+    if(rayDirY<0) { stepY=-1; sideDistY=(tripPlayer.y-mapY)*ddY; }
+    else { stepY=1; sideDistY=(mapY+1-tripPlayer.y)*ddY; }
 
-    const screenX = sw/2 + (angleDiff / tripPlayer.fov) * sw;
-    const spriteH = Math.min(sh, (sh / e.dist) * 0.6);
-    const spriteW = spriteH * 0.6;
-    const spriteY = halfH - spriteH / 2;
+    let hit=0, side=0, dist=0;
+    for(let s=0;s<64;s++) {
+      if(sideDistX<sideDistY) { sideDistX+=ddX; mapX+=stepX; side=0; }
+      else { sideDistY+=ddY; mapY+=stepY; side=1; }
+      if(mapX<0||mapX>=MS||mapY<0||mapY>=MS) { hit=1; break; }
+      const cell=tripMap[mapY*MS+mapX];
+      if(cell>0) { hit=cell; break; }
+    }
 
-    const eHue = e.type === 'beetle' ? (tripHue + 60) % 360 : (tripHue + 280) % 360;
-    const alpha = e.hurtTimer > 0 ? 0.5 + Math.sin(tripTime * 30) * 0.5 : 1;
-    ctx.globalAlpha = alpha;
+    if(side===0) dist=(mapX-tripPlayer.x+(1-stepX)/2)/rayDirX;
+    else dist=(mapY-tripPlayer.y+(1-stepY)/2)/rayDirY;
+    dist=Math.max(0.1,dist);
+    zBuf[i]=dist;
 
-    // Enemy body
-    ctx.fillStyle = `hsl(${eHue}, 70%, 40%)`;
-    ctx.beginPath(); ctx.ellipse(screenX, spriteY + spriteH * 0.5, spriteW/2, spriteH * 0.4, 0, 0, Math.PI * 2); ctx.fill();
-    // Eyes (glowing)
-    ctx.fillStyle = `hsl(${eHue}, 90%, 70%)`;
-    ctx.beginPath(); ctx.arc(screenX - spriteW * 0.2, spriteY + spriteH * 0.35, spriteW * 0.12, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(screenX + spriteW * 0.2, spriteY + spriteH * 0.35, spriteW * 0.12, 0, Math.PI * 2); ctx.fill();
+    const wallH=sh/dist;
+    const wallTop=bobH-wallH/2;
+
+    // Wall shading
+    const darkness=Math.max(0.08,1-dist/12);
+    const sideShade=side?0.7:1;
+    let hue, sat, lit;
+    if(hit===1) { hue=(tripHue+dist*15)%360; sat=50; lit=12+darkness*30; }
+    else if(hit===2) { hue=(tripHue+120+Math.sin(tripTime*2+i*0.05)*20)%360; sat=65; lit=15+darkness*35; }
+    else { hue=(tripHue+240)%360; sat=55; lit=10+darkness*25; }
+    lit*=sideShade;
+
+    ctx.fillStyle=`hsl(${hue},${sat}%,${lit}%)`;
+    ctx.fillRect(i*sliceW,wallTop,sliceW+1,wallH);
+
+    // Wall texture lines (horizontal bricks)
+    if(wallH>20 && dist<8) {
+      ctx.strokeStyle=`hsla(${hue},${sat}%,${lit+8}%,${darkness*0.2})`;
+      ctx.lineWidth=0.5;
+      const brickH=wallH/8;
+      for(let b=0;b<8;b++) {
+        const by=wallTop+b*brickH;
+        if(by>0&&by<sh) {
+          ctx.beginPath();ctx.moveTo(i*sliceW,by);ctx.lineTo(i*sliceW+sliceW,by);ctx.stroke();
+        }
+      }
+    }
+
+    // Top/bottom edge glow
+    ctx.fillStyle=`hsla(${hue},80%,60%,${darkness*0.06})`;
+    ctx.fillRect(i*sliceW,wallTop-1,sliceW+1,2);
+    ctx.fillRect(i*sliceW,wallTop+wallH-1,sliceW+1,2);
+  }
+
+  // ── Enemies (billboard sprites) ──
+  const sorted=tripEnemies.map(e=>{
+    const dx=e.x-tripPlayer.x, dy=e.y-tripPlayer.y;
+    return{...e, dist:Math.sqrt(dx*dx+dy*dy), angle:Math.atan2(dy,dx)};
+  }).sort((a,b)=>b.dist-a.dist);
+
+  sorted.forEach(e=>{
+    if(e.deathTimer>=1) return;
+    let ad=e.angle-tripPlayer.angle;
+    while(ad>Math.PI) ad-=Math.PI*2;
+    while(ad<-Math.PI) ad+=Math.PI*2;
+    if(Math.abs(ad)>tripPlayer.fov*0.7) return;
+
+    const screenX=sw/2+(ad/tripPlayer.fov)*sw;
+    const spriteScale = e.alive ? 1 : Math.max(0,1-e.deathTimer);
+    let spriteH=(sh/e.dist)*0.55*spriteScale;
+    let spriteW=spriteH*0.5;
+    const spriteY=bobH-spriteH/2 + (e.alive?0:e.deathTimer*spriteH*0.3);
+
+    // Z-clip: only draw columns not behind walls
+    const rayIdx=Math.floor((screenX/sw)*numRays);
+    if(rayIdx>=0&&rayIdx<numRays&&e.dist>zBuf[rayIdx]+0.3) return;
+
+    const eHues={beetle:60,moth:280,toad:120,fly:0};
+    const eHue=(tripHue+(eHues[e.type]||0))%360;
+    const alpha=e.hurtTimer>0?0.4+Math.sin(tripTime*30)*0.6: e.alive?1:1-e.deathTimer;
+    ctx.globalAlpha=alpha;
+
+    // Shadow on floor
+    ctx.fillStyle=`rgba(0,0,0,${0.2/e.dist})`;
+    ctx.beginPath();ctx.ellipse(screenX,bobH+spriteH*0.4,spriteW*0.6,spriteH*0.08,0,0,Math.PI*2);ctx.fill();
+
+    // Body
+    const eG=ctx.createRadialGradient(screenX,spriteY+spriteH*0.45,0,screenX,spriteY+spriteH*0.45,spriteW*0.6);
+    eG.addColorStop(0,`hsl(${eHue},60%,45%)`);
+    eG.addColorStop(1,`hsl(${eHue},50%,25%)`);
+    ctx.fillStyle=eG;
+    ctx.beginPath();ctx.ellipse(screenX,spriteY+spriteH*0.45,spriteW*0.5,spriteH*0.4,0,0,Math.PI*2);ctx.fill();
+
+    if(e.type==='toad') {
+      // Toad — bigger, wider mouth
+      ctx.fillStyle=`hsl(${eHue},40%,35%)`;
+      ctx.beginPath();ctx.ellipse(screenX,spriteY+spriteH*0.5,spriteW*0.55,spriteH*0.35,0,0,Math.PI*2);ctx.fill();
+      // Warts
+      ctx.fillStyle=`hsl(${eHue},30%,30%)`;
+      for(let w=0;w<4;w++){
+        ctx.beginPath();ctx.arc(screenX+(Math.sin(w*2.5)-0.5)*spriteW*0.4,spriteY+spriteH*(0.3+w*0.08),spriteW*0.06,0,Math.PI*2);ctx.fill();
+      }
+    }
+
+    // Eyes
+    const eyeW=spriteW*0.18, eyeSpan=spriteW*0.22;
+    ctx.fillStyle=`hsl(${eHue},90%,75%)`;
+    ctx.beginPath();ctx.arc(screenX-eyeSpan,spriteY+spriteH*0.3,eyeW,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(screenX+eyeSpan,spriteY+spriteH*0.3,eyeW,0,Math.PI*2);ctx.fill();
     // Pupils
-    ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.arc(screenX - spriteW * 0.2, spriteY + spriteH * 0.35, spriteW * 0.05, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(screenX + spriteW * 0.2, spriteY + spriteH * 0.35, spriteW * 0.05, 0, Math.PI * 2); ctx.fill();
-    // Glow
-    const eg = ctx.createRadialGradient(screenX, spriteY + spriteH/2, 0, screenX, spriteY + spriteH/2, spriteW);
-    eg.addColorStop(0, `hsla(${eHue}, 80%, 50%, 0.1)`);
-    eg.addColorStop(1, 'transparent');
-    ctx.fillStyle = eg;
-    ctx.beginPath(); ctx.arc(screenX, spriteY + spriteH/2, spriteW, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle='#000';
+    ctx.beginPath();ctx.arc(screenX-eyeSpan,spriteY+spriteH*0.3,eyeW*0.45,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(screenX+eyeSpan,spriteY+spriteH*0.3,eyeW*0.45,0,Math.PI*2);ctx.fill();
+    // Eye shine
+    ctx.fillStyle=`rgba(255,255,255,0.6)`;
+    ctx.beginPath();ctx.arc(screenX-eyeSpan-eyeW*0.2,spriteY+spriteH*0.28,eyeW*0.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(screenX+eyeSpan-eyeW*0.2,spriteY+spriteH*0.28,eyeW*0.2,0,Math.PI*2);ctx.fill();
 
-    ctx.globalAlpha = 1;
+    // Mouth
+    if(e.type==='toad') {
+      ctx.strokeStyle=`hsl(${eHue},40%,20%)`;ctx.lineWidth=spriteW*0.04;
+      ctx.beginPath();ctx.arc(screenX,spriteY+spriteH*0.55,spriteW*0.25,0.2,Math.PI-0.2);ctx.stroke();
+    }
+
+    // Glow aura
+    const gR=spriteW*0.8;
+    const gg=ctx.createRadialGradient(screenX,spriteY+spriteH*0.4,0,screenX,spriteY+spriteH*0.4,gR);
+    gg.addColorStop(0,`hsla(${eHue},80%,50%,0.08)`);
+    gg.addColorStop(1,'transparent');
+    ctx.fillStyle=gg;
+    ctx.beginPath();ctx.arc(screenX,spriteY+spriteH*0.4,gR,0,Math.PI*2);ctx.fill();
+
+    ctx.globalAlpha=1;
   });
 
-  // Tongue attack effect
-  if (tripTongue.active) {
-    const tongueLen = (1 - tripTongue.timer / 0.2);
-    ctx.strokeStyle = `rgba(239,68,68,${0.6 + Math.sin(tripTime*20)*0.2})`;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(sw/2, sh * 0.7);
-    ctx.lineTo(sw/2 + Math.sin(tripTime*15)*10, sh * 0.7 - tongueLen * sh * 0.5);
+  // ── Tongue weapon ──
+  // Always show frog hands at bottom
+  const handY=sh-40+bob*0.5;
+  const handW=40, handH=30;
+  // Left hand
+  ctx.fillStyle='#22c55e';
+  ctx.beginPath();ctx.ellipse(sw*0.3,handY,handW,handH,0.2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#15803d';
+  ctx.beginPath();ctx.ellipse(sw*0.3-8,handY+5,8,5,-0.3,0,Math.PI*2);ctx.fill();
+  // Right hand
+  ctx.fillStyle='#22c55e';
+  ctx.beginPath();ctx.ellipse(sw*0.7,handY,handW,handH,-0.2,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#15803d';
+  ctx.beginPath();ctx.ellipse(sw*0.7+8,handY+5,8,5,0.3,0,Math.PI*2);ctx.fill();
+
+  // Tongue attack
+  if(tripTongue.active) {
+    const t01=1-tripTongue.timer/0.25;
+    const extend=t01<0.5?easeOutBack(t01*2):1-(t01-0.5)*2; // shoot out then retract
+    const tongueEndY=handY-extend*sh*0.5;
+    const wobble=Math.sin(tripTime*25)*5*extend;
+    // Shadow
+    ctx.strokeStyle='rgba(0,0,0,0.2)';
+    ctx.lineWidth=6;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(sw/2+2,handY-10);
+    ctx.quadraticCurveTo(sw/2+wobble+2,handY-extend*sh*0.25+2,sw/2+wobble+2,tongueEndY+2);
+    ctx.stroke();
+    // Tongue
+    ctx.strokeStyle='#f87171';
+    ctx.lineWidth=5;
+    ctx.beginPath();ctx.moveTo(sw/2,handY-10);
+    ctx.quadraticCurveTo(sw/2+wobble,handY-extend*sh*0.25,sw/2+wobble,tongueEndY);
+    ctx.stroke();
+    // Center line
+    ctx.strokeStyle='#fca5a5';
+    ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(sw/2,handY-10);
+    ctx.quadraticCurveTo(sw/2+wobble,handY-extend*sh*0.25,sw/2+wobble,tongueEndY);
     ctx.stroke();
     // Tip
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath(); ctx.arc(sw/2 + Math.sin(tripTime*15)*10, sh * 0.7 - tongueLen * sh * 0.5, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle='#ef4444';
+    ctx.beginPath();ctx.arc(sw/2+wobble,tongueEndY,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fca5a5';
+    ctx.beginPath();ctx.arc(sw/2+wobble-2,tongueEndY-2,3,0,Math.PI*2);ctx.fill();
+    ctx.lineCap='butt';
   }
 
-  // Crosshair
-  const chAlpha = 0.4 + Math.sin(tripTime * 3) * 0.1;
-  ctx.strokeStyle = `rgba(134,239,172,${chAlpha})`;
-  ctx.lineWidth = 2;
-  const chSize = 12;
+  // ── Crosshair ──
+  const chA=0.35+Math.sin(tripTime*3)*0.1;
+  ctx.strokeStyle=`rgba(134,239,172,${chA})`;
+  ctx.lineWidth=1.5;
   ctx.beginPath();
-  ctx.moveTo(sw/2 - chSize, sh/2); ctx.lineTo(sw/2 - 4, sh/2);
-  ctx.moveTo(sw/2 + 4, sh/2); ctx.lineTo(sw/2 + chSize, sh/2);
-  ctx.moveTo(sw/2, sh/2 - chSize); ctx.lineTo(sw/2, sh/2 - 4);
-  ctx.moveTo(sw/2, sh/2 + 4); ctx.lineTo(sw/2, sh/2 + chSize);
+  ctx.moveTo(sw/2-10,sh/2);ctx.lineTo(sw/2-3,sh/2);
+  ctx.moveTo(sw/2+3,sh/2);ctx.lineTo(sw/2+10,sh/2);
+  ctx.moveTo(sw/2,sh/2-10);ctx.lineTo(sw/2,sh/2-3);
+  ctx.moveTo(sw/2,sh/2+3);ctx.lineTo(sw/2,sh/2+10);
   ctx.stroke();
-  ctx.fillStyle = `rgba(134,239,172,${chAlpha})`;
-  ctx.beginPath(); ctx.arc(sw/2, sh/2, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle=`rgba(134,239,172,${chA+0.1})`;
+  ctx.beginPath();ctx.arc(sw/2,sh/2,1.5,0,Math.PI*2);ctx.fill();
 
-  // Chromatic aberration / scan lines
-  ctx.fillStyle = `rgba(${tripHue % 255}, 0, ${(tripHue + 128) % 255}, 0.015)`;
-  ctx.fillRect(0, 0, sw, sh);
-  for (let sy = 0; sy < sh; sy += 3) {
-    ctx.fillStyle = `rgba(0,0,0,${0.05 + Math.sin(sy * 0.5 + tripTime * 5) * 0.02})`;
-    ctx.fillRect(0, sy, sw, 1);
+  // ── Post-processing ──
+  // Scanlines
+  ctx.fillStyle='rgba(0,0,0,0.04)';
+  for(let sy=0;sy<sh;sy+=2) ctx.fillRect(0,sy,sw,1);
+  // Color tint
+  ctx.fillStyle=`hsla(${tripHue},80%,50%,0.01)`;
+  ctx.fillRect(0,0,sw,sh);
+  // Vignette
+  const vg=ctx.createRadialGradient(sw/2,sh/2,sw*0.22,sw/2,sh/2,sw*0.65);
+  vg.addColorStop(0,'transparent');
+  vg.addColorStop(1,'rgba(0,0,0,0.75)');
+  ctx.fillStyle=vg;
+  ctx.fillRect(0,0,sw,sh);
+  // Damage flash
+  if(tripFlash>0) {
+    ctx.fillStyle=`rgba(220,38,38,${tripFlash*0.25})`;
+    ctx.fillRect(0,0,sw,sh);
   }
 
-  // Vignette (darker)
-  const vg = ctx.createRadialGradient(sw/2, sh/2, sw*0.2, sw/2, sh/2, sw*0.6);
-  vg.addColorStop(0, 'transparent');
-  vg.addColorStop(1, 'rgba(0,0,0,0.8)');
-  ctx.fillStyle = vg;
-  ctx.fillRect(0, 0, sw, sh);
+  // ── HUD ──
+  // Health bar
+  const hbW=120, hbH=8, hbX=20, hbY=sh-30;
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.fillRect(hbX-1,hbY-1,hbW+2,hbH+2);
+  const hpPct=Math.max(0,tripPlayer.hp/100);
+  const hpHue=hpPct>0.5?120:hpPct>0.25?40:0;
+  ctx.fillStyle=`hsl(${hpHue},70%,45%)`;
+  ctx.fillRect(hbX,hbY,hbW*hpPct,hbH);
+  // HP text
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.font='10px Courier New';
+  ctx.fillText(`HP ${Math.ceil(tripPlayer.hp)}`,hbX,hbY-4);
 
-  // Screen shake
-  if (screenShake > 0.01) {
-    ctx.fillStyle = `rgba(255,100,100,${screenShake * 0.1})`;
-    ctx.fillRect(0, 0, sw, sh);
+  // Kill counter
+  ctx.fillStyle=`hsla(${tripHue},80%,60%,0.7)`;
+  ctx.font='12px Courier New';
+  ctx.fillText(`KILLS: ${tripKills}/${tripEnemies.length}`,20,25);
+  const timeLeft=Math.max(0,Math.ceil(tripDuration-tripTime));
+  const minutes=Math.floor(timeLeft/60);
+  const seconds=timeLeft%60;
+  ctx.fillText(`${minutes}:${seconds<10?'0':''}${seconds}`,20,42);
+
+  // ── Mobile dual-stick UI ──
+  if(isMobile) {
+    // Left stick (move)
+    if(tripTouch.moveId!==null) {
+      const bx=tripTouch.moveSX, by=tripTouch.moveSY;
+      ctx.strokeStyle='rgba(134,239,172,0.12)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(bx,by,JOY_RADIUS,0,Math.PI*2);ctx.stroke();
+      const knx=bx+tripTouch.moveDx*JOY_RADIUS, kny=by+tripTouch.moveDy*JOY_RADIUS;
+      ctx.fillStyle='rgba(134,239,172,0.2)';
+      ctx.beginPath();ctx.arc(knx,kny,18,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='rgba(134,239,172,0.25)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(knx,kny,18,0,Math.PI*2);ctx.stroke();
+    }
+    // Right stick (look) + shoot button
+    if(tripTouch.lookId!==null) {
+      const bx=tripTouch.lookSX, by=tripTouch.lookSY;
+      ctx.strokeStyle='rgba(239,68,68,0.12)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(bx,by,JOY_RADIUS,0,Math.PI*2);ctx.stroke();
+      const knx=bx+tripTouch.lookDx*JOY_RADIUS, kny=by+tripTouch.lookDy*JOY_RADIUS;
+      ctx.fillStyle='rgba(239,68,68,0.2)';
+      ctx.beginPath();ctx.arc(knx,kny,18,0,Math.PI*2);ctx.fill();
+    }
+    // Shoot button
+    const shootX=sw-60, shootY=sh-60;
+    const shootAlpha=tripTongue.cooldown>0?0.15:0.3;
+    ctx.strokeStyle=`rgba(239,68,68,${shootAlpha})`;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(shootX,shootY,32,0,Math.PI*2);ctx.stroke();
+    const sG=ctx.createRadialGradient(shootX,shootY,0,shootX,shootY,32);
+    sG.addColorStop(0,`rgba(239,68,68,${shootAlpha*0.5})`);sG.addColorStop(1,'transparent');
+    ctx.fillStyle=sG;
+    ctx.beginPath();ctx.arc(shootX,shootY,32,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=`rgba(239,68,68,${shootAlpha+0.15})`;
+    ctx.font='9px Courier New';ctx.textAlign='center';
+    ctx.fillText('TONGUE',shootX,shootY+3);ctx.textAlign='start';
   }
 
-  // HUD
-  ctx.fillStyle = `hsla(${tripHue}, 80%, 60%, 0.7)`;
-  ctx.font = '12px Courier New';
-  ctx.fillText(`KILLS: ${tripKills}/${tripEnemies.length}`, 20, 30);
-  const timeLeft = Math.max(0, Math.ceil(tripDuration - tripTime));
-  ctx.fillText(`TRIP: ${timeLeft}s`, 20, 48);
-
-  // Mobile: shoot button (right side)
-  if (isMobile) {
-    const shootX = W - 60, shootY = H - 80;
-    ctx.strokeStyle = 'rgba(239,68,68,0.3)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(shootX, shootY, 35, 0, Math.PI * 2); ctx.stroke();
-    const sg2 = ctx.createRadialGradient(shootX, shootY, 0, shootX, shootY, 35);
-    sg2.addColorStop(0, 'rgba(239,68,68,0.15)');
-    sg2.addColorStop(1, 'rgba(239,68,68,0)');
-    ctx.fillStyle = sg2;
-    ctx.beginPath(); ctx.arc(shootX, shootY, 35, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(239,68,68,0.5)';
-    ctx.font = '10px Courier New';
-    ctx.textAlign = 'center';
-    ctx.fillText('TONGUE', shootX, shootY + 4);
-    ctx.textAlign = 'start';
-  }
-
-  // Fade in/out
-  if (tripFadeIn > 0) {
-    ctx.fillStyle = `rgba(0,0,0,${tripFadeIn})`;
-    ctx.fillRect(0, 0, sw, sh);
-    if (tripFadeIn > 0.5 && tripTime < 2) {
-      ctx.fillStyle = `rgba(239,68,68,${(tripFadeIn - 0.5) * 1.5})`;
-      ctx.font = '20px Courier New';
-      ctx.textAlign = 'center';
-      ctx.fillText('D O N\'T   F I G H T   I T', sw/2, sh/2);
-      ctx.textAlign = 'start';
+  // ── Fade ──
+  if(tripFadeIn>0) {
+    ctx.fillStyle=`rgba(0,0,0,${tripFadeIn})`;
+    ctx.fillRect(0,0,sw,sh);
+    if(tripFadeIn>0.5&&tripTime<2) {
+      ctx.fillStyle=`rgba(239,68,68,${(tripFadeIn-0.5)*1.5})`;
+      ctx.font='20px Courier New';ctx.textAlign='center';
+      ctx.fillText('D O N\'T   F I G H T   I T',sw/2,sh/2);
+      ctx.textAlign='start';
     }
   }
 }
@@ -3263,21 +3431,67 @@ function startGame() {
 }
 
 // Trip mode input handlers
-window.addEventListener('mousedown', e => {
-  if (tripActive) tripShoot();
-});
+window.addEventListener('mousedown', e => { if(tripActive) tripShoot(); });
 window.addEventListener('keydown', e => {
-  if (tripActive && (e.code === 'Space' || e.key.toLowerCase() === 'e')) tripShoot();
+  if(tripActive && (e.code==='Space'||e.key.toLowerCase()==='e')) tripShoot();
 });
-// Mobile shoot button for trip
+
+// Mobile dual-stick for trip mode
 canvas.addEventListener('touchstart', e => {
-  if (!tripActive) return;
-  for (const t of e.changedTouches) {
-    const x = t.clientX, y = t.clientY;
-    // Right side = shoot
-    if (x > W * 0.5) { tripShoot(); }
+  if(!tripActive) return;
+  e.preventDefault();
+  for(const t of e.changedTouches) {
+    const x=t.clientX, y=t.clientY;
+    // Shoot button (bottom-right circle)
+    const shootDist=Math.sqrt(Math.pow(x-(W-60),2)+Math.pow(y-(H-60),2));
+    if(shootDist<45) { tripShoot(); continue; }
+    // Left half = move stick
+    if(x<W*0.45 && tripTouch.moveId===null) {
+      tripTouch.moveId=t.identifier;
+      tripTouch.moveSX=x; tripTouch.moveSY=y;
+      tripTouch.moveDx=0; tripTouch.moveDy=0;
+    }
+    // Right half = look stick
+    else if(x>=W*0.45 && tripTouch.lookId===null) {
+      tripTouch.lookId=t.identifier;
+      tripTouch.lookSX=x; tripTouch.lookSY=y;
+      tripTouch.lookDx=0; tripTouch.lookDy=0;
+    }
   }
-}, { passive: true });
+}, {passive:false});
+
+canvas.addEventListener('touchmove', e => {
+  if(!tripActive) return;
+  e.preventDefault();
+  for(const t of e.changedTouches) {
+    if(t.identifier===tripTouch.moveId) {
+      let dx=t.clientX-tripTouch.moveSX, dy=t.clientY-tripTouch.moveSY;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d>JOY_DEAD) {
+        const c=Math.min(d,JOY_RADIUS);
+        tripTouch.moveDx=(dx/d)*(c/JOY_RADIUS);
+        tripTouch.moveDy=(dy/d)*(c/JOY_RADIUS);
+      } else { tripTouch.moveDx=0; tripTouch.moveDy=0; }
+    }
+    if(t.identifier===tripTouch.lookId) {
+      let dx=t.clientX-tripTouch.lookSX, dy=t.clientY-tripTouch.lookSY;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d>JOY_DEAD) {
+        const c=Math.min(d,JOY_RADIUS);
+        tripTouch.lookDx=(dx/d)*(c/JOY_RADIUS);
+        tripTouch.lookDy=(dy/d)*(c/JOY_RADIUS);
+      } else { tripTouch.lookDx=0; tripTouch.lookDy=0; }
+    }
+  }
+}, {passive:false});
+
+canvas.addEventListener('touchend', e => {
+  if(!tripActive) return;
+  for(const t of e.changedTouches) {
+    if(t.identifier===tripTouch.moveId) { tripTouch.moveId=null; tripTouch.moveDx=0; tripTouch.moveDy=0; }
+    if(t.identifier===tripTouch.lookId) { tripTouch.lookId=null; tripTouch.lookDx=0; tripTouch.lookDy=0; }
+  }
+});
 
 requestAnimationFrame(loop);
 </script>
