@@ -455,6 +455,42 @@ const dialogue = {
 };
 
 function initNPCs() {
+  // Test NPC — Shaman frog near spawn, gives rare bug for DOOM mode
+  npcs.push({
+    x: WORLD_W/2 + 60, y: WORLD_H/2 + 60,
+    type: 'mushroom',
+    name: 'Shaman Gorp',
+    size: 18,
+    color: '#f43f5e',
+    eyeColor: '#fda4af',
+    bobPhase: Math.random()*Math.PI*2,
+    dir: -1,
+    talked: false,
+    dialogue: [
+      { text: "Psst... you.\nYou look like someone\nwho wants to see things.", speaker: "Shaman Gorp" },
+      { text: "I have a rare bug.\nA Voidfly. One bite and\nyou'll see the other side.", speaker: "Shaman Gorp" },
+      { text: "The swamp has layers,\nkid. Layers most frogs\nnever see.", speaker: "Shaman Gorp" },
+      {
+        text: "Want to eat the Voidfly?",
+        speaker: "Shaman Gorp",
+        choices: [
+          { text: "Feed me.", response: "*The Voidfly glows purple.\nYou swallow it whole.\nYour vision melts.*\n\n...Here we go.", onSelect: 'trip' },
+          { text: "No thanks.", response: "Your loss.\nI'll be here when\nyou change your mind." },
+        ]
+      },
+    ],
+    dialogueAfter: [
+      {
+        text: "Back for more?\nAnother Voidfly?",
+        speaker: "Shaman Gorp",
+        choices: [
+          { text: "Hit me again.", response: "*crunch*\n\n...See you on\nthe other side.", onSelect: 'trip' },
+          { text: "I'm good.", response: "Lightweight." },
+        ]
+      },
+    ],
+  });
+
   npcs.push({
     x: WORLD_W/2 + 200, y: WORLD_H/2 - 100,
     type: 'oldfrog',
@@ -775,15 +811,16 @@ function advanceDialogue() {
     const choice = dialogue.choices[dialogue.choiceIndex];
     // Handle special actions
     if (choice.onSelect === 'trip') {
-      if (score >= 50) {
-        score -= 50;
-        document.getElementById('score').textContent = 'BUGS: ' + score;
-        dialogue.active = false;
-        startTrip();
-      } else {
-        // Not enough bugs — replace response
+      // Dealer requires 50 bugs, Shaman is free
+      const isDealer = dialogue.npc && dialogue.npc.name === '???';
+      if (isDealer && score < 50) {
         choice.response = `You only got ${score} bugs.\nCome back with 50.\n\n*fades back into shadow*`;
         choice.onSelect = null;
+      } else {
+        if (isDealer) { score -= 50; document.getElementById('score').textContent = 'BUGS: ' + score; }
+        dialogue.active = false;
+        startTrip();
+        return;
       }
     }
     if (choice.onSelect === 'enterZone') {
@@ -2947,14 +2984,28 @@ function startTrip() {
 
 function endTrip() {
   tripActive=false;
+  // Restore music based on current zone
   if(musicStarted) {
     const t=audioCtx.currentTime;
-    layers.sub.osc.type='sawtooth';
-    layers.sub.osc.frequency.setTargetAtTime(55,t,0.5);
-    layers.pad.osc.frequency.setTargetAtTime(146.83,t,0.5);
-    layers.pad.filter.frequency.setTargetAtTime(700,t,0.3);
-    masterGain.gain.setTargetAtTime(0.75,t,0.5);
+    if(currentZone===1) {
+      layers.sub.osc.type='sine';
+      layers.sub.osc.frequency.setTargetAtTime(45,t,0.5);
+      layers.sub.gain.gain.setTargetAtTime(0.3,t,0.3);
+      layers.pad.osc.type='triangle';
+      layers.pad.osc.frequency.setTargetAtTime(110,t,0.5);
+      layers.pad.filter.frequency.setTargetAtTime(400,t,0.3);
+      layers.pad.gain.gain.setTargetAtTime(0.18,t,0.3);
+      masterGain.gain.setTargetAtTime(0.7,t,0.5);
+    } else {
+      layers.sub.osc.type='sawtooth';
+      layers.sub.osc.frequency.setTargetAtTime(55,t,0.5);
+      layers.pad.osc.frequency.setTargetAtTime(146.83,t,0.5);
+      layers.pad.filter.frequency.setTargetAtTime(700,t,0.3);
+      masterGain.gain.setTargetAtTime(0.75,t,0.5);
+    }
   }
+  // Add kills to score
+  document.getElementById('score').textContent = 'BUGS: '+score;
 }
 
 function updateTrip(dt) {
