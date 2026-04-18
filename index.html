@@ -3623,7 +3623,7 @@ function drawTrip() {
   }
 }
 
-// ─── HEX PUZZLE MINIGAME ───
+// ─── HEX PUZZLE MINIGAME (Hextris-style) ───
 let hexActive = false;
 let hexTime = 0;
 let hexFade = 0;
@@ -3705,118 +3705,125 @@ function hexRotate(dir) {
   if (hexGameOver) return;
   hexPosition = ((hexPosition + dir) + HEX_SIDES) % HEX_SIDES;
   hexTargetRotation -= dir * 60;
-  sfx(300, 250, 0.05, 0.1);
-  // Rotate settled blocks' target angles
+  sfx(280, 220, 0.06, 0.12);
+  // All settled blocks rotate with the hex
   hexBlocks.forEach(lane => lane.forEach(b => b.targetAngle -= dir * 60));
 }
 
-function hexSpawnBlock() {
-  const lane = Math.floor(Math.random() * HEX_SIDES);
-  const color = HEX_COLORS[Math.floor(Math.random() * HEX_COLORS.length)];
-  const angle = 90 - (30 + 60 * lane);
-  hexFalling.push({
-    lane, color, angle, targetAngle: angle,
-    dist: 350, speed: hexSpeed, settled: false,
-    opacity: 1, deleted: false, tint: 0,
+// Wave pattern system (like Hextris)
+let hexWaveType = 'random';
+let hexWaveCt = 0;
+function hexSpawnWave() {
+  const spd = hexSpeed;
+  const c = () => HEX_COLORS[Math.floor(Math.random()*HEX_COLORS.length)];
+  const spawn = (lane, color) => {
+    const angle = 90-(30+60*lane);
+    hexFalling.push({ lane, color, angle, targetAngle:angle, dist:350, speed:spd, settled:false, opacity:1, deleted:0, tint:0 });
+  };
+
+  if (hexWaveType === 'random') {
+    spawn(Math.floor(Math.random()*HEX_SIDES), c());
+    hexWaveCt++;
+    if (hexWaveCt > 5) {
+      const patterns = ['double','spiral','circle','random','random'];
+      hexWaveType = patterns[Math.floor(Math.random()*patterns.length)];
+      hexWaveCt = 0;
+    }
+  } else if (hexWaveType === 'double') {
+    const lane = Math.floor(Math.random()*HEX_SIDES);
+    const col = c();
+    spawn(lane, col);
+    spawn((lane+1)%HEX_SIDES, c());
+    hexWaveCt++;
+    if (hexWaveCt > 3) { hexWaveType='random'; hexWaveCt=0; }
+  } else if (hexWaveType === 'spiral') {
+    spawn(hexWaveCt%HEX_SIDES, c());
+    hexWaveCt++;
+    if (hexWaveCt > 6) { hexWaveType='random'; hexWaveCt=0; }
+  } else if (hexWaveType === 'circle') {
+    const col = c();
+    const numC = 1+Math.floor(Math.random()*2);
+    const cols = [col]; for (let i=1;i<numC;i++) cols.push(c());
+    for (let i=0;i<HEX_SIDES;i++) spawn(i, cols[i%numC]);
+    hexWaveCt += 10;
+    hexWaveType='random'; hexWaveCt=0;
+  }
+}
+
+// Flood-fill matching (like actual Hextris)
+function hexFloodFill(side, index, color, found) {
+  // Check up/down in same lane and adjacent lanes at same index
+  const dirs = [[-1,0],[1,0],[0,-1],[0,1]]; // [side offset, index offset]
+  for (const [ds, di] of dirs) {
+    if (Math.abs(ds)===Math.abs(di)) continue; // skip diagonals
+    const ns = (side+ds+HEX_SIDES)%HEX_SIDES;
+    const ni = index+di;
+    if (!hexBlocks[ns] || !hexBlocks[ns][ni]) continue;
+    const b = hexBlocks[ns][ni];
+    if (b.color===color && !b.deleted && !found.some(f=>f[0]===ns&&f[1]===ni)) {
+      found.push([ns,ni]);
+      hexFloodFill(ns,ni,color,found);
+    }
+  }
+}
+
+function hexConsolidate(side, index) {
+  const b = hexBlocks[side][index];
+  if (!b || b.deleted) return;
+  const found = [[side,index]];
+  hexFloodFill(side,index,b.color,found);
+  if (found.length < 3) return;
+
+  // Score
+  hexCombo++;
+  hexComboTimer = 3;
+  const pts = found.length * found.length * hexCombo;
+  hexScore += pts;
+  hexPulse = 0.4 + hexCombo * 0.1;
+  hexShake = 0.15 + hexCombo * 0.05;
+  const freq = 350 + hexCombo * 60;
+  sfx(freq, freq*1.8, 0.15, 0.2);
+  if (hexCombo>1) sfx(freq*1.5, freq*2.5, 0.1, 0.12);
+  intensityTarget = Math.min(1, intensityTarget+0.12);
+
+  // Mark deleted + spawn particles
+  found.forEach(([s,i]) => {
+    const bl = hexBlocks[s][i];
+    bl.deleted = 1;
+    const bAngle = bl.angle*Math.PI/180;
+    const bx = W/2 + Math.sin(bAngle)*bl.dist;
+    const by = H/2 - Math.cos(bAngle)*bl.dist;
+    for (let p=0;p<5;p++) {
+      const a=Math.random()*Math.PI*2;
+      hexParticles.push({ x:bx,y:by, vx:Math.cos(a)*(2+Math.random()*3), vy:Math.sin(a)*(2+Math.random()*3),
+        life:0.5+Math.random()*0.4, color:bl.color, size:3+Math.random()*3 });
+    }
   });
 }
 
-function hexCheckMatches() {
-  let scored = false;
-  // Check each lane for 3+ consecutive same-color blocks
-  for (let i = 0; i < HEX_SIDES; i++) {
-    const lane = hexBlocks[i];
-    if (lane.length < 1) continue;
-    // Check adjacent lanes for matching colors at same depth
-    // Simple: check if top blocks on adjacent lanes match
-  }
-  // Check across adjacent lanes at the boundary (touching blocks)
-  // For now: simple same-lane consecutive match
-  for (let i = 0; i < HEX_SIDES; i++) {
-    const lane = hexBlocks[i];
-    for (let j = 0; j < lane.length; j++) {
-      if (lane[j].deleted) continue;
-      const color = lane[j].color;
-      // Check same lane consecutive
-      let count = 1;
-      let k = j + 1;
-      while (k < lane.length && lane[k].color === color && !lane[k].deleted) { count++; k++; }
-      if (count >= 3) {
-        for (let m = j; m < j + count; m++) lane[m].deleted = true;
-        scored = true;
-      }
-    }
-  }
-  // Check across adjacent lanes (blocks at same height touching)
-  for (let i = 0; i < HEX_SIDES; i++) {
-    const lane1 = hexBlocks[i];
-    const lane2 = hexBlocks[(i + 1) % HEX_SIDES];
-    if (lane1.length === 0 || lane2.length === 0) continue;
-    // Check if top blocks match across lanes
-    const top1 = lane1[lane1.length - 1];
-    const top2 = lane2[lane2.length - 1];
-    if (top1 && top2 && !top1.deleted && !top2.deleted && top1.color === top2.color) {
-      // Find connected same-color chain around the hex
-      let chain = [{ lane: i, idx: lane1.length - 1 }];
-      let checkLane = (i + 1) % HEX_SIDES;
-      while (checkLane !== i) {
-        const cl = hexBlocks[checkLane];
-        if (cl.length === 0) break;
-        const topB = cl[cl.length - 1];
-        if (topB && !topB.deleted && topB.color === top1.color) {
-          chain.push({ lane: checkLane, idx: cl.length - 1 });
-          checkLane = (checkLane + 1) % HEX_SIDES;
-        } else break;
-      }
-      if (chain.length >= 3) {
-        chain.forEach(c => hexBlocks[c.lane][c.idx].deleted = true);
-        scored = true;
-      }
-    }
-  }
-  if (scored) {
-    hexCombo++;
-    hexComboTimer = 2;
-    const pts = 10 * hexCombo;
-    hexScore += pts;
-    hexPulse = 0.5;
-    hexShake = 0.2;
-    // Sound — pitch rises with combo
-    const freq = 400 + hexCombo * 80;
-    sfx(freq, freq * 1.5, 0.12, 0.2);
-    if (hexCombo > 1) sfx(freq * 1.5, freq * 2, 0.08, 0.1);
-    // Particles for deleted blocks
-    hexBlocks.forEach(lane => {
-      lane.forEach(b => {
-        if (b.deleted && b.opacity > 0.9) {
-          const bAngle = b.angle * Math.PI / 180;
-          const bx = W/2 + Math.sin(bAngle) * b.dist;
-          const by = H/2 - Math.cos(bAngle) * b.dist;
-          for (let p = 0; p < 6; p++) {
-            const a = Math.random() * Math.PI * 2;
-            hexParticles.push({
-              x: bx, y: by,
-              vx: Math.cos(a) * (2 + Math.random() * 3),
-              vy: Math.sin(a) * (2 + Math.random() * 3),
-              life: 0.5 + Math.random() * 0.4,
-              color: b.color, size: 3 + Math.random() * 3,
-            });
-          }
-        }
-      });
+function hexRemoveDeleted() {
+  let anyRemoved = false;
+  for (let i=0;i<HEX_SIDES;i++) {
+    const before = hexBlocks[i].length;
+    hexBlocks[i] = hexBlocks[i].filter(b => !b.deleted);
+    if (hexBlocks[i].length < before) anyRemoved = true;
+    // Unsettled blocks above gaps need to re-settle
+    const innerDist = hexSideLen*Math.sqrt(3)/2;
+    hexBlocks[i].forEach((b,j) => {
+      const targetDist = innerDist + hexBlockH*j;
+      if (Math.abs(b.dist-targetDist) > 0.5) b.settling = true;
+      b.targetDist = targetDist;
     });
-    // Remove deleted blocks after animation
+  }
+  // Check for chain reactions after removal
+  if (anyRemoved) {
     setTimeout(() => {
-      for (let i = 0; i < HEX_SIDES; i++) {
-        hexBlocks[i] = hexBlocks[i].filter(b => !b.deleted);
-        // Recalculate distances
-        hexBlocks[i].forEach((b, j) => {
-          b.dist = hexSideLen * Math.sqrt(3) / 2 + hexBlockH * j;
-        });
+      for (let i=0;i<HEX_SIDES;i++) {
+        for (let j=0;j<hexBlocks[i].length;j++) {
+          hexConsolidate(i,j);
+        }
       }
-      hexCheckMatches(); // chain reactions
-    }, 200);
-    intensityTarget = Math.min(1, intensityTarget + 0.1);
+    }, 150);
   }
 }
 
@@ -3830,91 +3837,89 @@ function hexCheckGameOver() {
 
 function updateHex(dt) {
   hexTime += dt;
-  hexFade = Math.max(0, hexFade - dt * 2);
+  hexFade = Math.max(0, hexFade-dt*2);
   hexPulse *= 0.93;
   hexShake *= 0.9;
 
   if (hexGameOver) {
     hexGameOverTimer += dt;
-    if (hexGameOverTimer > 3) { hexFade += dt * 2; if (hexFade >= 1) endHex(); }
+    if (hexGameOverTimer>3) { hexFade+=dt*2; if(hexFade>=1) endHex(); }
     return;
   }
 
-  // Smooth rotation
-  const rotDiff = hexTargetRotation - hexRotation;
-  hexRotation += rotDiff * dt * 12;
+  // Smooth rotation with spring physics (like Hextris)
+  if (hexRotation < hexTargetRotation) hexRotation += 4*dt*60;
+  else if (hexRotation > hexTargetRotation) hexRotation -= 4*dt*60;
+  if (Math.abs(hexRotation-hexTargetRotation) < 1) hexRotation = hexTargetRotation;
 
   // Combo timer
-  if (hexCombo > 0) {
-    hexComboTimer -= dt;
-    if (hexComboTimer <= 0) hexCombo = 0;
-  }
+  if (hexCombo>0) { hexComboTimer-=dt; if(hexComboTimer<=0) hexCombo=0; }
 
-  // Spawn blocks
+  // Spawn
   hexSpawnTimer -= dt;
-  if (hexSpawnTimer <= 0) {
-    hexSpawnBlock();
+  if (hexSpawnTimer<=0) {
+    hexSpawnWave();
     hexSpawnTimer = hexSpawnRate;
-    // Gradually speed up
-    hexSpawnRate = Math.max(0.6, hexSpawnRate - 0.015);
-    hexSpeed = Math.min(4, hexSpeed + 0.02);
+    hexSpawnRate = Math.max(0.5, hexSpawnRate-0.01);
+    hexSpeed = Math.min(4.5, hexSpeed+0.015);
   }
 
   // Update falling blocks
-  const hexInnerDist = hexSideLen * Math.sqrt(3) / 2;
+  const innerDist = hexSideLen*Math.sqrt(3)/2;
   hexFalling.forEach(b => {
     if (b.settled) return;
-    b.dist -= b.speed * dt * 60;
-
-    // Check collision with settled blocks or hex center
-    const adjustedLane = ((HEX_SIDES - b.lane + hexPosition) + HEX_SIDES) % HEX_SIDES;
+    b.dist -= b.speed*dt*55;
+    // Determine which lane this block lands in (accounting for hex rotation)
+    const adjustedLane = ((HEX_SIDES-b.lane+hexPosition)+HEX_SIDES)%HEX_SIDES;
     const stack = hexBlocks[adjustedLane];
-    const targetDist = hexInnerDist + hexBlockH * stack.length;
+    const targetDist = innerDist + hexBlockH*stack.length;
 
     if (b.dist <= targetDist) {
       b.dist = targetDist;
       b.settled = true;
-      b.tint = 0.5;
-      b.angle = 90 - (30 + 60 * b.lane);
-      b.targetAngle = b.angle;
-      stack.push({
-        color: b.color,
-        dist: targetDist,
-        angle: b.angle,
-        targetAngle: b.targetAngle,
-        opacity: 1, deleted: false, tint: b.tint,
-      });
-      hexShake = 0.1;
-      sfx(150, 100, 0.05, 0.08);
-      // Check matches after settling
-      setTimeout(() => hexCheckMatches(), 50);
+      // Add to stack
+      const newBlock = {
+        color:b.color, dist:targetDist,
+        angle: hexRotation + (adjustedLane*60), targetAngle: hexRotation + (adjustedLane*60),
+        opacity:1, deleted:0, tint:0.6, settling:false, targetDist:targetDist,
+      };
+      stack.push(newBlock);
+      hexShake = 0.08;
+      sfx(120+stack.length*20, 80+stack.length*15, 0.04, 0.06);
+      // Check matches
+      hexConsolidate(adjustedLane, stack.length-1);
       // Check game over
       if (hexCheckGameOver()) {
-        hexGameOver = true;
-        hexGameOverTimer = 0;
-        sfx(100, 40, 0.5, 0.2);
-        hexShake = 0.4;
+        hexGameOver=true; hexGameOverTimer=0;
+        sfx(100,40,0.5,0.2); hexShake=0.5;
       }
     }
   });
   hexFalling = hexFalling.filter(b => !b.settled);
 
-  // Particles
-  hexParticles.forEach(p => {
-    p.x += p.vx; p.y += p.vy;
-    p.vx *= 0.96; p.vy *= 0.96;
-    p.life -= dt;
-  });
-  hexParticles = hexParticles.filter(p => p.life > 0);
-
-  // Tint fade on settled blocks
+  // Update settled blocks — tint fade, deletion animation, settling
+  let needsRemoval = false;
   hexBlocks.forEach(lane => lane.forEach(b => {
-    if (b.tint > 0) b.tint -= dt * 2;
-    if (b.deleted) b.opacity = Math.max(0, b.opacity - dt * 4);
-    // Smooth angle rotation
-    const aDiff = b.targetAngle - b.angle;
-    b.angle += aDiff * dt * 10;
+    if (b.tint>0) b.tint = Math.max(0, b.tint-dt*2.5);
+    if (b.deleted) {
+      b.opacity -= dt*3;
+      if (b.opacity<=0) needsRemoval=true;
+    }
+    // Smooth angle rotation (follows hex rotation)
+    const aDiff = b.targetAngle-b.angle;
+    if (Math.abs(aDiff)>0.5) b.angle += aDiff*dt*10;
+    else b.angle = b.targetAngle;
+    // Settling (gravity after blocks below are removed)
+    if (b.settling && b.targetDist!==undefined) {
+      b.dist += (b.targetDist-b.dist)*dt*8;
+      if (Math.abs(b.dist-b.targetDist)<0.5) { b.dist=b.targetDist; b.settling=false; }
+    }
   }));
+  if (needsRemoval) hexRemoveDeleted();
+
+  // Particles
+  hexParticles.forEach(p => { p.x+=p.vx; p.y+=p.vy; p.vx*=0.95; p.vy*=0.95; p.life-=dt; });
+  hexParticles = hexParticles.filter(p => p.life>0);
 
   updateMusic(dt);
 }
@@ -3981,7 +3986,7 @@ function drawHex() {
     ctx.globalAlpha = 1;
   }
 
-  // ── Settled blocks ──
+  // ── Settled blocks (proper trapezoid rendering like Hextris) ──
   hexBlocks.forEach((lane, i) => {
     lane.forEach((b, j) => {
       if (b.opacity <= 0) return;
@@ -3990,63 +3995,66 @@ function drawHex() {
       const bx = Math.sin(bAngle) * d;
       const by = -Math.cos(bAngle) * d;
 
-      // Block width varies with distance
       const innerW = 2 * b.dist / Math.sqrt(3);
       const outerW = 2 * (b.dist + hexBlockH) / Math.sqrt(3);
 
       ctx.globalAlpha = b.opacity;
 
-      // Block shape (trapezoid)
-      const p1 = rotateHexPt(-innerW / 2, hexBlockH / 2, b.angle);
-      const p2 = rotateHexPt(innerW / 2, hexBlockH / 2, b.angle);
-      const p3 = rotateHexPt(outerW / 2, -hexBlockH / 2, b.angle);
-      const p4 = rotateHexPt(-outerW / 2, -hexBlockH / 2, b.angle);
+      const p1 = rotateHexPt(-innerW/2, hexBlockH/2, b.angle);
+      const p2 = rotateHexPt(innerW/2, hexBlockH/2, b.angle);
+      const p3 = rotateHexPt(outerW/2, -hexBlockH/2, b.angle);
+      const p4 = rotateHexPt(-outerW/2, -hexBlockH/2, b.angle);
 
       ctx.fillStyle = b.color;
       ctx.beginPath();
-      ctx.moveTo(bx + p1.x, by + p1.y);
-      ctx.lineTo(bx + p2.x, by + p2.y);
-      ctx.lineTo(bx + p3.x, by + p3.y);
-      ctx.lineTo(bx + p4.x, by + p4.y);
+      ctx.moveTo(bx+p1.x,by+p1.y);
+      ctx.lineTo(bx+p2.x,by+p2.y);
+      ctx.lineTo(bx+p3.x,by+p3.y);
+      ctx.lineTo(bx+p4.x,by+p4.y);
       ctx.closePath();
       ctx.fill();
 
-      // Tint (white flash on settle)
+      // White tint flash on settle
       if (b.tint > 0) {
-        ctx.fillStyle = `rgba(255,255,255,${b.tint * 0.5})`;
+        ctx.fillStyle = `rgba(255,255,255,${b.tint*0.4})`;
         ctx.fill();
       }
 
-      // Glow
-      ctx.strokeStyle = b.color;
-      ctx.globalAlpha = b.opacity * 0.2;
-      ctx.lineWidth = 1;
+      // Deleted blocks flash
+      if (b.deleted) {
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+      }
+
+      // Subtle border
+      ctx.strokeStyle = `rgba(255,255,255,0.08)`;
+      ctx.lineWidth = 0.5;
       ctx.stroke();
 
       ctx.globalAlpha = 1;
     });
   });
 
-  // ── Falling blocks ──
+  // ── Falling blocks (with glow trail) ──
   hexFalling.forEach(b => {
-    const bAngle = (90 - (30 + 60 * b.lane)) * Math.PI / 180;
-    const bx = Math.sin(bAngle) * b.dist;
-    const by = -Math.cos(bAngle) * b.dist;
+    const bAngle = (90-(30+60*b.lane)) * Math.PI/180;
+    const bx = Math.sin(bAngle)*b.dist;
+    const by = -Math.cos(bAngle)*b.dist;
+    const bw = 2*b.dist/Math.sqrt(3)*0.8;
 
-    const bw = 2 * b.dist / Math.sqrt(3) * 0.8;
-
-    ctx.fillStyle = b.color;
-    ctx.globalAlpha = 0.9;
-
-    // Simple block for falling
+    // Glow trail
     ctx.save();
     ctx.translate(bx, by);
-    ctx.rotate(bAngle - Math.PI / 2);
-    ctx.fillRect(-bw / 2, -hexBlockH / 2, bw, hexBlockH);
-    // Glow trail
+    ctx.rotate(bAngle - Math.PI/2);
     ctx.fillStyle = b.color;
-    ctx.globalAlpha = 0.08;
-    ctx.fillRect(-bw / 2, -hexBlockH / 2, bw, hexBlockH * 3);
+    ctx.globalAlpha = 0.06;
+    ctx.fillRect(-bw/2, -hexBlockH/2, bw, hexBlockH*4);
+    // Block
+    ctx.globalAlpha = 0.9;
+    ctx.fillRect(-bw/2, -hexBlockH/2, bw, hexBlockH);
+    // Inner highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(-bw/2+2, -hexBlockH/2+2, bw-4, hexBlockH/2-2);
     ctx.restore();
 
     ctx.globalAlpha = 1;
