@@ -25,8 +25,10 @@ header span{font-size:0.75rem;color:var(--text3);letter-spacing:1px}
 
 /* Project Grid */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all 0.2s}
+.card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all 0.2s}
 .card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 20px rgba(124,58,237,0.08)}
+.card-img{width:100%;height:140px;object-fit:cover;display:block;background:var(--bg3)}
+.card-body-wrap{padding:16px 18px 18px}
 .card-tag{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;padding:3px 8px;border-radius:4px;font-weight:600;display:inline-block;margin-bottom:10px}
 .card h3{font-size:1rem;font-weight:600;margin-bottom:6px}
 .card p{font-size:0.8rem;color:var(--text2);line-height:1.5}
@@ -78,6 +80,19 @@ header span{font-size:0.75rem;color:var(--text3);letter-spacing:1px}
 .links a{font-size:0.83rem}
 .links .link-desc{font-size:0.75rem;color:var(--text3);margin-top:2px}
 
+/* Reference gallery */
+.ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.ref-card{background:var(--bg);border:1px solid var(--bg3);border-radius:8px;overflow:hidden;transition:border-color 0.2s}
+.ref-card:hover{border-color:var(--accent)}
+.ref-card img{width:100%;height:130px;object-fit:cover;display:block;background:var(--bg3)}
+.ref-card .ref-info{padding:10px 12px}
+.ref-card .ref-title{font-size:0.8rem;font-weight:500;margin-bottom:4px}
+.ref-card .ref-desc{font-size:0.72rem;color:var(--text3);line-height:1.4}
+.ref-card .ref-tag{font-size:0.6rem;color:var(--accent2);margin-top:6px;display:inline-block}
+.style-filter{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.style-btn{padding:6px 14px;font-size:0.75rem;border:1px solid var(--bg3);border-radius:20px;background:none;color:var(--text3);cursor:pointer;transition:all 0.15s}
+.style-btn:hover,.style-btn.active{border-color:var(--accent);color:var(--accent2);background:rgba(124,58,237,0.08)}
+
 /* Mobile */
 @media(max-width:600px){
   .grid{grid-template-columns:1fr}
@@ -116,6 +131,7 @@ const PROJECTS = [
     desc: 'Playable album — frog action game where the music reacts to your gameplay',
     tag: 'Game', tagColor: '#4ade80',
     status: 'Building', statusColor: '#4ade80',
+    img: 'https://cdn.hackaday.io/images/9085781501716160408.jpeg',
     subtitle: 'A playable album. The game IS the music, the music IS the game.',
     tabs: [
       {
@@ -175,6 +191,7 @@ Gameplay clips + music = content gold.</pre></div>`
     desc: 'Exercise app for elderly with arthritis — built with mom',
     tag: 'App', tagColor: '#38bdf8',
     status: 'Planning', statusColor: '#fbbf24',
+    img: '',
     subtitle: 'Send mom a laptop. Let her build it herself. The process matters as much as the product.',
     tabs: [
       {
@@ -236,6 +253,7 @@ Platform: web-first (works on any device, no app store)</pre></div>`
     desc: 'AI terminal build — steampunk x green glow, film the build as content',
     tag: 'Hardware', tagColor: '#4ade80',
     status: 'Research', statusColor: '#818cf8',
+    img: 'https://hackaday.com/wp-content/uploads/2022/08/Steampunk-Cyberdeck.jpg?w=800',
     subtitle: 'Build it. Film it. The skeleton key power-on alone gets millions of views.',
     tabs: [
       {
@@ -269,19 +287,16 @@ Platform: web-first (works on any device, no app store)</pre></div>`
         `
       },
       {
-        name: 'References',
+        name: 'Gallery',
         content: `
-          <div class="section">
-            <h4>Key References</h4>
-            <ul class="links">
-              <li><a href="https://hackaday.com/2022/08/29/2022-cyberdeck-contest-steampunk-cyberdeck-is-made-from-wood-leather-brass-and-e-paper/" target="_blank">Steampunk Cyberdeck — Wood, Leather, Brass (Hackaday)</a><div class="link-desc">Contest winner. Hand-made wooden case with brass cover.</div></li>
-              <li><a href="https://www.doscher.com/work-recovery-kit/" target="_blank">Jay Doscher — Recovery Kit</a><div class="link-desc">THE OG Pelican case cyberdeck. The template everyone follows.</div></li>
-              <li><a href="https://www.hackster.io/robpsf/gundam-cyberdeck-180cb1" target="_blank">Gundam Cyberdeck — LED Storytelling</a><div class="link-desc">16 LEDs with programmable sequences. Closest to our expressive hardware idea.</div></li>
-              <li><a href="https://www.hackster.io/news/arran-gunn-s-cyberbrick-is-a-compact-yet-chunky-portable-field-terminal-in-a-custom-built-metal-case-405b0296619d" target="_blank">CyberBrick — Green Acrylic Glow</a><div class="link-desc">Metal chassis with green acrylic panel. The glow.</div></li>
-              <li><a href="https://www.newsweek.com/what-is-a-cyberdeck-gen-zs-new-custom-computing-obsession-11787017" target="_blank">Newsweek — Gen Z's New DIY Obsession</a><div class="link-desc">The trend is mainstream now. Window is open.</div></li>
-              <li><a href="https://hackaday.com/2026/03/20/portable-crt-tv-becomes-retro-cyberdeck/" target="_blank">CRT TV Cyberdeck (March 2026)</a><div class="link-desc">Panasonic from Blade Runner era converted with Pi 5.</div></li>
-            </ul>
+          <div class="style-filter">
+            <button class="style-btn active" onclick="filterRefs(this,'all')">All</button>
+            <button class="style-btn" onclick="filterRefs(this,'steampunk')">Steampunk</button>
+            <button class="style-btn" onclick="filterRefs(this,'green')">Green / Matrix</button>
+            <button class="style-btn" onclick="filterRefs(this,'pelican')">Pelican / Classic</button>
+            <button class="style-btn" onclick="filterRefs(this,'recent')">2025-2026</button>
           </div>
+          <div class="ref-grid" id="ref-grid"></div>
         `
       }
     ]
@@ -292,6 +307,7 @@ Platform: web-first (works on any device, no app store)</pre></div>`
     desc: 'Gnostic skeleton world — TikTok content engine + potential app',
     tag: 'Creative', tagColor: '#a78bfa',
     status: 'Research', statusColor: '#818cf8',
+    img: '',
     subtitle: '7 Archon realms. Skeleton divine sparks ascending toward liberation. Content first, system later.',
     tabs: [
       {
@@ -356,6 +372,7 @@ SEPARATE from Cognition OS. Don't let them blur.</pre></div>`
     desc: 'AGI fear trade — $700-800k, mostly crypto on Solana',
     tag: 'Finance', tagColor: '#fbbf24',
     status: 'Research', statusColor: '#818cf8',
+    img: '',
     subtitle: 'Software → zero. Compute stays. AGI fear drives flight to hard assets.',
     tabs: [
       {
@@ -421,12 +438,15 @@ function showHome() {
   detailEl.className = 'detail';
   homeEl.innerHTML = PROJECTS.map(p => `
     <div class="card" onclick="showProject('${p.id}')">
-      <span class="card-tag" style="background:${p.tagColor}18;color:${p.tagColor}">${p.tag}</span>
-      <h3>${p.title}</h3>
-      <p>${p.desc}</p>
-      <div class="card-status">
-        <span class="dot" style="background:${p.statusColor}"></span>
-        ${p.status}
+      ${p.img ? `<img class="card-img" src="${p.img}" alt="${p.title}" onerror="this.style.display='none'"/>` : `<div class="card-img" style="background:linear-gradient(135deg,${p.tagColor}15,var(--bg3))"></div>`}
+      <div class="card-body-wrap">
+        <span class="card-tag" style="background:${p.tagColor}18;color:${p.tagColor}">${p.tag}</span>
+        <h3>${p.title}</h3>
+        <p>${p.desc}</p>
+        <div class="card-status">
+          <span class="dot" style="background:${p.statusColor}"></span>
+          ${p.status}
+        </div>
       </div>
     </div>
   `).join('');
@@ -463,6 +483,56 @@ function switchTab(el,idx,id) {
 
 // Handle back button
 window.addEventListener('popstate', showHome);
+
+// Cyberdeck reference gallery
+const REFS = [
+  {style:'steampunk',title:'Steampunk Cyberdeck — Contest Winner',desc:'Wood, leather, brass, e-paper. Hand-made attache case.',img:'https://hackaday.com/wp-content/uploads/2022/08/Steampunk-Cyberdeck.jpg?w=800',url:'https://hackaday.com/2022/08/29/2022-cyberdeck-contest-steampunk-cyberdeck-is-made-from-wood-leather-brass-and-e-paper/'},
+  {style:'steampunk',title:'Steampunk Pi Laptop — Brass Gears',desc:'Solid brass gears, LED housings, hand-blown marble power indicators.',img:'https://content.instructables.com/FWF/CKQC/J153YXIB/FWFCKQCJ153YXIB.jpg?auto=webp',url:'https://www.instructables.com/Steampunk-Raspberry-Pi-Laptop/'},
+  {style:'steampunk',title:'Steampunk Pi — Detail',desc:'Battery gauge and decorative brass elements.',img:'https://content.instructables.com/F2R/HK59/J153YOGL/F2RHK59J153YOGL.jpg?auto=webp&fit=bounds&frame=1&height=1024&width=1024',url:'https://www.instructables.com/Steampunk-Raspberry-Pi-Laptop/'},
+  {style:'steampunk',title:'Steampunk Pi — Interior',desc:'Internal components and brass fitting detail.',img:'https://content.instructables.com/FYP/LLD3/J153YOH6/FYPLLD3J153YOH6.jpg?auto=webp&fit=bounds&frame=1&height=1024&width=1024',url:'https://www.instructables.com/Steampunk-Raspberry-Pi-Laptop/'},
+  {style:'steampunk',title:'Posthuman Steampunk PC',desc:'Brain-in-a-jar concept. Featured in Custom PC magazine.',img:'',url:'https://www.raspberrypi.com/news/posthuman-custom-steampunk-pc-custom-pc-226/'},
+  {style:'green',title:'CyberBrick — Green Acrylic Glow',desc:'Stainless steel chassis, green acrylic panel, chunky field terminal.',img:'https://hackster.imgix.net/uploads/attachments/1933837/image_In7satQ0tN.png?auto=compress%2Cformat&w=740&h=555&fit=max',url:'https://www.hackster.io/news/arran-gunn-s-cyberbrick-is-a-compact-yet-chunky-portable-field-terminal-in-a-custom-built-metal-case-405b0296619d'},
+  {style:'green',title:'CyberBrick — Detail',desc:'M5Stack display behind green acrylic. Retro glow.',img:'https://hackster.imgix.net/uploads/attachments/1933835/image_47BfOgwf0A.png?auto=compress%2Cformat&w=740&h=555&fit=max',url:'https://www.hackster.io/news/arran-gunn-s-cyberbrick-is-a-compact-yet-chunky-portable-field-terminal-in-a-custom-built-metal-case-405b0296619d'},
+  {style:'green',title:'KOAT0 — Fluorescent Terminal',desc:'Fluorescent display for maximum cyberpunk. The glow is unreal.',img:'https://cdn.hackaday.io/images/9085781501716160408.jpeg',url:'https://hackaday.io/project/191664-koat0-portable-terminal'},
+  {style:'pelican',title:'Jay Doscher — Recovery Kit',desc:'THE OG Pelican cyberdeck. Pi + LCD + Ethernet + battery. The template.',img:'https://storage.ghost.io/c/3d/8c/3d8c0c8c-d44d-406b-880a-1a3f29e93abb/content/images/size/w1200/2023/07/JAY01431.jpg',url:'https://www.doscher.com/work-recovery-kit/'},
+  {style:'pelican',title:'Recovery Kit — Ports',desc:'Rugged GPIO connectors, clean cable management.',img:'https://storage.ghost.io/c/3d/8c/3d8c0c8c-d44d-406b-880a-1a3f29e93abb/content/images/2023/07/JAY01353.jpg',url:'https://www.doscher.com/work-recovery-kit/'},
+  {style:'pelican',title:'Recovery Kit — Open',desc:'Interior layout with screen, switch, and Pi.',img:'https://storage.ghost.io/c/3d/8c/3d8c0c8c-d44d-406b-880a-1a3f29e93abb/content/images/2023/07/JAY01369.jpg',url:'https://www.doscher.com/work-recovery-kit/'},
+  {style:'pelican',title:'Gundam Cyberdeck — LED Storytelling',desc:'16 programmable LEDs with sequences. Closest to our expressive hardware idea.',img:'https://hackster.imgix.net/uploads/attachments/1702003/_1ka9tuSOpX.blob?auto=compress%2Cformat&w=900&h=675&fit=min',url:'https://www.hackster.io/robpsf/gundam-cyberdeck-180cb1'},
+  {style:'pelican',title:'Gundam — LED Detail',desc:'Key-assigned lights, customizable brightness and speed.',img:'https://hackster.imgix.net/uploads/attachments/1702010/1000032845_qRxlRVGCpr.jpg?auto=compress%2Cformat&w=740&h=555&fit=max',url:'https://www.hackster.io/robpsf/gundam-cyberdeck-180cb1'},
+  {style:'pelican',title:'Gundam — Build Process',desc:'Assembly with custom LED wiring.',img:'https://hackster.imgix.net/uploads/attachments/1702016/20240331_151718_1_3DABGHI5ga.jpg?auto=compress%2Cformat&w=740&h=555&fit=max',url:'https://www.hackster.io/robpsf/gundam-cyberdeck-180cb1'},
+  {style:'recent',title:'CRT TV Cyberdeck (Mar 2026)',desc:'Panasonic TR-545 from Blade Runner era. Pi 5 + HDMI RF modulator.',img:'https://hackaday.com/wp-content/uploads/2026/03/Turning-a-1979-Pop-Up-CRT-TV-Into-a-Cyberdeck-Panasonic-TR-545-0-52-screenshot.png?w=800',url:'https://hackaday.com/2026/03/20/portable-crt-tv-becomes-retro-cyberdeck/'},
+  {style:'recent',title:'Dual-Screen Cyberdeck (2025)',desc:'Pi 5, two rotating touchscreens on ball bearings. Custom PCBs.',img:'https://hackaday.com/wp-content/uploads/2025/07/perfect-cyberdeck-featured.jpg?w=800',url:'https://hackaday.com/2025/07/30/a-dual-screen-cyberdeck-to-rule-them-all/'},
+  {style:'steampunk',title:'Steampunk Cyberdeck — Inside',desc:'Internal view of the wood and brass contest winner.',img:'https://hackaday.com/wp-content/uploads/2022/08/Steampunk-Cyberdeck-inside.jpg?w=400',url:'https://hackaday.com/2022/08/29/2022-cyberdeck-contest-steampunk-cyberdeck-is-made-from-wood-leather-brass-and-e-paper/'},
+];
+
+function renderRefs(filter) {
+  const grid = document.getElementById('ref-grid');
+  if (!grid) return;
+  const filtered = filter === 'all' ? REFS : REFS.filter(r => r.style === filter);
+  grid.innerHTML = filtered.map(r => `
+    <a href="${r.url}" target="_blank" class="ref-card" style="text-decoration:none;color:inherit">
+      ${r.img ? `<img src="${r.img}" alt="${r.title}" onerror="this.style.display='none'"/>` : ''}
+      <div class="ref-info">
+        <div class="ref-title">${r.title}</div>
+        <div class="ref-desc">${r.desc}</div>
+        <div class="ref-tag">${r.style}</div>
+      </div>
+    </a>
+  `).join('');
+}
+
+function filterRefs(btn, filter) {
+  document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRefs(filter);
+}
+
+// Re-render refs when switching to gallery tab
+const origSwitchTab = switchTab;
+switchTab = function(el, idx, id) {
+  origSwitchTab(el, idx, id);
+  if (id === 'cyberdeck') setTimeout(() => renderRefs('all'), 10);
+};
 
 showHome();
 </script>
