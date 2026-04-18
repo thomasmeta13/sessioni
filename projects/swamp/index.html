@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SWAMP — Playable Album</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #080a05; color: #c0c0c0; font-family: 'Courier New', monospace; min-height: 100vh; padding: 40px; }
+    h1 { font-size: 2.2rem; color: #86efac; margin-bottom: 8px; letter-spacing: 3px; }
+    .subtitle { color: #3a6a45; margin-bottom: 40px; font-size: 0.9rem; font-style: italic; }
+    .section { background: #0a120a; border: 1px solid #1a3020; border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .section h2 { color: #86efac; margin-bottom: 14px; font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; }
+    p { font-size: 0.9rem; line-height: 1.6; margin-bottom: 12px; color: #8aaa8a; }
+    ul { list-style: none; }
+    ul li::before { content: "> "; color: #86efac; }
+    ul li { margin: 6px 0; font-size: 0.9rem; }
+    .highlight { color: #86efac; }
+    .zone-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
+    .zone-card { background: #0d1a0d; border: 1px solid #1a3020; border-radius: 8px; padding: 18px; }
+    .zone-card h3 { font-size: 1rem; margin-bottom: 8px; }
+    .zone-card p { font-size: 0.82rem; color: #6a8a6a; margin-bottom: 0; }
+    .zone-card .music-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; margin-top: 10px; }
+    .zone1 h3 { color: #a8e6cf; } .zone1 .music-tag { background: #0d2618; color: #a8e6cf; border: 1px solid #1a3a25; }
+    .zone2 h3 { color: #f472b6; } .zone2 .music-tag { background: #1a0a15; color: #f472b6; border: 1px solid #3a1025; }
+    .zone3 h3 { color: #ff6b6b; } .zone3 .music-tag { background: #1a0a0a; color: #ff6b6b; border: 1px solid #3a1515; }
+    .zone4 h3 { color: #c084fc; } .zone4 .music-tag { background: #120a1a; color: #c084fc; border: 1px solid #2a1540; }
+    .combat-card { background: #0d1a0d; border: 1px solid #1a3020; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .combat-card h4 { color: #86efac; font-size: 0.9rem; margin-bottom: 6px; }
+    .combat-card p { font-size: 0.82rem; color: #6a8a6a; margin-bottom: 0; }
+    .principle { background: #0d1a0d; border-left: 3px solid #86efac; padding: 16px 20px; margin: 12px 0; border-radius: 0 8px 8px 0; }
+    .principle p { color: #86efac; font-size: 0.85rem; margin-bottom: 0; font-style: italic; }
+    a { color: #86efac; }
+    .play-link { display: inline-block; margin-top: 16px; padding: 10px 20px; background: #1a3020; border: 1px solid #4ade80; border-radius: 6px; color: #4ade80; text-decoration: none; font-size: 0.85rem; }
+    .play-link:hover { background: #2a4030; }
+  </style>
+</head>
+<body>
+  <h1>SWAMP</h1>
+  <p class="subtitle">A playable album — the game IS the music, the music IS the game</p>
+
+  <div class="section">
+    <h2>Concept</h2>
+    <p>A top-down action game where you play as a frog descending through a corrupted swamp. Each zone is a track on the album. The music reacts to your combat — kill faster, the intensity rises. Slow down, it pulls back. You don't just hear the album. You <span class="highlight">play</span> it.</p>
+    <div class="principle">
+      <p>"With Doom you pay $60 for an album and get a free game." — We're doing that, but with frogs.</p>
+    </div>
+    <a href="../swamp/" class="play-link" target="_blank">Play the Prototype</a>
+  </div>
+
+  <div class="section">
+    <h2>The 4 Zones</h2>
+    <div class="zone-grid">
+      <div class="zone-card zone1">
+        <h3>Zone 1 — The Surface Pond</h3>
+        <p>Chill, glorpy, everything's vibing. Catching bugs, learning controls. Lily pads pulse with the beat.</p>
+        <span class="music-tag">Sploinky / Bouncy / Wet</span>
+      </div>
+      <div class="zone-card zone2">
+        <h3>Zone 2 — The Bog</h3>
+        <p>Frog rave cantina. DJ Sploinky on the mushroom stage. Beetle brew at the bar. The corruption is a vibe.</p>
+        <span class="music-tag">Rave / Glitchy / Purple</span>
+      </div>
+      <div class="zone-card zone3">
+        <h3>Zone 3 — The Undergrowth</h3>
+        <p>Dark, dense, claustrophobic. Heavy riffs kick in. The corruption is alive and fighting back.</p>
+        <span class="music-tag">Heavy Riffs / Aggressive</span>
+      </div>
+      <div class="zone-card zone4">
+        <h3>Zone 4 — The Depths</h3>
+        <p>The source. Full metal. Boss territory. This is where the album peaks.</p>
+        <span class="music-tag">Full Metal / Boss Fight</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Combat</h2>
+    <div class="combat-card"><h4>Tongue Whip</h4><p>Main attack. Stretch, aim, snap. The core mechanic.</p></div>
+    <div class="combat-card"><h4>Swallow</h4><p>Eat smaller enemies for temporary abilities or power-ups.</p></div>
+    <div class="combat-card"><h4>Belly Flop</h4><p>Area damage. Jump and slam. Sends ripples that stun enemies.</p></div>
+    <div class="combat-card"><h4>Croak</h4><p>Sonic attack — your voice literally layers onto the music.</p></div>
+  </div>
+
+  <div class="section">
+    <h2>Adaptive Music System</h2>
+    <ul>
+      <li>Each track has <span class="highlight">layers</span> — base always playing, intensity layers kick in during combat</li>
+      <li>Kill fast, combo, stay aggressive = heavy layers activate</li>
+      <li>Boss fights have peak arrangements that only trigger when you're in the zone</li>
+      <li>The album release = the full peak versions (what perfect gameplay sounds like)</li>
+    </ul>
+    <div class="principle"><p>The player earns the full album by playing well.</p></div>
+  </div>
+
+  <div class="section">
+    <h2>Minigames</h2>
+    <ul>
+      <li><span class="highlight">DOOM Mode</span> — First-person raycaster triggered by eating a Voidfly. Psychedelic walls, tongue combat, 90 second trip.</li>
+      <li><span class="highlight">Hex Puzzle</span> — Hextris-style spore sorting. Flood-fill matching, wave patterns, chain reactions.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Team</h2>
+    <ul>
+      <li><span class="highlight">Thomas</span> — game design, development, creative direction</li>
+      <li><span class="highlight">Friend</span> — music production, composition (metal + versatile range)</li>
+    </ul>
+  </div>
+</body>
+</html>
