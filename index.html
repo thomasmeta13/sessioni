@@ -1,14 +1,470 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ikigai</title>
-    <script type="module" crossorigin src="./assets/index-v2-AwgRk.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Bj-nzFuC.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ikigai</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a10;--bg2:#12121c;--bg3:#1a1a28;
+  --text:#d4d4e0;--text2:#8888a0;--text3:#55556a;
+  --accent:#7c3aed;--accent2:#a78bfa;
+  --green:#4ade80;--blue:#38bdf8;--amber:#fbbf24;--pink:#f472b6;--red:#ef4444;
+  --radius:10px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;min-height:100vh}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Layout */
+.app{max-width:900px;margin:0 auto;padding:20px 16px 60px}
+header{padding:24px 0 32px;display:flex;align-items:baseline;justify-content:space-between}
+header h1{font-size:1.4rem;font-weight:600;letter-spacing:2px;color:var(--text)}
+header span{font-size:0.75rem;color:var(--text3);letter-spacing:1px}
+
+/* Project Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all 0.2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 20px rgba(124,58,237,0.08)}
+.card-tag{font-size:0.65rem;text-transform:uppercase;letter-spacing:1.5px;padding:3px 8px;border-radius:4px;font-weight:600;display:inline-block;margin-bottom:10px}
+.card h3{font-size:1rem;font-weight:600;margin-bottom:6px}
+.card p{font-size:0.8rem;color:var(--text2);line-height:1.5}
+.card-status{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:0.7rem;color:var(--text3)}
+.card-status .dot{width:6px;height:6px;border-radius:50%}
+
+/* Project Detail */
+.detail{display:none}
+.detail.active{display:block}
+.back-btn{background:none;border:none;color:var(--text2);font-size:0.85rem;cursor:pointer;padding:8px 0;display:flex;align-items:center;gap:6px}
+.back-btn:hover{color:var(--text)}
+.detail-header{padding:20px 0 16px}
+.detail-header h2{font-size:1.5rem;font-weight:600;margin-bottom:4px}
+.detail-header .subtitle{font-size:0.85rem;color:var(--text2)}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--bg3);margin-bottom:24px}
+.tab{padding:10px 18px;font-size:0.8rem;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
+.tab:hover{color:var(--text2)}
+.tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Sections */
+.section{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.section h4{font-size:0.75rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:14px}
+.section p,.section li{font-size:0.85rem;line-height:1.7;color:var(--text2)}
+
+/* Task list */
+.task{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.task:last-child{border-bottom:none}
+.task-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);color:var(--text3);font-size:0.7rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.task-body{flex:1}
+.task-title{font-size:0.85rem;font-weight:500;margin-bottom:3px}
+.task-desc{font-size:0.78rem;color:var(--text3);line-height:1.5}
+.task-action{font-size:0.75rem;color:var(--green);margin-top:4px}
+.task-priority{font-size:0.65rem;padding:2px 6px;border-radius:3px;margin-left:8px}
+.p-high{background:rgba(239,68,68,0.12);color:var(--red)}
+.p-med{background:rgba(251,191,36,0.12);color:var(--amber)}
+.p-low{background:rgba(56,189,248,0.12);color:var(--blue)}
+
+/* Notes */
+.notes{white-space:pre-wrap;font-size:0.82rem;color:var(--text2);line-height:1.7;font-family:'SF Mono','Fira Code',monospace}
+
+/* Links list */
+.links{list-style:none}
+.links li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.links li:last-child{border-bottom:none}
+.links a{font-size:0.83rem}
+.links .link-desc{font-size:0.75rem;color:var(--text3);margin-top:2px}
+
+/* Mobile */
+@media(max-width:600px){
+  .grid{grid-template-columns:1fr}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{white-space:nowrap;padding:10px 14px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>ikigai</h1>
+    <span>project hub</span>
+  </header>
+
+  <!-- PROJECT GRID -->
+  <div id="home" class="grid"></div>
+
+  <!-- PROJECT DETAIL -->
+  <div id="detail" class="detail">
+    <button class="back-btn" onclick="showHome()">← Projects</button>
+    <div class="detail-header">
+      <h2 id="detail-title"></h2>
+      <div id="detail-subtitle" class="subtitle"></div>
+    </div>
+    <div id="detail-tabs" class="tabs"></div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<script>
+const PROJECTS = [
+  {
+    id: 'swamp',
+    title: 'SWAMP',
+    desc: 'Playable album — frog action game where the music reacts to your gameplay',
+    tag: 'Game', tagColor: '#4ade80',
+    status: 'Building', statusColor: '#4ade80',
+    subtitle: 'A playable album. The game IS the music, the music IS the game.',
+    tabs: [
+      {
+        name: 'Overview',
+        content: `
+          <div class="section">
+            <h4>Concept</h4>
+            <p>Top-down frog action game. Each zone is a track on the album. Music has layers that intensify with combat — kill faster, it gets heavier. Slow down, it pulls back.</p>
+            <p style="margin-top:8px">Core inspiration: "With Doom you pay $60 for an album and get a free game."</p>
+          </div>
+          <div class="section">
+            <h4>What's Built</h4>
+            <p>Zone 1 (Surface Pond) + Zone 2 (The Bog frog rave). Tongue whip, belly flop, NPC dialogue with choices, zone transitions, gate/toll system. Touch controls for mobile. DOOM first-person mode. Hextris hex puzzle minigame.</p>
+            <p style="margin-top:8px"><a href="https://thomasmeta13.github.io/sessioni/swamp/" target="_blank">Play the prototype →</a></p>
+          </div>
+          <div class="section">
+            <h4>The 4 Zones</h4>
+            <p><strong style="color:#a8e6cf">Zone 1 — Surface Pond</strong> · Sploinky, bouncy, chill. Tutorial vibes.<br>
+            <strong style="color:#f472b6">Zone 2 — The Bog</strong> · Frog rave cantina. DJ Sploinky on mushroom stage.<br>
+            <strong style="color:#ff6b6b">Zone 3 — Undergrowth</strong> · Dark, heavy riffs, corruption fights back.<br>
+            <strong style="color:#c084fc">Zone 4 — The Depths</strong> · Full metal. Boss. Album peaks here.</p>
+          </div>
+        `
+      },
+      {
+        name: 'Tasks',
+        content: `
+          <div class="section">
+            <h4>Next Steps</h4>
+            ${task(1,'Show friend the prototype','Send the GitHub Pages link, explain the vision, get him excited','Text him today','high')}
+            ${task(2,'Get music stems','Friend produces 1 demo track with separate bass/melody/drums stems','Ask him to make a sploinky Zone 1 track','high')}
+            ${task(3,'Improve Zone 1 feel','Replace oscillator music with real audio, fix mobile quirks','After getting stems','med')}
+            ${task(4,'Build Zone 3 & 4','Undergrowth + The Depths. Needs music direction first.','After Zone 1-2 polished','low')}
+          </div>
+        `
+      },
+      {
+        name: 'Notes',
+        content: `<div class="section"><pre class="notes">The key blocker is getting the friend on board. Everything else follows.
+
+The game has 3 modes:
+1. Top-down exploration (walk, talk, catch bugs)
+2. DOOM first-person (eat Voidfly from Shaman Gorp)
+3. Hex puzzle (talk to Oracle Shell)
+
+The album release = the full peak versions of every track
+= what you hear when you play perfectly.
+
+Sploinky/frogcore/glorpy aesthetic is trending on TikTok.
+Gameplay clips + music = content gold.</pre></div>`
+      }
+    ]
+  },
+  {
+    id: 'arthritis',
+    title: 'ArthriMove',
+    desc: 'Exercise app for elderly with arthritis — built with mom',
+    tag: 'App', tagColor: '#38bdf8',
+    status: 'Planning', statusColor: '#fbbf24',
+    subtitle: 'Send mom a laptop. Let her build it herself. The process matters as much as the product.',
+    tabs: [
+      {
+        name: 'Overview',
+        content: `
+          <div class="section">
+            <h4>The Idea</h4>
+            <p>Gentle daily exercise app for elderly people with arthritis. Chair-based routines, voice guidance, pain check-ins, caregiver dashboard. 58M arthritis sufferers in US — most PT apps ignore 65+ UX entirely.</p>
+          </div>
+          <div class="section">
+            <h4>The Twist</h4>
+            <p>Mom isn't just the user — she's the co-builder. She knows the pain points better than any developer. The question is finding the right abstraction level so she can contribute meaningfully.</p>
+          </div>
+          <div class="section">
+            <h4>Three Approaches</h4>
+            <p><strong>1. Claude Code on her machine</strong> — most ambitious. Walk her through prompting AI to build screens. Coolest story but requires most hand-holding.<br><br>
+            <strong>2. Replit/Glitch project</strong> — she edits in-browser. You handle hard parts, she customizes content/flow. Middle ground.<br><br>
+            <strong>3. Template + admin panel</strong> — you build the app, she gets a simple panel to add exercises, adjust text, set schedule. Most realistic.</p>
+          </div>
+        `
+      },
+      {
+        name: 'Tasks',
+        content: `
+          <div class="section">
+            <h4>Next Steps</h4>
+            ${task(1,"Assess mom's tech level","Can she use a browser? Copy/paste? Follow video instructions? This determines everything.","Call her and walk through a simple task together",'high')}
+            ${task(2,"Pick the approach","Template+admin (realistic) vs Claude Code (ambitious). Decide based on step 1.","After assessing tech level",'high')}
+            ${task(3,"Set up her laptop","Buy + configure a MacBook Air or Chromebook ($300-500), ship it","Research best option for non-technical user",'high')}
+            ${task(4,"Define MVP features","Daily exercise video/animation, pain check-in (1-5), streak tracker, large text UI","Draft a 1-page spec",'med')}
+            ${task(5,"Exercise content source","Partner with a PT? Public domain chair yoga? Mom designs from experience?","Research existing content libraries",'med')}
+            ${task(6,"Caregiver dashboard","Family sees daily completion, pain trend, streak via shared link","After MVP works",'low')}
+          </div>
+        `
+      },
+      {
+        name: 'Notes',
+        content: `<div class="section"><pre class="notes">The real value isn't the app — it's mom learning to build something.
+
+MVP features:
+- Daily guided routine (chair-based, 10-15 min)
+- Pain check-in before/after (simple 1-5 faces)
+- Voice narration (no squinting)
+- Gentle reminders (not aggressive)
+- Large, high-contrast UI
+
+Market:
+- 58M arthritis sufferers in US
+- Insurance / Medicare reimbursement potential
+- B2B angle: senior living facilities, PT clinics
+
+Platform: web-first (works on any device, no app store)</pre></div>`
+      }
+    ]
+  },
+  {
+    id: 'cyberdeck',
+    title: 'Cyberdeck',
+    desc: 'AI terminal build — steampunk x green glow, film the build as content',
+    tag: 'Hardware', tagColor: '#4ade80',
+    status: 'Research', statusColor: '#818cf8',
+    subtitle: 'Build it. Film it. The skeleton key power-on alone gets millions of views.',
+    tabs: [
+      {
+        name: 'Overview',
+        content: `
+          <div class="section">
+            <h4>What</h4>
+            <p>A DIY portable computer with Raspberry Pi, mechanical keyboard, small display inside a rugged case. Steampunk brass + green LED aesthetic. The deck expresses AI state through hardware — LEDs pulse when thinking, shift color when executing.</p>
+          </div>
+          <div class="section">
+            <h4>Why Now</h4>
+            <p>Cyberdecks are peaking. Newsweek covered it. TikTok is exploding with builds. Nobody is doing "AI that lives in the machine" with expressive hardware. Content play first — kit business only if demand is proven.</p>
+          </div>
+          <div class="section">
+            <h4>Expressive Hardware Ideas</h4>
+            <p>Amber pulse = thinking · Blue breathing = listening · Green sweep = executing · Red flash = error<br><br>
+            Brass toggle switches · Skeleton key power-on · Glass viewport showing the Pi board · Analog VU meters reacting to AI activity · Green edge-lit acrylic with laser-etched circuits</p>
+          </div>
+        `
+      },
+      {
+        name: 'Tasks',
+        content: `
+          <div class="section">
+            <h4>Next Steps</h4>
+            ${task(1,"Pick final aesthetic","Steampunk brass vs green glow vs hybrid. Review reference images.","Pick top 3 builds to draw from",'high')}
+            ${task(2,"Parts list + order","Pi 5, screen, keyboard, case, LED strips, brass hardware","Start a spreadsheet with links and prices",'high')}
+            ${task(3,"Plan build video","Shot list, narrative arc, music. Watch top cyberdeck build videos.","Draft a 1-page shot list",'med')}
+            ${task(4,"Build + film","Actually build it and capture footage","After parts arrive",'med')}
+          </div>
+        `
+      },
+      {
+        name: 'References',
+        content: `
+          <div class="section">
+            <h4>Key References</h4>
+            <ul class="links">
+              <li><a href="https://hackaday.com/2022/08/29/2022-cyberdeck-contest-steampunk-cyberdeck-is-made-from-wood-leather-brass-and-e-paper/" target="_blank">Steampunk Cyberdeck — Wood, Leather, Brass (Hackaday)</a><div class="link-desc">Contest winner. Hand-made wooden case with brass cover.</div></li>
+              <li><a href="https://www.doscher.com/work-recovery-kit/" target="_blank">Jay Doscher — Recovery Kit</a><div class="link-desc">THE OG Pelican case cyberdeck. The template everyone follows.</div></li>
+              <li><a href="https://www.hackster.io/robpsf/gundam-cyberdeck-180cb1" target="_blank">Gundam Cyberdeck — LED Storytelling</a><div class="link-desc">16 LEDs with programmable sequences. Closest to our expressive hardware idea.</div></li>
+              <li><a href="https://www.hackster.io/news/arran-gunn-s-cyberbrick-is-a-compact-yet-chunky-portable-field-terminal-in-a-custom-built-metal-case-405b0296619d" target="_blank">CyberBrick — Green Acrylic Glow</a><div class="link-desc">Metal chassis with green acrylic panel. The glow.</div></li>
+              <li><a href="https://www.newsweek.com/what-is-a-cyberdeck-gen-zs-new-custom-computing-obsession-11787017" target="_blank">Newsweek — Gen Z's New DIY Obsession</a><div class="link-desc">The trend is mainstream now. Window is open.</div></li>
+              <li><a href="https://hackaday.com/2026/03/20/portable-crt-tv-becomes-retro-cyberdeck/" target="_blank">CRT TV Cyberdeck (March 2026)</a><div class="link-desc">Panasonic from Blade Runner era converted with Pi 5.</div></li>
+            </ul>
+          </div>
+        `
+      }
+    ]
+  },
+  {
+    id: 'abraxas',
+    title: 'Abraxas',
+    desc: 'Gnostic skeleton world — TikTok content engine + potential app',
+    tag: 'Creative', tagColor: '#a78bfa',
+    status: 'Research', statusColor: '#818cf8',
+    subtitle: '7 Archon realms. Skeleton divine sparks ascending toward liberation. Content first, system later.',
+    tabs: [
+      {
+        name: 'Overview',
+        content: `
+          <div class="section">
+            <h4>The World</h4>
+            <p>Gnostic cosmology meets surreal skeleton art. AI-generated skeleton entities walking through 7 Archon-controlled realms toward Abraxas — the supreme being above the Demiurge. Based on Jung's psychological decoding of Gnostic texts.</p>
+          </div>
+          <div class="section">
+            <h4>The 7 Realms</h4>
+            <p><strong>1. Yaldabaoth</strong> (Saturn) — the Demiurge, material prison<br>
+            <strong>2. Eloaeus</strong> (Jupiter) — law, rigid order<br>
+            <strong>3. Astaphaeus</strong> (Mars) — war, trial of will<br>
+            <strong>4. Adonaios</strong> (Sun) — ego, false light<br>
+            <strong>5. Sabaoth</strong> (Venus) — desire, the trap of beauty<br>
+            <strong>6. Airamaoth</strong> (Mercury) — knowledge without wisdom<br>
+            <strong>7. Horaios</strong> (Moon) — shadow self, final gate<br><br>
+            Beyond: <strong>Abraxas</strong> — totality, beyond good and evil.</p>
+          </div>
+          <div class="section">
+            <h4>Content vs Product</h4>
+            <p>Don't build a system before testing if anyone cares. Make 5 posts first. The explorer app is a tool, not the product.</p>
+          </div>
+        `
+      },
+      {
+        name: 'Tasks',
+        content: `
+          <div class="section">
+            <h4>Next Steps</h4>
+            ${task(1,"Make 5 content pieces","Generate skeleton-in-realm images with AI, add lore captions","Pick 1 Archon realm, generate 5 variations, write captions",'high')}
+            ${task(2,"Post and measure","Put them on TikTok/Instagram, see what resonates","Create accounts if needed, post over 1 week",'high')}
+            ${task(3,"Define each realm visually","Color palette, environment, challenge, what the skeleton learns","Start with Yaldabaoth (Saturn) — darkest, most dramatic",'med')}
+            ${task(4,"Decide: content or product?","Based on post performance, decide direction","After posting 5 pieces",'med')}
+          </div>
+        `
+      },
+      {
+        name: 'Notes',
+        content: `<div class="section"><pre class="notes">Abraxas = 365-lettered name, solar rooster head.
+Skeletons = wandering divine sparks.
+
+Source: Jung's psychological decoding of Gnostic texts.
+The full source text is in media/inbound/.
+
+Visual direction: AI-generated surreal skeleton entities.
+Dark, dreamlike, symbolic. Each realm = distinct visual language.
+
+Key assets already made:
+- abraxas_hero.png, abraxas_final.png
+- abraxas_archons.png, archons_*.png
+- Interactive explorer at abraxas/
+
+SEPARATE from Cognition OS. Don't let them blur.</pre></div>`
+      }
+    ]
+  },
+  {
+    id: 'finance',
+    title: 'Investing',
+    desc: 'AGI fear trade — $700-800k, mostly crypto on Solana',
+    tag: 'Finance', tagColor: '#fbbf24',
+    status: 'Research', statusColor: '#818cf8',
+    subtitle: 'Software → zero. Compute stays. AGI fear drives flight to hard assets.',
+    tabs: [
+      {
+        name: 'Thesis',
+        content: `
+          <div class="section">
+            <h4>The Thesis</h4>
+            <p>1. Software companies lose moats as AI generates code/products instantly.<br>
+            2. But AI needs compute — GPUs, data centers, energy. That layer stays valuable.<br>
+            3. As AGI approaches, public fear grows. UBI discussions = "jobs are going away."<br>
+            4. People who feel threatened flee to safety: hard assets, gold, crypto, land.<br>
+            5. The "AGI fear trade" is the macro bet on that panic.</p>
+          </div>
+          <div class="section">
+            <h4>Current Position</h4>
+            <p>Capital: ~$700k-$800k<br>Allocation: mostly crypto on Solana<br>Risk: highly concentrated</p>
+          </div>
+          <div class="section">
+            <h4>Open Questions</h4>
+            <p>• Is Solana the right crypto bet, or should it be BTC (digital gold narrative)?<br>
+            • Which compute companies are best positioned? NVDA obvious but priced in?<br>
+            • Is there a way to play the fear directly? VIX, puts on software companies?<br>
+            • What triggers the fear trade? Timeline?</p>
+          </div>
+        `
+      },
+      {
+        name: 'Tasks',
+        content: `
+          <div class="section">
+            <h4>Next Steps</h4>
+            ${task(1,"Sharpen the thesis","What exactly triggers the fear? Timeline? What assets benefit?","Write a 1-page thesis doc with specific triggers and positions",'high')}
+            ${task(2,"Non-crypto allocation","Where to put capital outside Solana","Research: compute ETFs, data center REITs, energy plays, gold",'high')}
+            ${task(3,"Specific positions","Find actual tickers/tokens","Screen: compute infra, AI picks-and-shovels, fear-trade hedges",'high')}
+            ${task(4,"Risk management","Concentrated in crypto = high risk","Define max crypto %, stop-loss rules, diversification targets",'med')}
+          </div>
+        `
+      }
+    ]
+  }
+];
+
+// Helpers
+function task(n,title,desc,action,priority) {
+  const pClass = priority==='high'?'p-high':priority==='med'?'p-med':'p-low';
+  const pLabel = priority.toUpperCase();
+  return `<div class="task">
+    <div class="task-num">${n}</div>
+    <div class="task-body">
+      <div class="task-title">${title}<span class="task-priority ${pClass}">${pLabel}</span></div>
+      <div class="task-desc">${desc}</div>
+      <div class="task-action">→ ${action}</div>
+    </div>
+  </div>`;
+}
+
+// Render
+const homeEl = document.getElementById('home');
+const detailEl = document.getElementById('detail');
+
+function showHome() {
+  homeEl.style.display = 'grid';
+  detailEl.className = 'detail';
+  homeEl.innerHTML = PROJECTS.map(p => `
+    <div class="card" onclick="showProject('${p.id}')">
+      <span class="card-tag" style="background:${p.tagColor}18;color:${p.tagColor}">${p.tag}</span>
+      <h3>${p.title}</h3>
+      <p>${p.desc}</p>
+      <div class="card-status">
+        <span class="dot" style="background:${p.statusColor}"></span>
+        ${p.status}
+      </div>
+    </div>
+  `).join('');
+}
+
+function showProject(id) {
+  const p = PROJECTS.find(x=>x.id===id);
+  if(!p) return;
+  homeEl.style.display = 'none';
+  detailEl.className = 'detail active';
+  document.getElementById('detail-title').textContent = p.title;
+  document.getElementById('detail-subtitle').textContent = p.subtitle;
+
+  const tabsEl = document.getElementById('detail-tabs');
+  const contentEl = document.getElementById('detail-content');
+
+  tabsEl.innerHTML = p.tabs.map((t,i) =>
+    `<div class="tab${i===0?' active':''}" onclick="switchTab(this,${i},'${id}')">${t.name}</div>`
+  ).join('');
+
+  contentEl.innerHTML = p.tabs.map((t,i) =>
+    `<div class="tab-content${i===0?' active':''}" data-tab="${i}">${t.content}</div>`
+  ).join('');
+
+  window.scrollTo(0,0);
+}
+
+function switchTab(el,idx,id) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelector(`.tab-content[data-tab="${idx}"]`).classList.add('active');
+}
+
+// Handle back button
+window.addEventListener('popstate', showHome);
+
+showHome();
+</script>
+</body>
 </html>
