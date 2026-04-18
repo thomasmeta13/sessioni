@@ -491,6 +491,41 @@ function initNPCs() {
     ],
   });
 
+  // Hex puzzle NPC
+  npcs.push({
+    x: WORLD_W/2 - 150, y: WORLD_H/2 - 80,
+    type: 'turtle',
+    name: 'Oracle Shell',
+    size: 20,
+    color: '#0ea5e9',
+    eyeColor: '#7dd3fc',
+    bobPhase: Math.random()*Math.PI*2,
+    dir: 1,
+    talked: false,
+    dialogue: [
+      { text: "The spores are falling.\nFalling, falling, always\nfalling.", speaker: "Oracle Shell" },
+      { text: "Someone needs to sort them\nbefore they pile up and\nchoke the pond.", speaker: "Oracle Shell" },
+      {
+        text: "Will you help me catch\nthe spores?",
+        speaker: "Oracle Shell",
+        choices: [
+          { text: "Let's do it.", response: "Focus your mind.\nMatch the colors.\nDon't let them overflow.", onSelect: 'hex' },
+          { text: "Not now.", response: "The spores don't wait\nfor anyone..." },
+        ]
+      },
+    ],
+    dialogueAfter: [
+      {
+        text: "The spores are falling\nagain. Help?",
+        speaker: "Oracle Shell",
+        choices: [
+          { text: "I'm ready.", response: "Good. Focus.", onSelect: 'hex' },
+          { text: "Later.", response: "*sighs in turtle*" },
+        ]
+      },
+    ],
+  });
+
   npcs.push({
     x: WORLD_W/2 + 200, y: WORLD_H/2 - 100,
     type: 'oldfrog',
@@ -810,6 +845,11 @@ function advanceDialogue() {
   if (dialogue.choices) {
     const choice = dialogue.choices[dialogue.choiceIndex];
     // Handle special actions
+    if (choice.onSelect === 'hex') {
+      dialogue.active = false;
+      startHex();
+      return;
+    }
     if (choice.onSelect === 'trip') {
       // Dealer requires 50 bugs, Shaman is free
       const isDealer = dialogue.npc && dialogue.npc.name === '???';
@@ -3583,6 +3623,546 @@ function drawTrip() {
   }
 }
 
+// ─── HEX PUZZLE MINIGAME ───
+let hexActive = false;
+let hexTime = 0;
+let hexFade = 0;
+let hexScore = 0;
+let hexCombo = 0;
+let hexComboTimer = 0;
+let hexGameOver = false;
+let hexGameOverTimer = 0;
+
+const HEX_SIDES = 6;
+const HEX_COLORS = ['#4ade80','#c084fc','#f59e0b','#38bdf8','#f472b6'];
+const HEX_MAX_ROWS = 8;
+let hexRotation = 0; // current rotation angle
+let hexTargetRotation = 0;
+let hexPosition = 0; // which face is "up" (0-5)
+let hexBlocks = []; // blocks[lane] = array of settled blocks
+let hexFalling = []; // blocks currently falling
+let hexParticles = [];
+let hexSpawnTimer = 0;
+let hexSpawnRate = 2; // seconds between spawns
+let hexSpeed = 1.5;
+let hexPulse = 0;
+let hexShake = 0;
+
+const hexSideLen = 60; // size of center hex
+const hexBlockH = 18;
+
+function startHex() {
+  hexActive = true;
+  hexTime = 0;
+  hexFade = 1;
+  hexScore = 0;
+  hexCombo = 0;
+  hexGameOver = false;
+  hexGameOverTimer = 0;
+  hexRotation = 30;
+  hexTargetRotation = 30;
+  hexPosition = 0;
+  hexBlocks = [];
+  for (let i = 0; i < HEX_SIDES; i++) hexBlocks.push([]);
+  hexFalling = [];
+  hexParticles = [];
+  hexSpawnTimer = 1;
+  hexSpawnRate = 2.2;
+  hexSpeed = 1.2;
+  hexPulse = 0;
+  hexShake = 0;
+  // Music shift
+  if (musicStarted) {
+    const t = audioCtx.currentTime;
+    layers.sub.osc.type = 'triangle';
+    layers.sub.osc.frequency.setTargetAtTime(65, t, 0.3);
+    layers.pad.osc.type = 'sine';
+    layers.pad.osc.frequency.setTargetAtTime(196, t, 0.3);
+    layers.pad2.osc.frequency.setTargetAtTime(247, t, 0.3);
+    layers.pad.filter.frequency.setTargetAtTime(600, t, 0.2);
+    layers.pad.gain.gain.setTargetAtTime(0.15, t, 0.2);
+    masterGain.gain.setTargetAtTime(0.6, t, 0.3);
+  }
+}
+
+function endHex() {
+  hexActive = false;
+  score += Math.floor(hexScore / 10);
+  document.getElementById('score').textContent = 'BUGS: ' + score;
+  // Restore music
+  if (musicStarted) {
+    const t = audioCtx.currentTime;
+    layers.sub.osc.type = 'sine';
+    layers.sub.osc.frequency.setTargetAtTime(45, t, 0.5);
+    layers.pad.osc.type = 'triangle';
+    layers.pad.osc.frequency.setTargetAtTime(110, t, 0.5);
+    layers.pad.filter.frequency.setTargetAtTime(400, t, 0.3);
+    masterGain.gain.setTargetAtTime(0.7, t, 0.5);
+  }
+}
+
+function hexRotate(dir) {
+  if (hexGameOver) return;
+  hexPosition = ((hexPosition + dir) + HEX_SIDES) % HEX_SIDES;
+  hexTargetRotation -= dir * 60;
+  sfx(300, 250, 0.05, 0.1);
+  // Rotate settled blocks' target angles
+  hexBlocks.forEach(lane => lane.forEach(b => b.targetAngle -= dir * 60));
+}
+
+function hexSpawnBlock() {
+  const lane = Math.floor(Math.random() * HEX_SIDES);
+  const color = HEX_COLORS[Math.floor(Math.random() * HEX_COLORS.length)];
+  const angle = 90 - (30 + 60 * lane);
+  hexFalling.push({
+    lane, color, angle, targetAngle: angle,
+    dist: 350, speed: hexSpeed, settled: false,
+    opacity: 1, deleted: false, tint: 0,
+  });
+}
+
+function hexCheckMatches() {
+  let scored = false;
+  // Check each lane for 3+ consecutive same-color blocks
+  for (let i = 0; i < HEX_SIDES; i++) {
+    const lane = hexBlocks[i];
+    if (lane.length < 1) continue;
+    // Check adjacent lanes for matching colors at same depth
+    // Simple: check if top blocks on adjacent lanes match
+  }
+  // Check across adjacent lanes at the boundary (touching blocks)
+  // For now: simple same-lane consecutive match
+  for (let i = 0; i < HEX_SIDES; i++) {
+    const lane = hexBlocks[i];
+    for (let j = 0; j < lane.length; j++) {
+      if (lane[j].deleted) continue;
+      const color = lane[j].color;
+      // Check same lane consecutive
+      let count = 1;
+      let k = j + 1;
+      while (k < lane.length && lane[k].color === color && !lane[k].deleted) { count++; k++; }
+      if (count >= 3) {
+        for (let m = j; m < j + count; m++) lane[m].deleted = true;
+        scored = true;
+      }
+    }
+  }
+  // Check across adjacent lanes (blocks at same height touching)
+  for (let i = 0; i < HEX_SIDES; i++) {
+    const lane1 = hexBlocks[i];
+    const lane2 = hexBlocks[(i + 1) % HEX_SIDES];
+    if (lane1.length === 0 || lane2.length === 0) continue;
+    // Check if top blocks match across lanes
+    const top1 = lane1[lane1.length - 1];
+    const top2 = lane2[lane2.length - 1];
+    if (top1 && top2 && !top1.deleted && !top2.deleted && top1.color === top2.color) {
+      // Find connected same-color chain around the hex
+      let chain = [{ lane: i, idx: lane1.length - 1 }];
+      let checkLane = (i + 1) % HEX_SIDES;
+      while (checkLane !== i) {
+        const cl = hexBlocks[checkLane];
+        if (cl.length === 0) break;
+        const topB = cl[cl.length - 1];
+        if (topB && !topB.deleted && topB.color === top1.color) {
+          chain.push({ lane: checkLane, idx: cl.length - 1 });
+          checkLane = (checkLane + 1) % HEX_SIDES;
+        } else break;
+      }
+      if (chain.length >= 3) {
+        chain.forEach(c => hexBlocks[c.lane][c.idx].deleted = true);
+        scored = true;
+      }
+    }
+  }
+  if (scored) {
+    hexCombo++;
+    hexComboTimer = 2;
+    const pts = 10 * hexCombo;
+    hexScore += pts;
+    hexPulse = 0.5;
+    hexShake = 0.2;
+    // Sound — pitch rises with combo
+    const freq = 400 + hexCombo * 80;
+    sfx(freq, freq * 1.5, 0.12, 0.2);
+    if (hexCombo > 1) sfx(freq * 1.5, freq * 2, 0.08, 0.1);
+    // Particles for deleted blocks
+    hexBlocks.forEach(lane => {
+      lane.forEach(b => {
+        if (b.deleted && b.opacity > 0.9) {
+          const bAngle = b.angle * Math.PI / 180;
+          const bx = W/2 + Math.sin(bAngle) * b.dist;
+          const by = H/2 - Math.cos(bAngle) * b.dist;
+          for (let p = 0; p < 6; p++) {
+            const a = Math.random() * Math.PI * 2;
+            hexParticles.push({
+              x: bx, y: by,
+              vx: Math.cos(a) * (2 + Math.random() * 3),
+              vy: Math.sin(a) * (2 + Math.random() * 3),
+              life: 0.5 + Math.random() * 0.4,
+              color: b.color, size: 3 + Math.random() * 3,
+            });
+          }
+        }
+      });
+    });
+    // Remove deleted blocks after animation
+    setTimeout(() => {
+      for (let i = 0; i < HEX_SIDES; i++) {
+        hexBlocks[i] = hexBlocks[i].filter(b => !b.deleted);
+        // Recalculate distances
+        hexBlocks[i].forEach((b, j) => {
+          b.dist = hexSideLen * Math.sqrt(3) / 2 + hexBlockH * j;
+        });
+      }
+      hexCheckMatches(); // chain reactions
+    }, 200);
+    intensityTarget = Math.min(1, intensityTarget + 0.1);
+  }
+}
+
+function hexCheckGameOver() {
+  for (let i = 0; i < HEX_SIDES; i++) {
+    const active = hexBlocks[i].filter(b => !b.deleted).length;
+    if (active > HEX_MAX_ROWS) return true;
+  }
+  return false;
+}
+
+function updateHex(dt) {
+  hexTime += dt;
+  hexFade = Math.max(0, hexFade - dt * 2);
+  hexPulse *= 0.93;
+  hexShake *= 0.9;
+
+  if (hexGameOver) {
+    hexGameOverTimer += dt;
+    if (hexGameOverTimer > 3) { hexFade += dt * 2; if (hexFade >= 1) endHex(); }
+    return;
+  }
+
+  // Smooth rotation
+  const rotDiff = hexTargetRotation - hexRotation;
+  hexRotation += rotDiff * dt * 12;
+
+  // Combo timer
+  if (hexCombo > 0) {
+    hexComboTimer -= dt;
+    if (hexComboTimer <= 0) hexCombo = 0;
+  }
+
+  // Spawn blocks
+  hexSpawnTimer -= dt;
+  if (hexSpawnTimer <= 0) {
+    hexSpawnBlock();
+    hexSpawnTimer = hexSpawnRate;
+    // Gradually speed up
+    hexSpawnRate = Math.max(0.6, hexSpawnRate - 0.015);
+    hexSpeed = Math.min(4, hexSpeed + 0.02);
+  }
+
+  // Update falling blocks
+  const hexInnerDist = hexSideLen * Math.sqrt(3) / 2;
+  hexFalling.forEach(b => {
+    if (b.settled) return;
+    b.dist -= b.speed * dt * 60;
+
+    // Check collision with settled blocks or hex center
+    const adjustedLane = ((HEX_SIDES - b.lane + hexPosition) + HEX_SIDES) % HEX_SIDES;
+    const stack = hexBlocks[adjustedLane];
+    const targetDist = hexInnerDist + hexBlockH * stack.length;
+
+    if (b.dist <= targetDist) {
+      b.dist = targetDist;
+      b.settled = true;
+      b.tint = 0.5;
+      b.angle = 90 - (30 + 60 * b.lane);
+      b.targetAngle = b.angle;
+      stack.push({
+        color: b.color,
+        dist: targetDist,
+        angle: b.angle,
+        targetAngle: b.targetAngle,
+        opacity: 1, deleted: false, tint: b.tint,
+      });
+      hexShake = 0.1;
+      sfx(150, 100, 0.05, 0.08);
+      // Check matches after settling
+      setTimeout(() => hexCheckMatches(), 50);
+      // Check game over
+      if (hexCheckGameOver()) {
+        hexGameOver = true;
+        hexGameOverTimer = 0;
+        sfx(100, 40, 0.5, 0.2);
+        hexShake = 0.4;
+      }
+    }
+  });
+  hexFalling = hexFalling.filter(b => !b.settled);
+
+  // Particles
+  hexParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.96; p.vy *= 0.96;
+    p.life -= dt;
+  });
+  hexParticles = hexParticles.filter(p => p.life > 0);
+
+  // Tint fade on settled blocks
+  hexBlocks.forEach(lane => lane.forEach(b => {
+    if (b.tint > 0) b.tint -= dt * 2;
+    if (b.deleted) b.opacity = Math.max(0, b.opacity - dt * 4);
+    // Smooth angle rotation
+    const aDiff = b.targetAngle - b.angle;
+    b.angle += aDiff * dt * 10;
+  }));
+
+  updateMusic(dt);
+}
+
+function drawHex() {
+  const cx = W / 2, cy = H / 2;
+  const shx = (Math.random() - 0.5) * hexShake * 12;
+  const shy = (Math.random() - 0.5) * hexShake * 12;
+
+  // Background — dark with subtle animated gradient
+  const bgHue = (hexTime * 8) % 360;
+  ctx.fillStyle = `hsl(${bgHue}, 20%, 4%)`;
+  ctx.fillRect(0, 0, W, H);
+
+  // Animated background rings
+  for (let r = 0; r < 6; r++) {
+    const ringR = 100 + r * 60 + Math.sin(hexTime * 0.5 + r) * 10;
+    const ringAlpha = 0.02 + hexPulse * 0.02 + Math.sin(hexTime + r * 0.8) * 0.008;
+    const ringHue = (bgHue + r * 30) % 360;
+    ctx.strokeStyle = `hsla(${ringHue}, 40%, 30%, ${ringAlpha})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx + shx, cy + shy, ringR, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Floating background spores
+  for (let i = 0; i < 30; i++) {
+    const sx = ((Math.sin(hexTime * 0.2 + i * 4.1) + 1) / 2) * W;
+    const sy = ((Math.cos(hexTime * 0.15 + i * 3.3) + 1) / 2) * H;
+    const sparkle = Math.sin(hexTime * 2 + i * 1.7) * 0.5 + 0.5;
+    const sHue = (bgHue + i * 25) % 360;
+    ctx.fillStyle = `hsla(${sHue}, 60%, 50%, ${sparkle * 0.06})`;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 1.5 + sparkle, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.save();
+  ctx.translate(cx + shx, cy + shy);
+
+  // ── Outer boundary hex (max rows indicator) ──
+  const outerDist = hexSideLen * Math.sqrt(3) / 2 + hexBlockH * HEX_MAX_ROWS;
+  const outerPulse = hexGameOver ? 0.4 + Math.sin(hexTime * 8) * 0.3 : 0.08 + hexPulse * 0.1;
+  ctx.strokeStyle = hexGameOver ? `rgba(239,68,68,${outerPulse})` : `rgba(134,239,172,${outerPulse})`;
+  ctx.lineWidth = 1.5;
+  drawHexShape(0, 0, outerDist * 2 / Math.sqrt(3), hexRotation);
+
+  // ── Combo timer on outer hex edges ──
+  if (hexCombo > 0 && hexComboTimer > 0) {
+    const comboAlpha = hexComboTimer / 2;
+    for (let i = 0; i < HEX_SIDES; i++) {
+      const a1 = (hexRotation + i * 60) * Math.PI / 180;
+      const a2 = (hexRotation + (i + 1) * 60) * Math.PI / 180;
+      const r = outerDist * 2 / Math.sqrt(3);
+      ctx.strokeStyle = HEX_COLORS[hexCombo % HEX_COLORS.length];
+      ctx.globalAlpha = comboAlpha * 0.5;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a1) * r, Math.sin(a1) * r);
+      ctx.lineTo(Math.cos(a2) * r, Math.sin(a2) * r);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Settled blocks ──
+  hexBlocks.forEach((lane, i) => {
+    lane.forEach((b, j) => {
+      if (b.opacity <= 0) return;
+      const bAngle = b.angle * Math.PI / 180;
+      const d = b.dist + hexBlockH / 2;
+      const bx = Math.sin(bAngle) * d;
+      const by = -Math.cos(bAngle) * d;
+
+      // Block width varies with distance
+      const innerW = 2 * b.dist / Math.sqrt(3);
+      const outerW = 2 * (b.dist + hexBlockH) / Math.sqrt(3);
+
+      ctx.globalAlpha = b.opacity;
+
+      // Block shape (trapezoid)
+      const p1 = rotateHexPt(-innerW / 2, hexBlockH / 2, b.angle);
+      const p2 = rotateHexPt(innerW / 2, hexBlockH / 2, b.angle);
+      const p3 = rotateHexPt(outerW / 2, -hexBlockH / 2, b.angle);
+      const p4 = rotateHexPt(-outerW / 2, -hexBlockH / 2, b.angle);
+
+      ctx.fillStyle = b.color;
+      ctx.beginPath();
+      ctx.moveTo(bx + p1.x, by + p1.y);
+      ctx.lineTo(bx + p2.x, by + p2.y);
+      ctx.lineTo(bx + p3.x, by + p3.y);
+      ctx.lineTo(bx + p4.x, by + p4.y);
+      ctx.closePath();
+      ctx.fill();
+
+      // Tint (white flash on settle)
+      if (b.tint > 0) {
+        ctx.fillStyle = `rgba(255,255,255,${b.tint * 0.5})`;
+        ctx.fill();
+      }
+
+      // Glow
+      ctx.strokeStyle = b.color;
+      ctx.globalAlpha = b.opacity * 0.2;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.globalAlpha = 1;
+    });
+  });
+
+  // ── Falling blocks ──
+  hexFalling.forEach(b => {
+    const bAngle = (90 - (30 + 60 * b.lane)) * Math.PI / 180;
+    const bx = Math.sin(bAngle) * b.dist;
+    const by = -Math.cos(bAngle) * b.dist;
+
+    const bw = 2 * b.dist / Math.sqrt(3) * 0.8;
+
+    ctx.fillStyle = b.color;
+    ctx.globalAlpha = 0.9;
+
+    // Simple block for falling
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(bAngle - Math.PI / 2);
+    ctx.fillRect(-bw / 2, -hexBlockH / 2, bw, hexBlockH);
+    // Glow trail
+    ctx.fillStyle = b.color;
+    ctx.globalAlpha = 0.08;
+    ctx.fillRect(-bw / 2, -hexBlockH / 2, bw, hexBlockH * 3);
+    ctx.restore();
+
+    ctx.globalAlpha = 1;
+  });
+
+  // ── Center hexagon ──
+  const hexFillHue = (hexTime * 10) % 360;
+  ctx.fillStyle = `hsl(${hexFillHue}, 15%, 10%)`;
+  drawHexShape(0, 0, hexSideLen, hexRotation, true);
+  ctx.strokeStyle = `hsla(${hexFillHue}, 40%, 30%, ${0.3 + hexPulse * 0.3})`;
+  ctx.lineWidth = 2;
+  drawHexShape(0, 0, hexSideLen, hexRotation);
+  // Inner glow
+  const ig = ctx.createRadialGradient(0, 0, 0, 0, 0, hexSideLen);
+  ig.addColorStop(0, `hsla(${hexFillHue}, 50%, 20%, ${0.1 + hexPulse * 0.15})`);
+  ig.addColorStop(1, 'transparent');
+  ctx.fillStyle = ig;
+  ctx.beginPath();
+  ctx.arc(0, 0, hexSideLen, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ── Particles ──
+  hexParticles.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life;
+    ctx.beginPath();
+    ctx.arc(p.x - cx, p.y - cy, p.size * p.life, 0, Math.PI * 2);
+    ctx.fill();
+    // Glow
+    ctx.globalAlpha = p.life * 0.2;
+    ctx.beginPath();
+    ctx.arc(p.x - cx, p.y - cy, p.size * p.life * 3, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+
+  // ── HUD ──
+  ctx.fillStyle = `rgba(134,239,172,0.6)`;
+  ctx.font = '14px Courier New';
+  ctx.fillText('SPORES: ' + hexScore, 20, 30);
+  if (hexCombo > 1) {
+    ctx.fillStyle = HEX_COLORS[hexCombo % HEX_COLORS.length];
+    ctx.font = `${16 + hexCombo * 2}px Courier New`;
+    ctx.fillText('x' + hexCombo, 20, 52);
+  }
+
+  // Mobile: tap zones hint
+  if (isMobile && hexTime < 4) {
+    const hintAlpha = Math.max(0, 1 - hexTime / 3) * 0.3;
+    ctx.fillStyle = `rgba(134,239,172,${hintAlpha})`;
+    ctx.font = '12px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('< TAP LEFT', W * 0.2, H / 2);
+    ctx.fillText('TAP RIGHT >', W * 0.8, H / 2);
+    ctx.textAlign = 'start';
+  }
+
+  // Beat pulse overlay
+  if (hexPulse > 0.01) {
+    ctx.fillStyle = `rgba(134,239,172,${hexPulse * 0.03})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Vignette
+  const vg = ctx.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.65);
+  vg.addColorStop(0, 'transparent');
+  vg.addColorStop(1, 'rgba(0,0,0,0.7)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Game over overlay
+  if (hexGameOver) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(0.6, hexGameOverTimer * 0.3)})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = `rgba(239,68,68,${Math.min(0.8, hexGameOverTimer * 0.4)})`;
+    ctx.font = '24px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText('OVERFLOW', W / 2, H / 2 - 15);
+    ctx.fillStyle = `rgba(134,239,172,${Math.min(0.5, hexGameOverTimer * 0.25)})`;
+    ctx.font = '14px Courier New';
+    ctx.fillText('Score: ' + hexScore, W / 2, H / 2 + 15);
+    ctx.textAlign = 'start';
+  }
+
+  // Fade
+  if (hexFade > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${hexFade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
+// Hex drawing helpers
+function drawHexShape(x, y, size, angle, fill) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = (angle + i * 60) * Math.PI / 180;
+    const px = x + Math.cos(a) * size;
+    const py = y + Math.sin(a) * size;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  if (fill) ctx.fill();
+  else ctx.stroke();
+}
+
+function rotateHexPt(x, y, angle) {
+  const rad = angle * Math.PI / 180;
+  return {
+    x: x * Math.cos(rad) - y * Math.sin(rad),
+    y: x * Math.sin(rad) + y * Math.cos(rad),
+  };
+}
+
 // ─── LOOP ───
 let lastTime=0;
 function loop(timestamp) {
@@ -3592,6 +4172,9 @@ function loop(timestamp) {
   if (tripActive) {
     updateTrip(dt);
     drawTrip();
+  } else if (hexActive) {
+    updateHex(dt);
+    drawHex();
   } else {
     update(dt);
     draw();
@@ -3607,6 +4190,27 @@ function startGame() {
   initAudio();
   initWorld();
 }
+
+// Hex mode input handlers
+window.addEventListener('keydown', e => {
+  if (!hexActive || hexGameOver) return;
+  if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') hexRotate(1);
+  if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') hexRotate(-1);
+  if (e.key === 'Escape') { hexGameOver = true; hexGameOverTimer = 2; }
+});
+canvas.addEventListener('touchstart', e => {
+  if (!hexActive || hexGameOver) return;
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.clientX < W / 2) hexRotate(1);
+    else hexRotate(-1);
+  }
+}, { passive: false });
+canvas.addEventListener('mousedown', e => {
+  if (!hexActive || hexGameOver) return;
+  if (e.clientX < W / 2) hexRotate(1);
+  else hexRotate(-1);
+});
 
 // Trip mode input handlers
 window.addEventListener('mousedown', e => { if(tripActive) tripShoot(); });
