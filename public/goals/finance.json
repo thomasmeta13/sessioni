@@ -1,0 +1,46 @@
+{
+  "id": "finance",
+  "title": "Investing — AGI Fear Trade",
+  "status": "researching",
+  "tag": "Finance",
+  "tagClass": "tag-finance",
+  "summary": "Capital: ~$700k-$800k mostly in crypto on Solana. Thesis: software goes to zero as AI rises, compute stays valuable, AGI fear drives flight to hard assets.",
+  "budget": "$700k-$800k",
+  "updated": "2026-04-09",
+  "overview": {
+    "what": "Developing an investing thesis around the AGI transition. Core belief: as AI commoditizes software, compute/infra stays valuable. As AGI gets closer and UBI talk rises, people panic about permanent underclass — flight to hard assets and safety.",
+    "status_detail": "Thesis drafted. Currently mostly in crypto on Solana. Need to diversify non-crypto allocation and find specific investable positions."
+  },
+  "options": {
+    "criteria": ["Task", "Status", "Priority", "Next Action"],
+    "columns": [
+      {
+        "name": "Sharpen the thesis",
+        "emoji": "1",
+        "values": ["Turn draft thesis into specific investable ideas", "Draft done", "HIGH", "Write out: what exactly triggers the fear trade? What's the timeline? What assets benefit?"]
+      },
+      {
+        "name": "Non-crypto allocation",
+        "emoji": "2",
+        "values": ["Where to put capital outside Solana", "Not started", "HIGH", "Research: compute ETFs, data center REITs, energy/power plays, gold/hard assets"]
+      },
+      {
+        "name": "Specific positions",
+        "emoji": "3",
+        "values": ["Find actual tickers/tokens to size into", "Not started", "HIGH", "Screen for: compute infra companies, AI picks-and-shovels, fear-trade hedges"]
+      },
+      {
+        "name": "Risk management",
+        "emoji": "4",
+        "values": ["Concentrated in crypto — what's the downside plan?", "Not addressed", "MEDIUM", "Define: max crypto allocation %, stop-loss rules, diversification targets"]
+      }
+    ]
+  },
+  "considerations": [
+    { "label": "Concentration risk", "detail": "Mostly in crypto on Solana is high conviction but high risk. One bad cycle could cut capital significantly." },
+    { "label": "Timeline", "detail": "AGI fear trade might be 2-5 years out. Need positions that don't bleed while waiting." },
+    { "label": "Thesis risk", "detail": "What if software DOESN'T go to zero? What if AI augments rather than replaces? Need to stress-test the thesis." },
+    { "label": "Tax implications", "detail": "Moving from crypto to other assets triggers capital gains. Factor tax into any rebalancing plan." }
+  ],
+  "notes": "The thesis in plain language:\n\n1. Software companies lose moats as AI can generate code/products instantly\n2. But AI needs compute — GPUs, data centers, energy. That layer stays valuable.\n3. As AGI approaches, public fear grows. UBI discussions signal 'jobs are going away.'\n4. People who feel threatened flee to perceived safety: hard assets, gold, crypto, land.\n5. The 'AGI fear trade' is the macro bet on that panic.\n\nOpen questions:\n- Is Solana the right crypto bet for this thesis, or should it be BTC (digital gold narrative)?\n- Which compute companies are best positioned? (NVDA obvious but priced in?)\n- Is there a way to play the fear directly? (VIX-related, put options on software companies?)"
+}

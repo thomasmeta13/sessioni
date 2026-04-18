@@ -1,5 +1,10 @@
 {
   "goals": [
+    { "id": "swamp-album", "file": "swamp-album.json" },
+    { "id": "cyberdeck", "file": "cyberdeck.json" },
+    { "id": "arthritis-app", "file": "arthritis-app.json" },
+    { "id": "finance", "file": "finance.json" },
+    { "id": "abraxas", "file": "abraxas.json" },
     { "id": "red-light-therapy", "file": "red-light-therapy.json" }
   ]
 }

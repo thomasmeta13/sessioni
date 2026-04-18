@@ -1,0 +1,46 @@
+{
+  "id": "abraxas",
+  "title": "Abraxas — Gnostic World",
+  "status": "researching",
+  "tag": "Creative",
+  "tagClass": "tag-gnostic",
+  "summary": "Gnostic cosmology + surreal skeleton world. AI-generated entities ascending through 7 Archon realms. TikTok content engine + potential mobile app.",
+  "budget": "$0 (content) / TBD (app)",
+  "updated": "2026-04-18",
+  "overview": {
+    "what": "A creative project building a world based on Gnostic cosmology — specifically Jung's psychological decoding of Gnostic texts. Skeleton entities as divine sparks ascending through 7 Archon-controlled realms toward Abraxas (the supreme being above the Demiurge). Visual assets started. Needs a plan before building any system.",
+    "status_detail": "Philosophy locked. Visual assets started (hero images, archon screens). Interactive explorer exists. But no clear production pipeline or content strategy yet."
+  },
+  "options": {
+    "criteria": ["Task", "Status", "Priority", "Next Action"],
+    "columns": [
+      {
+        "name": "Define the actual product",
+        "emoji": "1",
+        "values": ["What are we actually making? TikTok videos? An app? A website? A game?", "Undefined", "HIGH", "Decide: is this content (videos/images) or a product (app/game)? Can't build a system without knowing what it serves."]
+      },
+      {
+        "name": "Content pipeline test",
+        "emoji": "2",
+        "values": ["Make 5 pieces of Abraxas content and post them", "Not started", "HIGH", "Generate 5 skeleton-in-archon-realm images with AI, add lore captions, post to TikTok/Instagram. See what resonates."]
+      },
+      {
+        "name": "Map the 7 realms",
+        "emoji": "3",
+        "values": ["Define each Archon realm's visual style, rules, and narrative", "Partially done", "MEDIUM", "The 7 Archons are named. Each needs: color palette, environment style, challenge/theme, what the skeleton learns there."]
+      },
+      {
+        "name": "Explorer app design",
+        "emoji": "4",
+        "values": ["Interactive experience for exploring the Gnostic world", "Basic explorer exists", "LOW", "Don't build more until the content direction is clear. The explorer is a tool, not the product."]
+      }
+    ]
+  },
+  "considerations": [
+    { "label": "Don't build a system before you need one", "detail": "The temptation is to architect an elaborate app. But first: does anyone care about this content? Test with 5 posts before building anything." },
+    { "label": "Source material", "detail": "Jung's psychological decoding of Gnostic texts (full text available). Abraxas = 365-lettered name, solar rooster head, supreme being." },
+    { "label": "Visual direction", "detail": "AI-generated surreal skeleton entities. Dark, dreamlike, symbolic. Each realm has distinct visual language." },
+    { "label": "Separate from Cognition OS", "detail": "This is a DIFFERENT project from Cognition OS. Don't let them blur together." }
+  ],
+  "notes": "The 7 Archon Realms:\n1. Yaldabaoth (Saturn) — the Demiurge, creator of the material prison\n2. Eloaeus (Jupiter) — law, authority, rigid order\n3. Astaphaeus (Mars) — war, conflict, the trial of will\n4. Adonaios (Sun) — ego, false light, the illusion of self\n5. Sabaoth (Venus) — desire, attachment, the trap of beauty\n6. Airamaoth (Mercury) — knowledge without wisdom, the maze of intellect\n7. Horaios (Moon) — reflection, shadow self, the final gate\n\nBeyond all 7: Abraxas — totality, beyond good and evil.\n\nThe honest next step: make 5 pieces of content and post them. Everything else is premature."
+}

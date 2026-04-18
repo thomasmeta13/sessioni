@@ -1,0 +1,52 @@
+{
+  "id": "arthritis-app",
+  "title": "ArthriMove — Mom's Exercise App",
+  "status": "planning",
+  "tag": "App",
+  "tagClass": "tag-react",
+  "summary": "Exercise app for elderly with arthritis. The twist: sending mom a laptop and letting her build it herself with guided AI assistance.",
+  "budget": "$500 (laptop for mom) + $0 (development)",
+  "updated": "2026-04-18",
+  "overview": {
+    "what": "A gentle daily exercise app for elderly people with arthritis — chair-based routines, voice guidance, pain check-ins, caregiver dashboard. But the real project is the process: setting up mom with a laptop and AI tools so she can shape the app herself, giving her ownership of something meaningful.",
+    "status_detail": "Concept defined. Need to figure out the flow for mom — what laptop, what tools, how to guide her remotely."
+  },
+  "options": {
+    "criteria": ["Task", "Status", "Priority", "Next Action"],
+    "columns": [
+      {
+        "name": "Set up mom's laptop",
+        "emoji": "1",
+        "values": ["Buy a laptop, set up dev environment, ship it to her", "Not started", "HIGH", "Research best laptop for a non-technical user ($300-500 Chromebook or MacBook Air?)"]
+      },
+      {
+        "name": "Design the guided flow",
+        "emoji": "2",
+        "values": ["How does mom interact with the build process?", "Not started", "HIGH", "Options: Claude Code on her machine, a no-code builder like Cursor/Replit, or a guided template she customizes"]
+      },
+      {
+        "name": "Define MVP features",
+        "emoji": "3",
+        "values": ["What does v1 actually do?", "Drafted", "MEDIUM", "Core: daily exercise video/animation, pain check-in (1-5), streak tracker, large text UI"]
+      },
+      {
+        "name": "Exercise content",
+        "emoji": "4",
+        "values": ["Who creates the actual routines?", "Not started", "MEDIUM", "Research: partner with a PT? Use existing public domain chair yoga content? Mom designs based on her experience?"]
+      },
+      {
+        "name": "Caregiver dashboard",
+        "emoji": "5",
+        "values": ["Family can see mom's progress remotely", "Not started", "LOW", "Simple: daily completion status, pain trend graph, streak — visible via shared link"]
+      }
+    ]
+  },
+  "considerations": [
+    { "label": "Mom's tech level", "detail": "Need to assess: can she use a browser? Copy/paste? Follow step-by-step video instructions? This determines the whole approach." },
+    { "label": "The real value", "detail": "It's not just the app — it's mom learning to build something with technology. The process matters as much as the product." },
+    { "label": "Remote support", "detail": "You're in NYC, she's not. Need a way to help her remotely — screen sharing, video calls, or an AI assistant on her machine." },
+    { "label": "Market potential", "detail": "58M arthritis sufferers in US. Most PT apps ignore 65+ UX. If the app works for mom, it could work for millions." },
+    { "label": "Platform choice", "detail": "Web app (works on any device, no app store) vs native (better for notifications, offline). Web-first is simpler for mom to test." }
+  ],
+  "notes": "The interesting angle here: mom isn't just the user — she's the co-builder. She knows the pain points better than any developer. The question is finding the right level of abstraction so she can contribute meaningfully without needing to code.\n\nPossible flows:\n1. Send her a MacBook Air with Claude Code installed. Walk her through prompting it to build screens.\n2. Set up a Replit/Glitch project she can edit in-browser. You handle the hard parts, she customizes content/flow.\n3. Build a template app, give her a simple admin panel to add exercises, adjust text, set schedule.\n\nOption 3 is probably most realistic. Option 1 is most ambitious and coolest story."
+}

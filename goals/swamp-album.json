@@ -1,0 +1,46 @@
+{
+  "id": "swamp-album",
+  "title": "SWAMP — Playable Album",
+  "status": "building",
+  "tag": "Game",
+  "tagClass": "tag-game",
+  "summary": "A top-down frog action game where the music reacts to your gameplay. Each zone is a track. The game IS the album.",
+  "budget": "$0 (web-based)",
+  "updated": "2026-04-18",
+  "overview": {
+    "what": "A browser game where you play as a frog descending through a corrupted swamp. The music has layers that intensify with combat. Zone 1 (Surface Pond) and Zone 2 (The Bog rave cantina) are built. Includes DOOM first-person mode and Hextris-style hex puzzle as minigames.",
+    "status_detail": "Playable prototype deployed. Core mechanics working: tongue whip, belly flop, NPC dialogue with choices, zone transitions, gate/toll system, touch controls for mobile."
+  },
+  "options": {
+    "criteria": ["Task", "Status", "Priority", "Next Action"],
+    "columns": [
+      {
+        "name": "Show friend the prototype",
+        "emoji": "1",
+        "values": ["Send him the link + pitch the concept", "Not done", "HIGH", "Text him the GitHub Pages link and explain the vision"]
+      },
+      {
+        "name": "Get music stems",
+        "emoji": "2",
+        "values": ["Friend produces 1 demo track with layerable stems", "Not started", "HIGH", "Ask friend to make a sploinky Zone 1 track with separate bass/melody/drums stems"]
+      },
+      {
+        "name": "Improve Zone 1 feel",
+        "emoji": "3",
+        "values": ["Better music, more polish, bug fixes", "In progress", "MEDIUM", "Replace oscillator music with real audio, fix mobile quirks"]
+      },
+      {
+        "name": "Build Zone 3 & 4",
+        "emoji": "4",
+        "values": ["The Undergrowth (heavy) and The Depths (boss)", "Not started", "LOW", "Design after Zone 1-2 are polished and friend has music direction"]
+      }
+    ]
+  },
+  "considerations": [
+    { "label": "Prototype link", "detail": "https://thomasmeta13.github.io/sessioni/swamp/" },
+    { "label": "Core mechanic", "detail": "Adaptive music — layers fade in/out based on combat intensity. Kills raise intensity, idle lowers it." },
+    { "label": "Friend's role", "detail": "Music production. He plays metal but is versatile. Needs to hear the prototype to understand the vision." },
+    { "label": "Content play", "detail": "Gameplay clips + music = TikTok/YouTube content. Sploinky/frogcore aesthetic is trending." }
+  ],
+  "notes": "The key blocker is getting the friend on board. Everything else follows from that. Send him the prototype, let him play it, then discuss music direction.\n\nThe game has 3 modes:\n1. Top-down exploration (walk, talk to NPCs, catch bugs)\n2. DOOM first-person (eat a Voidfly from Shaman Gorp)\n3. Hex puzzle (talk to Oracle Shell)\n\nZone progression: Surface Pond → The Bog (frog rave) → The Undergrowth → The Depths"
+}

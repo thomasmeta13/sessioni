@@ -1,0 +1,46 @@
+{
+  "id": "cyberdeck",
+  "title": "Cyberdeck — AI Terminal Build",
+  "status": "researching",
+  "tag": "Hardware",
+  "tagClass": "tag-hardware",
+  "summary": "Build a custom steampunk cyberdeck with expressive LEDs, film the build, post the video. Future: sell DIY kits with OpenClaw pre-installed.",
+  "budget": "$200-500 for parts",
+  "updated": "2026-04-09",
+  "overview": {
+    "what": "A DIY portable computer built from a Raspberry Pi inside a rugged case with steampunk brass + green LED aesthetic. The deck expresses AI state through hardware — LEDs pulse when thinking, shift color when executing. Film the build as content.",
+    "status_detail": "Research phase complete. Reference images collected across 4 style categories (steampunk, green matrix, pelican classic, recent 2025-2026 builds). No parts ordered yet."
+  },
+  "options": {
+    "criteria": ["Task", "Status", "Priority", "Next Action"],
+    "columns": [
+      {
+        "name": "Pick final aesthetic",
+        "emoji": "1",
+        "values": ["Decide between steampunk brass vs green glow vs hybrid", "References collected", "HIGH", "Review reference pages in Cognition OS, pick top 3 builds to draw from"]
+      },
+      {
+        "name": "Parts list + order",
+        "emoji": "2",
+        "values": ["Spec out every component, find sources, order", "Not started", "HIGH", "Start with: Pi 5, screen size, keyboard, case type, LED strips"]
+      },
+      {
+        "name": "Plan build video",
+        "emoji": "3",
+        "values": ["Shot list, narrative arc, music choice", "Not started", "MEDIUM", "Watch top cyberdeck build videos for format inspiration"]
+      },
+      {
+        "name": "Build + film",
+        "emoji": "4",
+        "values": ["Actually build it and capture footage", "Not started", "MEDIUM", "Blocked by parts arriving"]
+      }
+    ]
+  },
+  "considerations": [
+    { "label": "Timing", "detail": "Cyberdecks are peaking NOW — Newsweek coverage, TikTok explosion. Window is open." },
+    { "label": "Unique angle", "detail": "Nobody is doing 'AI that lives in the machine' with expressive hardware. The skeleton key power-on alone is a clip." },
+    { "label": "Content > product", "detail": "The video is the primary deliverable. Kit business is secondary and only if demand is proven." },
+    { "label": "LED system", "detail": "Amber=thinking, blue=listening, green=executing, red=error. Could use NeoPixels controlled by Pi GPIO." }
+  ],
+  "notes": "The build video narrative: 'I built an AI that lives in a steampunk machine.' Dark workshop, brass and green light, hands assembling it, first boot — the key turns, green light floods the case, terminal text starts scrolling.\n\nKey reference builds:\n- Hackaday steampunk contest winner (wood, leather, brass, e-paper)\n- Jay Doscher Recovery Kit (the OG Pelican cyberdeck)\n- Gundam cyberdeck (programmable LED storytelling — closest to our expressive hardware idea)"
+}
