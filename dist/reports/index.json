@@ -1,0 +1,7 @@
+{
+  "reports": [
+    { "id": "market-2026-03-30", "file": "market-2026-03-30.json" },
+    { "id": "ai-agents-2026-03-30", "file": "ai-agents-2026-03-30.json" },
+    { "id": "arthritis-app-2026-03-30", "file": "arthritis-app-2026-03-30.json" }
+  ]
+}
