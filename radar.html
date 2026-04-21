@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Radar</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#111;color:#ccc;font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;font-size:14px}
+
+.tabs{background:#0a0a0a;border-bottom:1px solid #222;padding:0 16px;display:flex;gap:0;position:sticky;top:0;z-index:10;overflow-x:auto}
+.tab{padding:12px 18px;font-size:13px;color:#555;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab:hover{color:#888}
+.tab.active{color:#e5e5e5;border-bottom-color:#f59e0b}
+
+.main{max-width:720px;margin:0 auto;padding:24px 16px 60px}
+.page{display:none}
+.page.active{display:block}
+h1{font-size:22px;font-weight:600;margin-bottom:4px}
+.sub{color:#555;font-size:12px;margin-bottom:24px}
+h2{font-size:15px;font-weight:600;color:#999;margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid #1a1a1a}
+
+/* Feed items */
+.feed-item{padding:14px 0;border-bottom:1px solid #1a1a1a}
+.feed-item:last-child{border-bottom:none}
+.feed-title{font-size:14px;font-weight:500;color:#e5e5e5;margin-bottom:3px}
+.feed-title a{color:#e5e5e5;text-decoration:none}
+.feed-title a:hover{color:#f59e0b}
+.feed-desc{font-size:12px;color:#666;line-height:1.5}
+.feed-meta{font-size:11px;color:#444;margin-top:4px}
+.feed-tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;margin-right:4px;background:#1a1a1a;color:#888}
+.feed-num{color:#f59e0b;font-family:'SF Mono',monospace;font-size:12px}
+
+/* Quick links grid */
+.links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:12px 0}
+.link-card{background:#1a1a1a;border:1px solid #222;border-radius:6px;padding:12px;text-decoration:none;color:#999;font-size:12px;transition:border-color 0.15s}
+.link-card:hover{border-color:#444;color:#ccc}
+.link-card strong{display:block;color:#ccc;font-size:13px;margin-bottom:3px}
+
+/* Loading */
+.loading{color:#444;font-size:12px;font-style:italic;padding:20px 0}
+
+/* Textarea */
+textarea{background:#0a0a0a;border:1px solid #222;color:#999;font-family:inherit;font-size:13px;width:100%;min-height:80px;padding:10px;border-radius:6px;resize:vertical;outline:none;line-height:1.6}
+textarea:focus{border-color:#444;color:#ccc}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('trending')">Trending</div>
+  <div class="tab" onclick="show('ads')">Ad Intel</div>
+  <div class="tab" onclick="show('launches')">Launches</div>
+  <div class="tab" onclick="show('niches')">Niches</div>
+  <div class="tab" onclick="show('bookmarks')">Saved</div>
+</div>
+
+<div class="main">
+
+<!-- TRENDING -->
+<div id="trending" class="page active">
+  <h1>Trending Now</h1>
+  <div class="sub">What's moving on app stores and the web right now</div>
+
+  <h2>Quick Scan</h2>
+  <div class="links-grid">
+    <a href="https://www.appbrain.com/apps/trending" target="_blank" class="link-card"><strong>AppBrain Trending</strong>Android apps moving up right now</a>
+    <a href="https://apptopia.com/top-charts/trending-apps" target="_blank" class="link-card"><strong>Apptopia Trending</strong>iOS + Android trending charts</a>
+    <a href="https://apps.apple.com/us/charts/iphone" target="_blank" class="link-card"><strong>App Store Charts</strong>Apple top free/paid/grossing</a>
+    <a href="https://www.apptweak.com/en/free-tools/app-store-top-charts" target="_blank" class="link-card"><strong>AppTweak Charts</strong>Top charts by country + category</a>
+    <a href="https://trends.google.com/trending?geo=US" target="_blank" class="link-card"><strong>Google Trends</strong>What people are searching right now</a>
+    <a href="https://www.similarweb.com/apps/top/google/us/overall/" target="_blank" class="link-card"><strong>SimilarWeb Apps</strong>Top apps by downloads</a>
+  </div>
+
+  <h2>What Broke Out Recently</h2>
+  <div class="feed-item">
+    <div class="feed-title">ChatGPT — <span class="feed-num">55.9M downloads</span> Jan 2026</div>
+    <div class="feed-desc">Most downloaded app globally. AI assistants are the breakout category.</div>
+    <div class="feed-meta"><span class="feed-tag">AI</span> Fastest app ever to 1B downloads</div>
+  </div>
+  <div class="feed-item">
+    <div class="feed-title">DramaBox — <span class="feed-num">178M downloads</span></div>
+    <div class="feed-desc">Short-form scripted drama. Bite-sized episodes. Came from nowhere. Subscription model.</div>
+    <div class="feed-meta"><span class="feed-tag">Entertainment</span> ReelShort 148M, DramaWave 90M in same category</div>
+  </div>
+  <div class="feed-item">
+    <div class="feed-title">Flo — <span class="feed-num">52M downloads</span></div>
+    <div class="feed-desc">Period/fertility tracker. Femtech is strongest growth category 2026.</div>
+    <div class="feed-meta"><span class="feed-tag">Femtech</span> $200M+/yr revenue</div>
+  </div>
+  <div class="feed-item">
+    <div class="feed-title">Google Gemini — <span class="feed-num">354M downloads</span> 2025</div>
+    <div class="feed-desc">AI assistant #2 behind ChatGPT. AI category doubled YoY.</div>
+    <div class="feed-meta"><span class="feed-tag">AI</span></div>
+  </div>
+  <div class="feed-item">
+    <div class="feed-title">AI Music Creation Apps</div>
+    <div class="feed-desc">Biggest category shift of 2025-2026. Consumers creating/remixing at unprecedented scale.</div>
+    <div class="feed-meta"><span class="feed-tag">AI</span> <span class="feed-tag">Music</span></div>
+  </div>
+
+  <h2>Notes</h2>
+  <textarea data-key="trending-notes" placeholder="What caught your eye? Patterns you're seeing?"></textarea>
+</div>
+
+<!-- AD INTEL -->
+<div id="ads" class="page">
+  <h1>Ad Intel</h1>
+  <div class="sub">See what's spending money on ads and what's converting</div>
+
+  <h2>Spy Tools</h2>
+  <div class="links-grid">
+    <a href="https://www.facebook.com/ads/library/" target="_blank" class="link-card"><strong>Meta Ad Library</strong>See every active Facebook/Instagram ad. Free.</a>
+    <a href="https://adstransparency.google.com/" target="_blank" class="link-card"><strong>Google Ads Transparency</strong>See who's running Google ads</a>
+    <a href="https://library.tiktok.com/" target="_blank" class="link-card"><strong>TikTok Ad Library</strong>Browse TikTok commercial content</a>
+    <a href="https://minea.com" target="_blank" class="link-card"><strong>Minea</strong>Ad spy across platforms. Free tier.</a>
+    <a href="https://adlibrary.com" target="_blank" class="link-card"><strong>AdLibrary.com</strong>Search Meta ads by keyword/competitor</a>
+    <a href="https://winninghunter.com" target="_blank" class="link-card"><strong>WinningHunter</strong>Find winning ads + products</a>
+  </div>
+
+  <h2>How To Use This</h2>
+  <div class="feed-item">
+    <div class="feed-desc">1. Search Meta Ad Library for keywords in your niche<br>2. Filter by country (US) and active ads<br>3. Look for ads running 30+ days — if they're still running, they're profitable<br>4. Check what they're selling, how they position it, what the landing page looks like<br>5. Note the creative format (video, image, carousel) and the hook</div>
+  </div>
+
+  <h2>Keywords To Search</h2>
+  <textarea data-key="ads-keywords" placeholder="Keywords to spy on in ad libraries...">quiz, personality test, skin care routine, wellness, daily routine, habit tracker, AI assistant, cycle tracking, mood, journaling, self care, manifestation, tarot, astrology</textarea>
+
+  <h2>Ads I Found</h2>
+  <textarea data-key="ads-found" placeholder="Paste screenshots, links, notes about ads you found..." style="min-height:120px"></textarea>
+</div>
+
+<!-- LAUNCHES -->
+<div id="launches" class="page">
+  <h1>Launches</h1>
+  <div class="sub">New products shipping — indie makers, startups, what's working</div>
+
+  <h2>Watch These</h2>
+  <div class="links-grid">
+    <a href="https://www.producthunt.com" target="_blank" class="link-card"><strong>Product Hunt</strong>Daily launches, upvotes, comments</a>
+    <a href="https://www.producthunt.com/products" target="_blank" class="link-card"><strong>PH — Best of April 2026</strong>Top products this month</a>
+    <a href="https://hunted.space/history" target="_blank" class="link-card"><strong>Hunted Space</strong>PH daily launch history + stats</a>
+    <a href="https://news.ycombinator.com/show" target="_blank" class="link-card"><strong>HN Show</strong>Hacker News — what devs are shipping</a>
+    <a href="https://www.indiehackers.com/" target="_blank" class="link-card"><strong>Indie Hackers</strong>Revenue numbers, what's working</a>
+    <a href="https://microsaashq.com" target="_blank" class="link-card"><strong>MicroSaaSHQ</strong>Small SaaS products with real revenue</a>
+    <a href="https://twitter.com/search?q=just%20launched&f=live" target="_blank" class="link-card"><strong>X — "just launched"</strong>Real-time launches on Twitter</a>
+    <a href="https://www.ycombinator.com/launches" target="_blank" class="link-card"><strong>YC Launches</strong>What Y Combinator companies are shipping</a>
+  </div>
+
+  <h2>Interesting Launches</h2>
+  <textarea data-key="launches-notes" placeholder="Products that caught your eye, revenue numbers, ideas they spark..." style="min-height:120px"></textarea>
+</div>
+
+<!-- NICHES -->
+<div id="niches" class="page">
+  <h1>Niches</h1>
+  <div class="sub">Markets to explore — where the gaps are</div>
+
+  <h2>Research Tools</h2>
+  <div class="links-grid">
+    <a href="https://trends.google.com/trending?geo=US" target="_blank" class="link-card"><strong>Google Trends</strong>Search volume over time for any topic</a>
+    <a href="https://explodingtopics.com" target="_blank" class="link-card"><strong>Exploding Topics</strong>Topics growing before they peak</a>
+    <a href="https://meetglimpse.com" target="_blank" class="link-card"><strong>Glimpse</strong>Trends with growth data</a>
+    <a href="https://www.revenuecat.com/state-of-subscription-apps/" target="_blank" class="link-card"><strong>RevenueCat Report</strong>Subscription app benchmarks 2026</a>
+    <a href="https://mktclarity.com/blogs/news/list-underserved-niches" target="_blank" class="link-card"><strong>Underserved Niches List</strong>21 markets with gaps</a>
+    <a href="https://www.reddit.com/r/SaaS/top/?t=month" target="_blank" class="link-card"><strong>r/SaaS</strong>What SaaS people are building + revenue</a>
+    <a href="https://www.reddit.com/r/EntrepreneurRideAlong/top/?t=month" target="_blank" class="link-card"><strong>r/EntrepreneurRideAlong</strong>Real entrepreneurs sharing numbers</a>
+    <a href="https://saashints.com/micro-saas-ideas-100-profitable-micro-saas-ideas-to-build-in-2026/" target="_blank" class="link-card"><strong>100 Micro SaaS Ideas</strong>With revenue examples</a>
+  </div>
+
+  <h2>Hot Right Now</h2>
+  <div class="feed-item">
+    <div class="feed-title">AI Companions</div>
+    <div class="feed-desc"><span class="feed-num">$48.6B</span> market, 31% CAGR. Growing 2x faster than mental health apps. Women primary users.</div>
+  </div>
+  <div class="feed-item">
+    <div class="feed-title">Short-Form Drama</div>
+    <div class="feed-desc">DramaBox/ReelShort disrupted entertainment. <span class="feed-num">400M+</span> combined downloads. Subscription model. Came from nowhere.</div>
+  </div>
+  <div class="feed-item">
+    <div class="feed-title">Femtech</div>
+    <div class="feed-desc">Strongest growth category 2026. Personalization is #1 trend. Cycle tracking → hormone health → menopause.</div>
+  </div>
+  <div class="feed-item">
+    <div class="feed-title">Mobile Health Diagnostics</div>
+    <div class="feed-desc">Phone camera as diagnostic. Skin scanning, cardiovascular screening. High perceived value = willingness to pay.</div>
+  </div>
+  <div class="feed-item">
+    <div class="feed-title">Senior Products</div>
+    <div class="feed-desc">55+ controls <span class="feed-num">50%</span> of US consumer spending. Hugely underserved online. Diabetic socks brand: $700K/mo.</div>
+  </div>
+
+  <h2>Exploring</h2>
+  <textarea data-key="niches-notes" placeholder="Niches you're looking into, search trends, gaps you found..." style="min-height:120px"></textarea>
+</div>
+
+<!-- SAVED -->
+<div id="bookmarks" class="page">
+  <h1>Saved</h1>
+  <div class="sub">Things worth remembering</div>
+
+  <h2>Links</h2>
+  <textarea data-key="saved-links" placeholder="Paste links, products, apps, ideas you want to come back to..." style="min-height:150px"></textarea>
+
+  <h2>Ideas That Sparked</h2>
+  <textarea data-key="saved-ideas" placeholder="Quick ideas — don't filter, just dump..." style="min-height:150px"></textarea>
+
+  <h2>Patterns</h2>
+  <textarea data-key="saved-patterns" placeholder="What keeps coming up? What pattern are you seeing across everything?" style="min-height:100px"></textarea>
+</div>
+
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const pages = ['trending','ads','launches','niches','bookmarks'];
+  const idx = pages.indexOf(id);
+  if (idx >= 0) document.querySelectorAll('.tab')[idx].classList.add('active');
+  window.scrollTo(0,0);
+}
+// Auto-save
+document.querySelectorAll('textarea').forEach(el => {
+  const key = el.dataset.key;
+  if (key) {
+    const saved = localStorage.getItem('radar-'+key);
+    if (saved) el.value = saved;
+    el.addEventListener('input', () => localStorage.setItem('radar-'+key, el.value));
+  }
+});
+</script>
+</body>
+</html>
