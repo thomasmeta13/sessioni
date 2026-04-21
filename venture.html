@@ -3,546 +3,274 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Venture — Command Center</title>
+<title>Venture</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#09090b;--bg2:#18181b;--bg3:#27272a;--bg4:#3f3f46;
-  --text:#fafafa;--text2:#a1a1aa;--text3:#71717a;
-  --accent:#f59e0b;--accent2:#fbbf24;
-  --green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6;
-  --radius:8px;
-}
-body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;font-size:14px}
-a{color:var(--accent2);text-decoration:none}
-a:hover{text-decoration:underline}
-input,textarea{background:var(--bg2);border:1px solid var(--bg3);color:var(--text);border-radius:var(--radius);padding:10px 12px;font-family:inherit;font-size:13px;width:100%;resize:vertical}
-input:focus,textarea:focus{outline:none;border-color:var(--accent)}
-button{background:var(--bg3);border:none;color:var(--text2);padding:7px 14px;border-radius:var(--radius);font-size:12px;cursor:pointer;font-family:inherit}
-button:hover{background:var(--bg4);color:var(--text)}
-button.primary{background:var(--accent);color:#000;font-weight:600}
-button.primary:hover{background:var(--accent2)}
+body{background:#1a1a1a;color:#d4d4d4;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.8}
 
-/* Layout */
-.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
-@media(max-width:700px){.app{grid-template-columns:1fr}.sidebar{display:none}.mobile-nav{display:flex !important}}
+/* Tabs */
+.tabs{background:#111;border-bottom:1px solid #333;padding:0 20px;display:flex;gap:0;position:sticky;top:0;z-index:10;overflow-x:auto}
+.tab{padding:12px 20px;font-size:13px;font-family:-apple-system,sans-serif;color:#666;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab:hover{color:#999}
+.tab.active{color:#e5e5e5;border-bottom-color:#e5e5e5}
 
-/* Sidebar */
-.sidebar{background:var(--bg);border-right:1px solid var(--bg3);padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
-.sidebar-title{padding:0 16px 20px;font-size:13px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase}
-.nav-item{display:block;padding:9px 16px;font-size:13px;color:var(--text3);cursor:pointer;border-left:2px solid transparent;transition:all 0.1s}
-.nav-item:hover{color:var(--text2);background:var(--bg2)}
-.nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:rgba(245,158,11,0.05)}
-.nav-section{padding:16px 16px 6px;font-size:10px;color:var(--bg4);text-transform:uppercase;letter-spacing:2px;margin-top:8px}
-
-/* Mobile nav */
-.mobile-nav{display:none;background:var(--bg);border-bottom:1px solid var(--bg3);padding:8px;gap:4px;overflow-x:auto;position:sticky;top:0;z-index:10}
-.mobile-nav button{white-space:nowrap;font-size:12px}
-.mobile-nav button.active{background:var(--accent);color:#000}
-
-/* Main */
-.main{padding:24px 28px 60px;max-width:800px}
-@media(max-width:700px){.main{padding:16px 14px 60px}}
-.page{display:none}
+/* Page */
+.page{display:none;max-width:680px;margin:0 auto;padding:40px 20px 80px}
 .page.active{display:block}
-.page-title{font-size:1.3rem;font-weight:600;margin-bottom:4px}
-.page-desc{font-size:0.8rem;color:var(--text3);margin-bottom:24px}
 
-/* Cards */
-.card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:16px;margin-bottom:12px}
-.card h4{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
-.card p{font-size:13px;line-height:1.7;color:var(--text2)}
-.card-row{display:flex;gap:12px;margin-bottom:12px}
-@media(max-width:600px){.card-row{flex-direction:column}}
-.card-row .card{flex:1}
+/* Typography — like a doc */
+h1{font-size:28px;font-weight:normal;margin-bottom:4px;color:#fff}
+h2{font-size:20px;font-weight:normal;margin:36px 0 12px;color:#e5e5e5;padding-bottom:6px;border-bottom:1px solid #2a2a2a}
+h3{font-size:16px;font-weight:600;margin:24px 0 8px;color:#ccc;font-family:-apple-system,sans-serif}
+.subtitle{color:#666;font-size:14px;font-style:italic;margin-bottom:32px}
+p{margin-bottom:14px;color:#aaa}
+strong{color:#d4d4d4}
+em{color:#888;font-style:italic}
 
-/* Editable field */
-.editable{min-height:60px;white-space:pre-wrap;font-size:13px;line-height:1.7;color:var(--text2);padding:8px 0}
-.editable:empty::before{content:attr(data-placeholder);color:var(--bg4)}
-.field-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+/* Editable blocks */
+.notes{background:transparent;border:none;color:#aaa;font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.8;width:100%;min-height:80px;resize:none;outline:none;padding:0}
+.notes:focus{color:#ccc}
+.notes::placeholder{color:#444}
 
-/* List items */
-.item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
-.item:last-child{border-bottom:none}
-.item-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
-.item-body{flex:1}
-.item-title{font-size:13px;font-weight:500}
-.item-desc{font-size:12px;color:var(--text3);margin-top:2px;line-height:1.5}
-.item-meta{font-size:11px;color:var(--bg4);margin-top:3px}
+/* Divider */
+hr{border:none;border-top:1px solid #2a2a2a;margin:28px 0}
 
-/* Pipeline */
-.pipeline{display:flex;gap:2px;margin:16px 0;height:6px;border-radius:3px;overflow:hidden}
-.pipe-seg{flex:1;background:var(--bg3);position:relative;cursor:pointer}
-.pipe-seg.done{background:var(--green)}
-.pipe-seg.current{background:var(--accent);animation:pulse-pipe 2s infinite}
-@keyframes pulse-pipe{0%,100%{opacity:1}50%{opacity:0.6}}
-.pipe-labels{display:flex;gap:2px;margin-bottom:16px}
-.pipe-label{flex:1;font-size:10px;color:var(--text3);text-align:center}
-.pipe-label.current{color:var(--accent);font-weight:600}
+/* Simple list */
+ul{list-style:none;margin-bottom:16px}
+ul li{padding:3px 0;color:#aaa}
+ul li::before{content:"— ";color:#555}
 
-/* Competitor card */
-.comp-card{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:10px}
-.comp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.comp-name{font-size:13px;font-weight:600}
-.comp-tag{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg3);color:var(--text3)}
-.comp-stats{display:flex;gap:16px;margin:8px 0}
-.comp-stat{font-size:11px;color:var(--text3)}
-.comp-stat span{color:var(--text);font-weight:500}
-.comp-notes{font-size:12px;color:var(--text3);line-height:1.5}
+/* Inline highlight */
+.num{color:#e5c07b;font-family:'SF Mono',Consolas,monospace;font-size:14px}
+.good{color:#98c379}
+.warn{color:#e5c07b}
+.bad{color:#e06c75}
 
-/* Scorecard */
-.score-table{width:100%;border-collapse:collapse;font-size:12px}
-.score-table th{text-align:left;padding:8px 10px;color:var(--text3);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--bg3);position:sticky;top:0;background:var(--bg2)}
-.score-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text2);vertical-align:top}
-.score-table tr:hover{background:rgba(255,255,255,0.02)}
-.score-table .idea-name{color:var(--text);font-weight:500}
-.score-cell{text-align:center;font-weight:600;font-size:13px}
-.s-green{color:var(--green)} .s-yellow{color:var(--accent)} .s-red{color:var(--red)} .s-gray{color:var(--text3)}
-.score-total{color:var(--accent2);font-size:15px;font-weight:700}
+/* Table */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;font-family:-apple-system,sans-serif}
+th{text-align:left;padding:8px 10px;color:#666;font-weight:normal;border-bottom:1px solid #333;font-size:12px}
+td{padding:8px 10px;border-bottom:1px solid #222;color:#999}
+td:first-child{color:#ccc}
+.sc{text-align:center;font-weight:600;font-size:14px}
 
-/* Big stat */
-.stat-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
-.stat-box{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:14px 16px}
-.stat-num{font-size:1.4rem;font-weight:700;margin-bottom:2px}
-.stat-label{font-size:11px;color:var(--text3)}
-.stat-sub{font-size:10px;color:var(--bg4);margin-top:2px}
+/* Competitor block */
+.comp{margin:16px 0;padding:16px 0;border-bottom:1px solid #222}
+.comp:last-child{border-bottom:none}
+.comp-name{color:#e5e5e5;font-size:16px}
+.comp-detail{color:#666;font-size:13px;font-family:-apple-system,sans-serif;margin-top:4px}
 
-/* Landscape */
-.landscape{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bg3);border:1px solid var(--bg3);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
-.landscape-quad{background:var(--bg2);padding:16px}
-.landscape-quad h5{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
-.landscape-quad .comp-pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;margin:2px;background:var(--bg3);color:var(--text2)}
-@media(max-width:500px){.landscape{grid-template-columns:1fr}}
-
-/* Status bar */
-.status-bar{background:var(--bg2);border:1px solid var(--bg3);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:flex;align-items:center;gap:14px}
-.status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.status-text{font-size:13px}
-.status-sub{font-size:12px;color:var(--text3);margin-top:2px}
-
-/* Add form */
-.add-row{display:flex;gap:8px;margin-top:12px}
-.add-row input{flex:1}
-
-/* Log entry */
-.log-entry{padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
-.log-date{font-size:11px;color:var(--accent);margin-bottom:4px}
-.log-text{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap}
-
-/* Numbers grid */
-.num-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-.num-card{background:var(--bg);border:1px solid var(--bg3);border-radius:var(--radius);padding:14px;text-align:center}
-.num-value{font-size:1.5rem;font-weight:700;color:var(--text)}
-.num-label{font-size:11px;color:var(--text3);margin-top:4px}
+/* Status */
+.status-line{background:#222;padding:12px 16px;border-radius:6px;margin-bottom:20px;font-family:-apple-system,sans-serif;font-size:13px;color:#999;border-left:3px solid #e5c07b}
 </style>
 </head>
 <body>
-<div class="app">
-  <!-- Sidebar -->
-  <nav class="sidebar">
-    <div class="sidebar-title">Venture</div>
-    <div class="nav-item active" onclick="showPage('thesis')">Why This</div>
-    <div class="nav-item" onclick="showPage('scorecard')">Scorecard</div>
-    <div class="nav-item" onclick="showPage('competitors')">Landscape</div>
-    <div class="nav-item" onclick="showPage('research')">Research</div>
-    <div class="nav-section">Ops</div>
-    <div class="nav-item" onclick="showPage('status')">Status</div>
-    <div class="nav-item" onclick="showPage('convos')">Log</div>
-    <div class="nav-item" onclick="showPage('decisions')">Decisions</div>
-    <div class="nav-section">Metrics</div>
-    <div class="nav-item" onclick="showPage('numbers')">Numbers</div>
-  </nav>
 
-  <!-- Mobile nav -->
-  <div class="mobile-nav">
-    <button class="active" onclick="showPage('thesis')">Why</button>
-    <button onclick="showPage('scorecard')">Score</button>
-    <button onclick="showPage('competitors')">Landscape</button>
-    <button onclick="showPage('research')">Research</button>
-    <button onclick="showPage('status')">Status</button>
-    <button onclick="showPage('convos')">Log</button>
-    <button onclick="showPage('numbers')">Numbers</button>
-  </div>
+<div class="tabs">
+  <div class="tab active" onclick="show('why')">Why This</div>
+  <div class="tab" onclick="show('ideas')">Ideas</div>
+  <div class="tab" onclick="show('competitors')">Competitors</div>
+  <div class="tab" onclick="show('research')">Research</div>
+  <div class="tab" onclick="show('log')">Log</div>
+</div>
 
-  <div class="main">
+<!-- WHY THIS -->
+<div id="why" class="page active">
+  <h1>Venture w/ Friend</h1>
+  <div class="subtitle">He sells. I build. Find the thing that prints.</div>
 
-    <!-- WHY THIS -->
-    <div id="thesis" class="page active">
-      <div class="page-title">Why This</div>
-      <div class="page-desc">The money is here. The timing is now. Here's why.</div>
+  <h2>The Setup</h2>
+  <p>He runs a dating app. Knows paid acquisition — how to buy attention and convert it. Claims he can sell to anyone. Women convert best for him.</p>
+  <p>I build fast. AI/tech. Can ship an MVP in days.</p>
+  <p>Together: find something with proven demand, build it quick, he runs ads, we measure, we scale or kill.</p>
 
-      <div class="stat-row">
-        <div class="stat-box"><div class="stat-num" style="color:var(--green)">$5B+</div><div class="stat-label">AI app revenue 2025</div><div class="stat-sub">Downloads doubled YoY</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--accent)">70-90%</div><div class="stat-label">SaaS margins</div><div class="stat-sub">Software = infinite margin</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--blue)">2 weeks</div><div class="stat-label">MVP to market</div><div class="stat-sub">AI tools let 2 people do what took 10</div></div>
-        <div class="stat-box"><div class="stat-num" style="color:var(--purple)">$500</div><div class="stat-label">To validate</div><div class="stat-sub">Ad test proves or kills the idea</div></div>
-      </div>
+  <h2>Why Software</h2>
+  <p>No inventory. No shipping. No suppliers. <span class="num">70-90%</span> margins. Build once, sell forever. The only cost is his ad spend and my time.</p>
 
-      <div class="card">
-        <h4>The Setup</h4>
-        <p><strong style="color:var(--text)">Him:</strong> Distribution. Ads. Funnels. Proven — runs a dating app. Knows how to buy attention and convert it.<br><br>
-        <strong style="color:var(--text)">You:</strong> Build speed. AI/tech. Can ship a working product in days, not months.<br><br>
-        <strong style="color:var(--text)">Together:</strong> Find something people already pay for → build it fast → he drives traffic → measure → scale or kill.</p>
-      </div>
+  <h2>Where The Money Is</h2>
+  <ul>
+    <li>AI apps crossed <span class="num">$5B</span> in revenue. Downloads doubled YoY.</li>
+    <li>Consumer subscription apps: <span class="num">$16B</span> through RevenueCat alone (115K apps)</li>
+    <li>Health & Fitness: <span class="num">2.9%</span> download-to-paid — best conversion of any category</li>
+    <li>AI companion market: <span class="num">$48.6B</span>, growing 31% CAGR</li>
+    <li>Women make <span class="num">60%</span> of social commerce purchases</li>
+    <li>Hard paywalls convert <span class="num">5x</span> better than freemium</li>
+    <li>Micro SaaS solo founders hitting <span class="num">$30K-$250K/mo</span></li>
+  </ul>
 
-      <div class="card">
-        <h4>Where The Money Is</h4>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">Consumer subscription apps</div><div class="item-desc">$16B through RevenueCat alone (115K apps). Health & Fitness has 2.9% download-to-paid — best of any category. Hard paywalls convert 5x better than freemium.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--accent)"></div><div class="item-body"><div class="item-title">AI companions & wellness</div><div class="item-desc">$48.6B market, 31% CAGR. Growing 2x faster than traditional mental health apps. Women are primary users.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--blue)"></div><div class="item-body"><div class="item-title">Micro SaaS (B2B tools)</div><div class="item-desc">Solo founders hitting $30K-$250K/mo. Testimonial.to: 1 person, built in a weekend, $30K MRR. Plausible: 2 people, $100K MRR.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--purple)"></div><div class="item-body"><div class="item-title">Women-focused products</div><div class="item-desc">60% of social commerce purchases. Flo: 52M downloads, $200M/yr. Co-Star: personality AI, $15M/yr. Noom: quiz funnel, $600M/yr. Women buy.</div></div></div>
-      </div>
+  <h2>The Criteria</h2>
+  <p>Every idea has to pass all five or we don't build it.</p>
+  <ul>
+    <li><strong>Proven demand</strong> — people already pay for this. We're not inventing a category.</li>
+    <li><strong>Mechanical marketing</strong> — more spend = more revenue. Not about creative genius. Turn the crank.</li>
+    <li><strong>15 seconds</strong> — if you can't show it in a short ad, you can't sell it mechanically.</li>
+    <li><strong>Recurring</strong> — subscription. LTV needs to be 3x+ acquisition cost.</li>
+    <li><strong>2-week buildable</strong> — if it takes longer, it's too complex for this model.</li>
+  </ul>
 
-      <div class="card">
-        <h4>Repeatable Business Criteria</h4>
-        <p style="color:var(--text3);margin-bottom:12px">Every idea gets scored against this. If it doesn't pass, we don't build it.</p>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">Mechanical marketing</div><div class="item-desc">More ad spend = more revenue. Linear. Not about creativity — about volume. Turn the crank.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">Proven demand</div><div class="item-desc">People already pay for this. We're not inventing a category. We're doing it better/cheaper/simpler.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">15-second explainable</div><div class="item-desc">If you can't show it in a TikTok ad, you can't sell it mechanically.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">Recurring revenue</div><div class="item-desc">Subscription > one-time. LTV needs to be 3x+ the cost to acquire.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">2-week buildable</div><div class="item-desc">If it takes longer than 2 weeks to get to testable, it's too complex for this model.</div></div></div>
-      </div>
-
-      <div class="card">
-        <h4>Open Questions</h4>
-        <div class="editable" contenteditable="true" data-placeholder="What we still need to figure out" data-key="thesis-questions">- What's his cheapest audience on ads?
-- What platform does he run? (Meta, TikTok, Google?)
-- What has he sold before — what worked, what didn't?
+  <h2>Open Questions</h2>
+  <textarea class="notes" data-key="why-questions" placeholder="Type here...">- What's his cheapest audience on ads?
+- What platform? Meta, TikTok, Google?
+- What's he tried selling before — what worked, what flopped?
 - Consumer app or B2B tool?
-- His honest take on what converts easiest?</div>
-      </div>
-    </div>
+- His honest take on what converts easiest?</textarea>
+</div>
 
-    <!-- SCORECARD -->
-    <div id="scorecard" class="page">
-      <div class="page-title">Scorecard</div>
-      <div class="page-desc">Rate each idea. Highest score = build first. Be honest.</div>
+<!-- IDEAS -->
+<div id="ideas" class="page">
+  <h1>Ideas</h1>
+  <div class="subtitle">Score them honestly. Highest score = build first.</div>
 
-      <div class="card" style="overflow-x:auto">
-        <table class="score-table">
-          <thead>
-            <tr>
-              <th>Idea</th>
-              <th>Proven Demand</th>
-              <th>Easy Ads</th>
-              <th>Recurring $</th>
-              <th>Build Speed</th>
-              <th>His Edge</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="idea-name">AI tool for niche profession<br><span style="font-size:10px;color:var(--text3)">Realtors, coaches, trainers — pick one</span></td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-yellow">3</td>
-              <td class="score-cell score-total">20</td>
-            </tr>
-            <tr>
-              <td class="idea-name">Personality/astrology AI app<br><span style="font-size:10px;color:var(--text3)">Co-Star but different vertical. Daily personalized content.</span></td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell score-total">22</td>
-            </tr>
-            <tr>
-              <td class="idea-name">Quiz funnel → subscription<br><span style="font-size:10px;color:var(--text3)">Noom model. "What type of X are you?" → plan → $$$</span></td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell s-yellow">3</td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell score-total">23</td>
-            </tr>
-            <tr>
-              <td class="idea-name">Micro SaaS (B2B)<br><span style="font-size:10px;color:var(--text3)">Testimonial collector, booking tool, review manager</span></td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-yellow">3</td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-red">2</td>
-              <td class="score-cell score-total">18</td>
-            </tr>
-            <tr>
-              <td class="idea-name">AI wellness companion<br><span style="font-size:10px;color:var(--text3)">Daily check-in, mood, personalized advice. $48B market.</span></td>
-              <td class="score-cell s-green">5</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell s-yellow">3</td>
-              <td class="score-cell s-green">4</td>
-              <td class="score-cell score-total">20</td>
-            </tr>
-            <tr style="background:rgba(255,255,255,0.02)">
-              <td class="idea-name" style="color:var(--text3)">Add your own idea...<br><span style="font-size:10px;color:var(--bg4)">Edit scores 1-5. 5 = perfect fit.</span></td>
-              <td class="score-cell s-gray">—</td>
-              <td class="score-cell s-gray">—</td>
-              <td class="score-cell s-gray">—</td>
-              <td class="score-cell s-gray">—</td>
-              <td class="score-cell s-gray">—</td>
-              <td class="score-cell s-gray">—</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <table>
+    <tr><th>Idea</th><th>Demand</th><th>Ads</th><th>Recurring</th><th>Speed</th><th>His Edge</th><th>Total</th></tr>
+    <tr><td>Quiz funnel → subscription<br><em>Noom model. "What type of X?" → plan → $$$</em></td><td class="sc good">5</td><td class="sc good">5</td><td class="sc good">5</td><td class="sc warn">3</td><td class="sc good">5</td><td class="sc" style="color:#e5c07b;font-size:16px">23</td></tr>
+    <tr><td>Personality AI app<br><em>Co-Star but different vertical. Daily content.</em></td><td class="sc good">5</td><td class="sc good">5</td><td class="sc good">4</td><td class="sc good">4</td><td class="sc good">4</td><td class="sc" style="color:#e5c07b;font-size:16px">22</td></tr>
+    <tr><td>AI tool for niche profession<br><em>Realtors, coaches, trainers — pick one</em></td><td class="sc good">4</td><td class="sc good">4</td><td class="sc good">5</td><td class="sc good">4</td><td class="sc warn">3</td><td class="sc">20</td></tr>
+    <tr><td>AI wellness companion<br><em>Daily check-in, mood, advice. $48B mkt.</em></td><td class="sc good">5</td><td class="sc good">4</td><td class="sc good">4</td><td class="sc warn">3</td><td class="sc good">4</td><td class="sc">20</td></tr>
+    <tr><td>Micro SaaS (B2B)<br><em>Testimonials, booking, reviews</em></td><td class="sc good">4</td><td class="sc warn">3</td><td class="sc good">5</td><td class="sc good">4</td><td class="sc bad">2</td><td class="sc">18</td></tr>
+  </table>
 
-      <div class="card">
-        <h4>Scoring Key</h4>
-        <p><span class="s-green">5</span> = slam dunk, proven, easy &nbsp;&nbsp; <span class="s-green">4</span> = strong &nbsp;&nbsp; <span class="s-yellow">3</span> = decent &nbsp;&nbsp; <span class="s-red">2</span> = weak &nbsp;&nbsp; <span class="s-red">1</span> = bad fit</p>
-        <p style="margin-top:8px;color:var(--text3)"><strong>Proven Demand:</strong> people already pay for this exact thing<br>
-        <strong>Easy Ads:</strong> obvious creative, targetable audience, mechanical scaling<br>
-        <strong>Recurring $:</strong> subscription/repeat revenue potential<br>
-        <strong>Build Speed:</strong> can ship MVP in ≤2 weeks<br>
-        <strong>His Edge:</strong> does his distribution skill specifically help here</p>
-      </div>
+  <p><em>Scoring: <span class="good">5</span> = slam dunk, <span class="good">4</span> = strong, <span class="warn">3</span> = decent, <span class="bad">2</span> = weak, <span class="bad">1</span> = don't bother</em></p>
 
-      <div class="card">
-        <h4>Current Leader</h4>
-        <p style="font-size:15px"><strong style="color:var(--accent2)">Quiz funnel → subscription (23/25)</strong></p>
-        <p style="margin-top:6px">Noom proved this prints money at $600M/yr. "What type of X are you?" → personalized plan → subscription. His ad skills map directly to quiz funnels. Only question: what topic? Health, skin, career, money, relationships?</p>
-      </div>
-    </div>
+  <h2>Leader: Quiz Funnel</h2>
+  <p>Noom does <span class="num">$600M/yr</span> with this exact model. 10-question quiz → personalized result → subscription. His ad skills map 1:1 to quiz funnels — high-converting landing page, clear CTA, retargetable.</p>
+  <p>The question: quiz about what? Health, skin, career, money, relationships, sleep, diet?</p>
 
-    <!-- RESEARCH -->
-    <div id="research" class="page">
-      <div class="page-title">Research</div>
-      <div class="page-desc">Links, screenshots, market data, things we find</div>
+  <h2>Add Ideas</h2>
+  <textarea class="notes" data-key="ideas-new" placeholder="New ideas go here..."></textarea>
+</div>
 
-      <div class="card">
-        <h4>Market Data</h4>
-        <div class="item"><div class="item-dot" style="background:var(--accent)"></div><div class="item-body"><div class="item-title">AI apps crossed $5B in IAP revenue</div><div class="item-desc">Generative AI is mainstream consumer spending category. Downloads doubled YoY.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">Health & Fitness: 2.9% download-to-paid conversion</div><div class="item-desc">Best conversion rate of any app category (RevenueCat 2026)</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--blue)"></div><div class="item-body"><div class="item-title">Hard paywalls convert 5x better than freemium</div><div class="item-desc">10.7% vs 2.1% trial-to-paid. Longer trials (17-32 days) convert at 42.5%.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--purple)"></div><div class="item-body"><div class="item-title">AI Companion market: $48.6B, 31% CAGR</div><div class="item-desc">More than double growth rate of traditional mental health apps.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--accent)"></div><div class="item-body"><div class="item-title">Women drive 60% of in-app purchases on social shopping</div><div class="item-desc">Instagram Shops, Pinterest, TikTok Shops — women dominate.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">55+ age group: HALF of all US consumer spending</div><div class="item-desc">Hugely underserved online. Diabetic socks brand doing $700K/mo.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--blue)"></div><div class="item-body"><div class="item-title">Micro SaaS: $5K-$250K MRR with 1-5 people</div><div class="item-desc">70%+ margins. Testimonial.to: built in a weekend, $30K+/mo. Nomad List: $5.3M/yr.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--purple)"></div><div class="item-body"><div class="item-title">Femtech: strongest growth category 2026</div><div class="item-desc">Flo: 52M downloads. Cycle tracking, hormone health, menopause. Personalization is #1 trend.</div></div></div>
-      </div>
+<!-- COMPETITORS -->
+<div id="competitors" class="page">
+  <h1>Competitors</h1>
+  <div class="subtitle">What they do, what they charge, what to steal.</div>
 
-      <div class="card">
-        <h4>Links & Resources</h4>
-        <div class="editable" contenteditable="true" data-placeholder="Paste links, notes, anything you find..." data-key="research-links">RevenueCat State of Subscription Apps 2026: https://www.revenuecat.com/state-of-subscription-apps/
-Top Trending Apps: https://www.appbrain.com/apps/trending
-Micro SaaS examples with revenue: https://microsaashq.com/insights/top-20-saas-ideas-to-build-in-2026-with-real-revenue-examples
-Underserved niches: https://mktclarity.com/blogs/news/list-underserved-niches</div>
-      </div>
-
-      <div class="card">
-        <h4>Dump Zone</h4>
-        <div class="editable" contenteditable="true" data-placeholder="Random ideas, screenshots descriptions, thoughts..." data-key="research-dump" style="min-height:100px"></div>
-      </div>
-    </div>
-
-    <!-- LANDSCAPE -->
-    <div id="competitors" class="page">
-      <div class="page-title">Landscape</div>
-      <div class="page-desc">Where everyone is — and where the white space is</div>
-
-      <div class="landscape">
-        <div class="landscape-quad">
-          <h5>High Revenue + Easy Ads</h5>
-          <span class="comp-pill" style="background:rgba(34,197,94,0.15);color:var(--green)">Noom $600M</span>
-          <span class="comp-pill" style="background:rgba(34,197,94,0.15);color:var(--green)">Flo $200M</span>
-          <span class="comp-pill" style="background:rgba(34,197,94,0.15);color:var(--green)">Calm $300M</span>
-          <span class="comp-pill">BetterHelp</span>
-          <span class="comp-pill">Hims/Hers</span>
-        </div>
-        <div class="landscape-quad">
-          <h5>High Revenue + Hard to Replicate</h5>
-          <span class="comp-pill">TikTok $3.3B</span>
-          <span class="comp-pill">Tinder $1.8B</span>
-          <span class="comp-pill">Spotify</span>
-          <span class="comp-pill">DramaBox 178M dl</span>
-        </div>
-        <div class="landscape-quad">
-          <h5 style="color:var(--accent)">Low Revenue + Easy Ads (OUR ZONE)</h5>
-          <span class="comp-pill" style="background:rgba(245,158,11,0.15);color:var(--accent)">Co-Star $15M</span>
-          <span class="comp-pill" style="background:rgba(245,158,11,0.15);color:var(--accent)">Quiz funnels</span>
-          <span class="comp-pill" style="background:rgba(245,158,11,0.15);color:var(--accent)">Niche AI tools</span>
-          <span class="comp-pill" style="background:rgba(245,158,11,0.15);color:var(--accent)">Template stores</span>
-        </div>
-        <div class="landscape-quad">
-          <h5>Small + Defensible (Micro SaaS)</h5>
-          <span class="comp-pill">Testimonial.to $30K</span>
-          <span class="comp-pill">Plausible $100K</span>
-          <span class="comp-pill">Nomad List $5.3M</span>
-          <span class="comp-pill">Carrd</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <h4>The Models That Print Money</h4>
-        <div class="comp-card" style="margin:0 0 8px">
-          <div class="comp-header"><span class="comp-name">Noom</span><span class="comp-tag" style="background:rgba(34,197,94,0.15);color:var(--green)">$600M/yr</span></div>
-          <div class="comp-stats"><div class="comp-stat">Model: <span>Quiz → plan → $59/mo</span></div><div class="comp-stat">CAC: <span>$100-200</span></div><div class="comp-stat">Audience: <span>Women 25-55</span></div></div>
-          <div class="comp-notes"><strong style="color:var(--text)">What to steal:</strong> The quiz funnel. 10-question quiz = high engagement → personalized result = high conversion → subscription = recurring $. His ad skills map 1:1 to this.</div>
-        </div>
-        <div class="comp-card" style="margin:0 0 8px">
-          <div class="comp-header"><span class="comp-name">Co-Star</span><span class="comp-tag" style="background:rgba(139,92,246,0.15);color:var(--purple)">$15M/yr</span></div>
-          <div class="comp-stats"><div class="comp-stat">Model: <span>Daily AI content → $2.99/mo</span></div><div class="comp-stat">Users: <span>~5M</span></div><div class="comp-stat">Audience: <span>Women 18-30</span></div></div>
-          <div class="comp-notes"><strong style="color:var(--text)">What to steal:</strong> Personality-driven daily content is crack for retention. AI generates it for free. The topic doesn't have to be astrology — could be anything personal and shareable.</div>
-        </div>
-        <div class="comp-card" style="margin:0 0 8px">
-          <div class="comp-header"><span class="comp-name">Calm</span><span class="comp-tag" style="background:rgba(59,130,246,0.15);color:var(--blue)">$300M/yr</span></div>
-          <div class="comp-stats"><div class="comp-stat">Model: <span>Content library → $14.99/mo</span></div><div class="comp-stat">Audience: <span>Adults 25-50</span></div></div>
-          <div class="comp-notes"><strong style="color:var(--text)">What to steal:</strong> Daily habit = retention. Sleep stories, meditations = content moat. But AI can make this 10x more personalized at 1/100th the content cost. No celebrity deals needed.</div>
-        </div>
-        <div class="comp-card" style="margin:0 0 8px">
-          <div class="comp-header"><span class="comp-name">Hims / Hers</span><span class="comp-tag" style="background:rgba(244,114,182,0.15);color:var(--pink,#f472b6)">$1B+/yr</span></div>
-          <div class="comp-stats"><div class="comp-stat">Model: <span>Quiz → consult → subscription products</span></div><div class="comp-stat">CAC: <span>~$50-80</span></div><div class="comp-stat">Audience: <span>Women (Hers) + Men (Hims)</span></div></div>
-          <div class="comp-notes"><strong style="color:var(--text)">What to steal:</strong> Telehealth quiz funnel. Feels medical = trust = high willingness to pay. But we'd do digital product not physical — no pharmacy, no inventory.</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h4>Gaps We See</h4>
-        <div class="editable" contenteditable="true" data-placeholder="What's missing? Where are competitors weak?" data-key="comp-gaps">- Noom is $59/mo — there's room for a $9.99/mo version in a different vertical
-- Co-Star only does astrology — the daily personality AI model works for other topics
-- Calm's content is generic — AI personalization is barely used in wellness
-- Most quiz funnels sell to women 25-45 in health — other niches are wide open
-- Nobody is doing "quiz → AI companion" — combining the two highest-performing models</div>
-      </div>
-
-      <div class="card">
-        <h4>Add Competitor</h4>
-        <div class="editable" contenteditable="true" data-placeholder="Paste competitor info, links, screenshots..." data-key="comp-add" style="min-height:60px"></div>
-      </div>
-    </div>
-
-    <!-- STATUS -->
-    <div id="status" class="page">
-      <div class="page-title">Status</div>
-      <div class="page-desc">Where we are right now</div>
-
-      <div class="status-bar">
-        <div class="status-dot" style="background:var(--accent);animation:pulse-pipe 2s infinite"></div>
-        <div>
-          <div class="status-text"><strong>Exploring ideas.</strong> Haven't picked a direction yet.</div>
-          <div class="status-sub">Blocker: need specifics from friend's ad experience</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h4>Right Now</h4>
-        <div class="item"><div class="item-dot" style="background:var(--red)"></div><div class="item-body"><div class="item-title">Call friend — get real numbers</div><div class="item-desc">What platform? What audience costs him least? What's he tried before? What converted?</div><div class="item-meta">This is the blocker for everything else</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--accent)"></div><div class="item-body"><div class="item-title">Score ideas on the scorecard</div><div class="item-desc">Go to Scorecard tab, rate honestly. Update after call with friend's input.</div></div></div>
-      </div>
-
-      <div class="card">
-        <h4>After We Pick</h4>
-        <div class="item"><div class="item-dot" style="background:var(--bg4)"></div><div class="item-body"><div class="item-title">Landing page + $200 ad test</div><div class="item-desc">Does the audience even click? Kill if <2% signup rate.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--bg4)"></div><div class="item-body"><div class="item-title">Build MVP — 2 weeks max</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--bg4)"></div><div class="item-body"><div class="item-title">$500 real ad test with working product</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--bg4)"></div><div class="item-body"><div class="item-title">Hit benchmarks → scale</div><div class="item-desc">CPA < $5, trial conversion > 10%, LTV:CAC > 3:1</div></div></div>
-      </div>
-
-      <div class="card">
-        <h4>Notes</h4>
-        <div class="editable" contenteditable="true" data-placeholder="What happened? What changed?" data-key="status-notes"></div>
-      </div>
-    </div>
-
-    <!-- CONVERSATIONS -->
-    <div id="convos" class="page">
-      <div class="page-title">Conversations</div>
-      <div class="page-desc">What we discussed, decided, left open</div>
-
-      <div class="card">
-        <h4>Add Entry</h4>
-        <div class="editable" contenteditable="true" data-placeholder="What happened today? What did you discuss? What was decided?" data-key="convos-new" style="min-height:80px"></div>
-      </div>
-
-      <div class="card">
-        <h4>Log</h4>
-        <div class="log-entry">
-          <div class="log-date">Apr 21, 2026</div>
-          <div class="log-text">Initial brainstorm. He has a dating app, good at distribution/ads. Wants to do a project together. Key insight: women are easiest to sell to. We want software — zero inventory, infinite margin. Need to find the thing where marketing is mechanical, not creative. More spend = more money.
-
-His claim: can sell to anyone. My job: build fast.
-
-Open: need to get on a call and get his specifics — what platform, what audience, what's worked before.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- DECISIONS -->
-    <div id="decisions" class="page">
-      <div class="page-title">Decisions</div>
-      <div class="page-desc">What's been decided and what's still open</div>
-
-      <div class="card">
-        <h4>Decided</h4>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">Software, not physical products</div><div class="item-desc">Zero inventory, zero shipping, infinite margin. Physical is backup plan.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">Must be mechanically marketable</div><div class="item-desc">Not about creative genius. More spend = more revenue, linearly.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">MVP in 2 weeks, $500 ad test</div><div class="item-desc">Fast validation. Kill bad ideas quickly.</div></div></div>
-      </div>
-
-      <div class="card">
-        <h4>Open</h4>
-        <div class="item"><div class="item-dot" style="background:var(--accent)"></div><div class="item-body"><div class="item-title">Consumer app vs B2B SaaS</div><div class="item-desc">Consumer = bigger scale, B2B = higher LTV. Depends on his ad audience.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--accent)"></div><div class="item-body"><div class="item-title">Which audience / niche</div><div class="item-desc">Women? Seniors? Specific profession? Need his data on cheapest audience.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--accent)"></div><div class="item-body"><div class="item-title">Subscription vs one-time</div><div class="item-desc">Subscription = recurring revenue but harder to sell. One-time = easier conversion but need volume.</div></div></div>
-      </div>
-    </div>
-
-    <!-- NUMBERS -->
-    <div id="numbers" class="page">
-      <div class="page-title">Numbers</div>
-      <div class="page-desc">Live when we start testing</div>
-
-      <div class="num-grid">
-        <div class="num-card"><div class="num-value" style="color:var(--text3)">—</div><div class="num-label">Ad Spend</div></div>
-        <div class="num-card"><div class="num-value" style="color:var(--text3)">—</div><div class="num-label">Clicks</div></div>
-        <div class="num-card"><div class="num-value" style="color:var(--text3)">—</div><div class="num-label">CPA</div></div>
-        <div class="num-card"><div class="num-value" style="color:var(--text3)">—</div><div class="num-label">Signups</div></div>
-        <div class="num-card"><div class="num-value" style="color:var(--text3)">—</div><div class="num-label">Conversion %</div></div>
-        <div class="num-card"><div class="num-value" style="color:var(--text3)">—</div><div class="num-label">Revenue</div></div>
-        <div class="num-card"><div class="num-value" style="color:var(--text3)">—</div><div class="num-label">LTV</div></div>
-        <div class="num-card"><div class="num-value" style="color:var(--text3)">—</div><div class="num-label">LTV:CAC Ratio</div></div>
-      </div>
-
-      <div class="card" style="margin-top:16px">
-        <h4>Target Benchmarks</h4>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">CPA under $5</div><div class="item-desc">Cost per acquisition. Above $10 = rethink the funnel or audience.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">Trial-to-paid > 10%</div><div class="item-desc">Hard paywall benchmark. Freemium target is >2%.</div></div></div>
-        <div class="item"><div class="item-dot" style="background:var(--green)"></div><div class="item-body"><div class="item-title">LTV:CAC > 3:1</div><div class="item-desc">Golden ratio. Below 2:1 = not sustainable.</div></div></div>
-      </div>
-    </div>
-
+  <div class="comp">
+    <div class="comp-name">Noom — <span class="num">$600M/yr</span></div>
+    <div class="comp-detail">Quiz → personalized weight plan → $59/mo. CAC $100-200. Women 25-55.</div>
+    <p><strong>Steal:</strong> The quiz funnel. 10 questions = engagement → personalized result = trust → subscription = recurring. His ad skills map perfectly.</p>
   </div>
+
+  <div class="comp">
+    <div class="comp-name">Co-Star — <span class="num">$15M/yr</span></div>
+    <div class="comp-detail">Daily AI astrology content → $2.99/mo. ~5M users. Women 18-30.</div>
+    <p><strong>Steal:</strong> Personality-driven daily content = retention crack. AI generates it free. Topic doesn't have to be astrology — anything personal + shareable.</p>
+  </div>
+
+  <div class="comp">
+    <div class="comp-name">Calm — <span class="num">$300M/yr</span></div>
+    <div class="comp-detail">Sleep stories, meditations → $14.99/mo. Adults 25-50.</div>
+    <p><strong>Steal:</strong> Daily habit = retention. But their content is generic. AI personalization barely used in wellness. Room to do this 10x better at 1/100th cost.</p>
+  </div>
+
+  <div class="comp">
+    <div class="comp-name">Hims/Hers — <span class="num">$1B+/yr</span></div>
+    <div class="comp-detail">Quiz → telehealth consult → subscription products. CAC $50-80.</div>
+    <p><strong>Steal:</strong> Medical framing = trust = willingness to pay. We'd do digital-only though — no pharmacy, no inventory.</p>
+  </div>
+
+  <div class="comp">
+    <div class="comp-name">Flo — <span class="num">$200M/yr</span></div>
+    <div class="comp-detail">Period/fertility tracker → $9.99/mo. 52M downloads.</div>
+    <p><strong>Steal:</strong> Daily use = sticky. Personalization is the moat. Women will pay for anything that helps them understand their body.</p>
+  </div>
+
+  <div class="comp">
+    <div class="comp-name">Testimonial.to — <span class="num">$30K/mo</span></div>
+    <div class="comp-detail">1 person. Built in a weekend. Collects video testimonials. $50/mo.</div>
+    <p><strong>Steal:</strong> Proof that a tiny tool with clear value = real money. No VC, no team, just solve one problem well.</p>
+  </div>
+
+  <h2>Gaps</h2>
+  <textarea class="notes" data-key="comp-gaps" placeholder="What's missing in the market?">- Noom is $59/mo — room for $9.99 version in different vertical
+- Co-Star only does astrology — daily AI model works for other topics
+- Calm is generic — AI personalization barely used
+- Nobody combines quiz funnel + AI companion (two best-performing models)
+- Most quiz funnels target women in health — other niches wide open</textarea>
+
+  <h2>Add More</h2>
+  <textarea class="notes" data-key="comp-new" placeholder="Paste competitors, links, notes..."></textarea>
+</div>
+
+<!-- RESEARCH -->
+<div id="research" class="page">
+  <h1>Research</h1>
+  <div class="subtitle">Links, data, things we find.</div>
+
+  <h2>Key Sources</h2>
+  <ul>
+    <li><a href="https://www.revenuecat.com/state-of-subscription-apps/">RevenueCat — State of Subscription Apps 2026</a></li>
+    <li><a href="https://www.appbrain.com/apps/trending">AppBrain — Trending Apps April 2026</a></li>
+    <li><a href="https://microsaashq.com/insights/top-20-saas-ideas-to-build-in-2026-with-real-revenue-examples">MicroSaaSHQ — 20 SaaS ideas with real revenue</a></li>
+    <li><a href="https://mktclarity.com/blogs/news/list-underserved-niches">Market Clarity — 21 Underserved Niches</a></li>
+    <li><a href="https://www.businessofapps.com/data/most-popular-apps/">Business of Apps — Most Popular 2026</a></li>
+    <li><a href="https://asoworld.com/blog/top-earning-apps-in-2026-which-app-categories-make-the-most-money/">Top Earning App Categories 2026</a></li>
+  </ul>
+
+  <h2>Quick Stats</h2>
+  <ul>
+    <li>ChatGPT: 55.9M downloads in Jan 2026 alone</li>
+    <li>Short-form drama apps (DramaBox 178M, ReelShort 148M) came from nowhere</li>
+    <li>Femtech = strongest growth category 2026</li>
+    <li>AI music creation = biggest category shift</li>
+    <li>55+ age group = half of all US consumer spending, hugely underserved</li>
+    <li>Longer trials (17-32 days) convert at 42.5% vs 25.5% for short trials</li>
+    <li>Median Y1 revenue per payer in NA: $32</li>
+    <li>90th percentile apps growing 306%+ YoY</li>
+  </ul>
+
+  <h2>Dump Zone</h2>
+  <textarea class="notes" data-key="research-dump" placeholder="Paste anything here — links, screenshots, random thoughts..." style="min-height:150px"></textarea>
+</div>
+
+<!-- LOG -->
+<div id="log" class="page">
+  <h1>Log</h1>
+  <div class="subtitle">What happened, what we decided, what's still open.</div>
+
+  <div class="status-line">Now: exploring ideas. Blocker: need call with friend to get his ad specifics.</div>
+
+  <h2>New Entry</h2>
+  <textarea class="notes" data-key="log-new" placeholder="What happened today? What did you discuss?" style="min-height:100px"></textarea>
+
+  <hr>
+
+  <h3>Apr 21, 2026</h3>
+  <p>Initial brainstorm. He has a dating app, good at distribution/ads. Wants to do a project together.</p>
+  <p>Key insight: women are easiest to sell to. We want software — zero inventory, infinite margin. Marketing needs to be mechanical — more spend = more money, not about being creative.</p>
+  <p>Looked at what's working: AI apps ($5B), subscription apps ($16B through RevenueCat), quiz funnels (Noom $600M). Scored ideas — quiz funnel leads at 23/25.</p>
+  <p><strong>Decided:</strong> software only. Must be mechanically marketable. MVP in 2 weeks. $500 ad test validates.</p>
+  <p><strong>Open:</strong> need his specific ad platform, cheapest audience, what's worked before. That call determines everything.</p>
+
+  <hr>
+
+  <h3>Previous</h3>
+  <textarea class="notes" data-key="log-prev" placeholder="Older entries..."></textarea>
 </div>
 
 <script>
-function showPage(id) {
+function show(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll('.mobile-nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  // Sidebar
-  document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.textContent.toLowerCase().includes(id.substring(0,4))) n.classList.add('active');
-  });
-  // Mobile
-  document.querySelectorAll('.mobile-nav button').forEach(b => {
-    if (b.textContent.toLowerCase().includes(id.substring(0,4))) b.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => {
+    if (t.textContent.toLowerCase().replace(/\s/g,'').includes(id.replace(/\s/g,'').substring(0,3))) t.classList.add('active');
   });
   window.scrollTo(0,0);
 }
 
-// Auto-save editable fields to localStorage
-document.querySelectorAll('.editable').forEach(el => {
+// Better tab matching
+document.querySelectorAll('.tab').forEach((t,i) => {
+  const pages = ['why','ideas','competitors','research','log'];
+  t.onclick = () => show(pages[i]);
+});
+
+// Auto-save textareas
+document.querySelectorAll('.notes').forEach(el => {
   const key = el.dataset.key;
   if (key) {
-    const saved = localStorage.getItem('venture-' + key);
-    if (saved) el.textContent = saved;
-    el.addEventListener('input', () => {
-      localStorage.setItem('venture-' + key, el.textContent);
-    });
+    const saved = localStorage.getItem('v-'+key);
+    if (saved) el.value = saved;
+    el.addEventListener('input', () => localStorage.setItem('v-'+key, el.value));
   }
 });
 </script>
