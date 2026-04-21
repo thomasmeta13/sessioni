@@ -126,6 +126,78 @@ header span{font-size:0.75rem;color:var(--text3);letter-spacing:1px}
 <script>
 const PROJECTS = [
   {
+    id: 'venture',
+    title: 'Venture w/ Friend',
+    desc: 'Software product — he does distribution/ads, you build. Find the thing that prints.',
+    tag: 'Startup', tagColor: '#f59e0b',
+    status: 'Exploring', statusColor: '#fbbf24',
+    img: '',
+    subtitle: 'His distribution + your build speed. Proven demand + mechanical marketing. Turn the crank.',
+    tabs: [
+      {
+        name: 'Criteria',
+        content: `
+          <div class="section">
+            <h4>What We Need</h4>
+            <p><strong>1. Proven demand</strong> — people already buy this. Not inventing a category.<br>
+            <strong>2. Mechanical marketing</strong> — more spend = more revenue. Not about creativity, about volume.<br>
+            <strong>3. Obvious ad creative</strong> — can explain in 15 seconds, before/after or "look what this does"<br>
+            <strong>4. Software preferred</strong> — zero inventory, zero shipping, infinite margin, you just build it<br>
+            <strong>5. Easy to target</strong> — know exactly WHO and WHERE to reach them</p>
+          </div>
+          <div class="section">
+            <h4>His Edge</h4>
+            <p>Runs a dating app. Knows paid acquisition. Claims he can sell to anyone. Good at distribution and ad funnels.</p>
+          </div>
+          <div class="section">
+            <h4>Your Edge</h4>
+            <p>Can build fast. AI/tech skills. Ship MVP in days. Palantir background = systems thinking.</p>
+          </div>
+        `
+      },
+      {
+        name: 'Software Ideas',
+        content: `
+          <div class="section">
+            <h4>High-Conviction Software Plays</h4>
+            ${task(1,'AI tool for a specific profession','Pick ONE niche (realtors, coaches, salons, trainers). Build the tool they need. Ads target that profession directly.','Research: which profession has money, buys software, and is reachable via ads?','high')}
+            ${task(2,'Subscription content/community app','Women-focused: astrology, wellness, fitness, relationships. AI generates personalized daily content. $9.99/mo.','Look at what Co-Star, Flo, Calm charge and how they acquire','high')}
+            ${task(3,'Quiz-to-product funnel','Viral quiz ("What type of X are you?") → personalized result → subscription or one-time purchase. High conversion.','Study how Noom, skincare brands use quiz funnels','med')}
+            ${task(4,'Micro SaaS for businesses','Small tool solving one painful problem. Testimonial collection, review management, booking. $29-99/mo.','Browse micro SaaS examples: Testimonial.to ($30K/mo), Plausible ($100K MRR)','med')}
+          </div>
+        `
+      },
+      {
+        name: 'Physical Backup',
+        content: `
+          <div class="section">
+            <h4>If Software Doesn't Click — Physical Products</h4>
+            <p>Dropship or white-label. His ads drive traffic, Shopify store fulfills.</p>
+            ${task(1,'Senior health products','Diabetic socks ($700K/mo brand exists), foot care, mobility aids. Facebook ads to 55+. Boring but proven.','Research suppliers on AliExpress/SourcInBox for senior niche','low')}
+            ${task(2,'Women impulse products','Shapewear (26M sold on Shopify 2024), skincare, hair tools. TikTok/Instagram ads. 55-80% margins.','Check trending products on TikTok Shop','low')}
+            ${task(3,'Eco pet products','$261B industry. Biodegradable bags, hemp collars. 30-60% margins. $5-20K/mo stores.','Look at Shopify pet stores doing well','low')}
+          </div>
+        `
+      },
+      {
+        name: 'Next Steps',
+        content: `
+          <div class="section">
+            <h4>Immediate Actions</h4>
+            ${task(1,'Talk to friend — get specifics','What platform does he run ads on? What audience is cheapest? Has he sold physical or only apps?','Call him this week','high')}
+            ${task(2,'Pick ONE direction','Software app vs SaaS tool vs physical product. Decide based on his ad platform + audience.','After the call','high')}
+            ${task(3,'Build MVP in 2 weeks','Whatever you pick, ship something testable in 14 days. Landing page + core feature.','Block 2 weeks for this','high')}
+            ${task(4,'Run $500 ad test','Friend runs ads to the MVP. Measure: CPA, trial conversion, retention.','After MVP ships','high')}
+          </div>
+          <div class="section">
+            <h4>The Key Question</h4>
+            <p>The product follows the distribution. His cheapest audience determines what you sell. Don't pick the product first — pick the audience he can reach for under $2/click, then figure out what they need.</p>
+          </div>
+        `
+      }
+    ]
+  },
+  {
     id: 'swamp',
     title: 'SWAMP',
     desc: 'Playable album — frog action game where the music reacts to your gameplay',
